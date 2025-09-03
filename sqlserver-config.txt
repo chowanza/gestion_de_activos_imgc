@@ -1,0 +1,12 @@
+# Configuración para SQL Server
+# Copia este contenido a tu archivo .env
+
+DATABASE_URL="sqlserver://localhost:1433;database=ventory;user=sa;password=TuPassword123!;encrypt=true;trustServerCertificate=true"
+JWT_SECRET_KEY=mi-clave-super-secreta-para-jwt-muy-larga-y-aleatoria-123456789
+NEXT_PUBLIC_URL=http://localhost:3000
+
+# Instrucciones:
+# 1. Reemplaza "TuPassword123!" con tu contraseña real de SQL Server
+# 2. Si usas un puerto diferente, cambia 1433
+# 3. Si usas autenticación de Windows, cambia la cadena de conexión
+
