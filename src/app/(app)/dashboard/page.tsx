@@ -219,6 +219,9 @@ export default function InventoryDashboard() {
   return (
     <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
       <div className="container mx-auto p-4 relative z-10">
+        {/* Dashboard Title */}
+        <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>
+        
         {/* Main Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
@@ -608,7 +611,7 @@ function StatCard({
   const colorClasses = getColorClasses()
 
   return (
-    <Card className={`bg-white border-gray-200 shadow-lg overflow-hidden relative`}>
+    <Card className={`bg-gray-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] overflow-hidden relative`}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm text-gray-600">{title}</div>
@@ -616,14 +619,8 @@ function StatCard({
         </div>
 
         <div className="space-y-2">
-          <div className="text-3xl font-bold text-gray-900">{value.toLocaleString()}</div>
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">{description}</div>
-            <div className={`flex items-center text-xs ${trend >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {trend >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-              {Math.abs(trend)}%
-            </div>
-          </div>
+          <div className="text-4xl font-bold text-gray-700">{value.toLocaleString()}</div>
+
         </div>
       </CardContent>
     </Card>
