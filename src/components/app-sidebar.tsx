@@ -82,13 +82,13 @@ useEffect(() => {
       className="bg-[#000000] border-r border-gray-800"
       {...props}
     >
-      <SidebarHeader className="bg-[#000000]">
+      <SidebarHeader className="bg-[#000000] px-4 py-11">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/dashboard" className="flex items-center gap-2">
                     {/* Logo iMGC personalizado */}
-                <div className="flex items-center">
+                <div className="flex items-center px-2">
                   <img src="/img/logo.png" alt="Logo" className="w-30 h-8" />
               </div>
               </Link>
@@ -96,10 +96,10 @@ useEffect(() => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="bg-[#000000]">
+      <SidebarContent className="bg-[#000000] px-4 py-2">
         <NavMain items={filteredNavMain} />
       </SidebarContent>
-      <SidebarFooter className="bg-[#000000]">
+      <SidebarFooter className="bg-[#000000] px-8 py-10">
         <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>

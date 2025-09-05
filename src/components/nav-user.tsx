@@ -39,7 +39,7 @@ export function NavUser({ user }: NavUserProps) {
     <SidebarMenu>
       <SidebarMenuItem className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2 flex-1">
-          <Avatar className="h-8 w-8 rounded-lg">
+          <Avatar className="h-8 w-8 rounded-3xl">
             <AvatarImage src={user.avatar} alt={user.username} />
             <AvatarFallback className="rounded-lg">
               {user.username.charAt(0)}
@@ -57,7 +57,7 @@ export function NavUser({ user }: NavUserProps) {
           className="ml-2 p-2 rounded hover:bg-white/10 text-white"
           aria-label="Logout"
         >
-          <LogOut className="size-4" />
+          <LogOut className="size-5" />
         </button>
       </SidebarMenuItem>
     </SidebarMenu>

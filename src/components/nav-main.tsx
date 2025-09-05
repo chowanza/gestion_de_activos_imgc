@@ -40,7 +40,7 @@ export function NavMain({
                 <SidebarMenuButton 
                   className={cn(
                     // Clases base para todos los botones
-                    "transition-colors duration-150 rounded-lg",
+                    "transition-colors duration-150 rounded-3xl py-5",
                     // Clases para el estado ACTIVO - fondo blanco con texto naranja
                     isActive && "bg-white text-[#EA7704]",
                     // Clases para el estado HOVER (cuando NO está activo) - texto blanco
@@ -53,7 +53,7 @@ export function NavMain({
                   asChild
                 >
                   <Link href={item.url} className="flex items-center gap-2">
-                    {item.icon && <item.icon className="h-4 w-4" />}
+                    {item.icon && <item.icon className="h-5 w-5" />}
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>

@@ -237,9 +237,9 @@ const departamentoTag = (
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center space-x-2">
-              <Cpu className="h-8 w-8 text-cyan-500" />
+              <Cpu className="h-8 w-8 text-orange-500" />
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-blue-500 bg-clip-text text-transparent">
                   {equipo?.modelo.nombre}
                 </h1>
                 <p className="text-sm text-slate-400">ID: {equipo.id}</p>
@@ -321,7 +321,7 @@ const departamentoTag = (
               <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-slate-100 text-base flex items-center">
-                    <Zap className="mr-2 h-4 w-4 text-cyan-500" />
+                    <Zap className="mr-2 h-4 w-4 text-orange-500" />
                     Sistemas
                   </CardTitle>
                 </CardHeader>
@@ -329,7 +329,7 @@ const departamentoTag = (
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-slate-400">SO</span>
-                      <span className="text-sm text-cyan-400">{equipo.sisOperativo}</span>
+                      <span className="text-sm text-orange-400">{equipo.sisOperativo}</span>
                     </div>
                   </div>
 
@@ -376,25 +376,25 @@ const departamentoTag = (
               <TabsList className="bg-slate-800/50 p-1 mb-6">
                 <TabsTrigger
                   value="overview"
-                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
+                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
                 >
                   Resumen
                 </TabsTrigger>
                 <TabsTrigger
                   value="specifications"
-                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
+                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
                 >
                   Especificaciones
                 </TabsTrigger>
                 <TabsTrigger
                   value="users"
-                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
+                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
                 >
                   Usuarios
                 </TabsTrigger>
                 <TabsTrigger
                   value="history"
-                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
+                  className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
                 >
                   Historial
                 </TabsTrigger>
@@ -406,7 +406,7 @@ const departamentoTag = (
                   <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                     <CardHeader className="border-b border-slate-700/50 pb-3">
                       <CardTitle className="text-slate-100 flex items-center">
-                        <Monitor className="mr-2 h-5 w-5 text-cyan-500" />
+                        <Monitor className="mr-2 h-5 w-5 text-orange-500" />
                         Información General
                       </CardTitle>
                     </CardHeader>
@@ -454,7 +454,7 @@ const departamentoTag = (
                               <Link href={`/computadores/${equipo.id}/editar`}
                                className="h-auto py-4 px-4 border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 flex flex-col items-center space-y-2"
                               >
-                                <Edit className="h-6 w-6 text-cyan-500" />
+                                <Edit className="h-6 w-6 text-orange-500" />
                                 <span className="text-xs">Editar</span>
                               </Link>
                             </TooltipTrigger>
@@ -525,7 +525,7 @@ const departamentoTag = (
                 <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader className="border-b border-slate-700/50 pb-3">
                     <CardTitle className="text-slate-100 flex items-center">
-                      <Cpu className="mr-2 h-5 w-5 text-cyan-500" />
+                      <Cpu className="mr-2 h-5 w-5 text-orange-500" />
                       Especificaciones Técnicas
                     </CardTitle>
                   </CardHeader>
@@ -540,7 +540,7 @@ const departamentoTag = (
                               </p>
                               <p className="text-sm text-slate-200">{value}</p>
                             </div>
-                            <div className="text-cyan-500">
+                            <div className="text-orange-500">
                               {key === "Serial" && <BarcodeIcon className="h-5 w-5" />}
                               {key === "Arquitectura" && <Landmark className="h-5 w-5" />}
                               {key === "Procesador" && <Cpu className="h-5 w-5" />}
@@ -562,7 +562,7 @@ const departamentoTag = (
             <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                 <CardHeader className="border-b border-slate-700/50 pb-3">
                     <CardTitle className="text-slate-100 flex items-center">
-                        <Users className="mr-2 h-5 w-5 text-cyan-500" />
+                        <Users className="mr-2 h-5 w-5 text-orange-500" />
                         Asignación Actual
                     </CardTitle>
                 </CardHeader>
@@ -573,7 +573,7 @@ const departamentoTag = (
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-12 w-12">
                                     <AvatarImage src="/placeholder-user.jpg" alt={`${equipo.usuario.nombre} ${equipo.usuario.apellido}`} />
-                                    <AvatarFallback className="bg-slate-700 text-cyan-500">
+                                    <AvatarFallback className="bg-slate-700 text-orange-500">
                                         {equipo.usuario.nombre[0]}{equipo.usuario.apellido[0]}
                                     </AvatarFallback>
                                 </Avatar>
@@ -605,7 +605,7 @@ const departamentoTag = (
                                 <Avatar className="h-12 w-12">
                                     {/* Puedes tener un placeholder para departamentos */}
                                     <AvatarImage src="/placeholder-dept.jpg" alt={equipo.departamento.nombre} />
-                                    <AvatarFallback className="bg-slate-700 text-cyan-500">
+                                    <AvatarFallback className="bg-slate-700 text-orange-500">
                                       {equipo.departamento.nombre.slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
@@ -643,7 +643,7 @@ const departamentoTag = (
                 <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
                   <CardHeader className="border-b border-slate-700/50 pb-3">
                     <CardTitle className="text-slate-100 flex items-center">
-                      <History className="mr-2 h-5 w-5 text-cyan-500" />
+                      <History className="mr-2 h-5 w-5 text-orange-500" />
                       Historial Completo
                     </CardTitle>
                   </CardHeader>
@@ -658,7 +658,7 @@ const departamentoTag = (
                               {/* Timeline decorator (punto y línea) */}
                               <div className="flex flex-col items-center">
                                 <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700">
-                                  <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
+                                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                                 </div>
                                 {!isLast && <div className="w-px h-24 bg-slate-700 mt-2"></div>}
                               </div>

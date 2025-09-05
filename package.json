@@ -57,7 +57,6 @@
     "lucide-react": "^0.525.0",
     "next": "^15.4.5",
     "next-auth": "^4.24.11",
-    "next-themes": "^0.4.6",
     "nextjs-toast-notify": "^1.38.0",
     "postgresql": "^0.0.1",
     "qrcode": "^1.5.4",

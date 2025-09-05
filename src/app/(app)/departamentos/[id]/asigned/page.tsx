@@ -198,15 +198,15 @@ export default function UserProfile() {
               <CardContent className="p-0">
                 <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 border-b border-slate-700/50">
                   <div className="flex flex-col items-center text-center">
-                    <Avatar className="h-24 w-24 mb-4 border-2 border-cyan-500/50">
-                      <AvatarFallback className="bg-slate-700 text-cyan-500 text-2xl">
+                    <Avatar className="h-24 w-24 mb-4 border-2 border-orange-500/50">
+                      <AvatarFallback className="bg-slate-700 text-orange-500 text-2xl">
                         {deptoData.nombre[0]}
                       </AvatarFallback>
                     </Avatar>
                     <h2 className="text-xl font-bold text-slate-100 mb-1">
                       {deptoData.nombre}
                     </h2>
-                    <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/50">{deptoData.gerencia}</Badge>
+                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">{deptoData.gerencia}</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -220,7 +220,7 @@ export default function UserProfile() {
                 title="Total Activos"
                 value={deptoData.estadisticas.totalActivos}
                 icon={Monitor}
-                color="cyan"
+                color="orange"
                 description="Asignados"
               />
             </div>
@@ -232,14 +232,14 @@ export default function UserProfile() {
           <TabsList className="bg-slate-800/50 p-1 mb-6">
             <TabsTrigger
               value="computers"
-              className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400"
+              className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400"
             >
               Computadores ({deptoData.computadores.length})
             </TabsTrigger>
-            <TabsTrigger value="devices" className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="devices" className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400">
               Dispositivos ({deptoData.dispositivos.length})
             </TabsTrigger>
-            <TabsTrigger value="phones" className="data-[state=active]:bg-slate-700 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="phones" className="data-[state=active]:bg-slate-700 data-[state=active]:text-orange-400">
               Líneas Telefónicas ({deptoData.lineasTelefonicas.length})
             </TabsTrigger>
           </TabsList>
@@ -318,7 +318,7 @@ export default function UserProfile() {
                         <div className="lg:col-span-2">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center">
-                              <PhoneIcon className="h-6 w-6 text-cyan-500 mr-2" />
+                              <PhoneIcon className="h-6 w-6 text-orange-500 mr-2" />
                               <div>
                                 <h3 className="text-lg font-semibold text-slate-100">
                                   {dispositivo.marca} {dispositivo.modelo}
@@ -372,7 +372,7 @@ export default function UserProfile() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
-                          <PhoneIcon className="h-6 w-6 text-cyan-500 mr-2" />
+                          <PhoneIcon className="h-6 w-6 text-orange-500 mr-2" />
                           <div>
                             <h3 className="text-lg font-semibold text-slate-100">{linea.numero}</h3>
                             <p className="text-sm text-slate-400">
@@ -416,8 +416,8 @@ function StatCard({
 }) {
   const getColorClasses = () => {
     switch (color) {
-      case "cyan":
-        return "text-cyan-500"
+      case "orange":
+        return "text-orange-500"
       case "green":
         return "text-green-500"
       case "purple":
@@ -425,7 +425,7 @@ function StatCard({
       case "amber":
         return "text-amber-500"
       default:
-        return "text-cyan-500"
+        return "text-orange-500"
     }
   }
 

@@ -143,7 +143,7 @@ const columns: ColumnDef<Linea>[] = [
         <PopoverTrigger asChild> 
           <Button variant="ghost" 
           size="sm" 
-          className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-cyan-500" : "text-muted-foreground"}`}>
+          className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-orange-500" : "text-muted-foreground"}`}>
             <FilterIcon className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
@@ -182,11 +182,11 @@ const columns: ColumnDef<Linea>[] = [
             <Button 
               variant="ghost" 
               size="sm" 
-              className={`h-5 w-5 p-0 ml-1 ${isFilterActive ? "text-[#00FFFF]" : "text-muted-foreground"}`}
+              className={`h-5 w-5 p-0 ml-1 ${isFilterActive ? "text-[#EA7704]" : "text-muted-foreground"}`}
             >
               <FilterIcon className="h-3 w-3" />
               {isFilterActive && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#00FFFF]"></span>
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#EA7704]"></span>
               )}
             </Button>
           </PopoverTrigger>

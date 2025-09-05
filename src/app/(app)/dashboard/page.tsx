@@ -34,7 +34,7 @@ const fetchDashboardData = async () => {
 
 // --- Componentes para estados de UI ---
 const LoadingSkeleton = () => (
-  <div className="flex items-center justify-center min-h-screen bg-[#FFFFFF] text-[#167DBA]">
+  <div className="flex items-center justify-center min-h-screen bg-white text-[#167DBA]">
     <div className="text-center">
       <Cpu className="h-12 w-12 mx-auto animate-pulse" />
       <p className="mt-4 text-lg">Cargando estadísticas del sistema...</p>
@@ -43,7 +43,7 @@ const LoadingSkeleton = () => (
 );
 
 const ErrorDisplay = ({ message }: { message: string }) => (
-  <div className="flex items-center justify-center min-h-screen bg-[#FFFFFF] text-red-600">
+  <div className="flex items-center justify-center min-h-screen bg-white text-red-600">
     <div className="text-center">
       <p className="text-lg font-bold">¡Oops! Algo salió mal.</p>
       <p className="mt-2">{message}</p>
@@ -217,7 +217,7 @@ export default function InventoryDashboard() {
   console.log(dashboardData.totalUsers, dashboardData.totalDevices, dashboardData.totalComputers);
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
       <div className="container mx-auto p-4 relative z-10">
         {/* Main Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
@@ -226,7 +226,7 @@ export default function InventoryDashboard() {
             value={dashboardData.totalUsers}
             trend={dashboardData.trends.users}
             icon={Users}
-            color="cyan"
+            color="orange"
             description="Usuarios registrados"
           />
           <StatCard
@@ -286,7 +286,7 @@ export default function InventoryDashboard() {
               <TabsContent value="overview" className="mt-0">
                 <div className="grid gap-6">
                   {/* Assignment Overview */}
-                  <Card className="bg-white border-gray-200 shadow-sm">
+                  <Card className="bg-white border-gray-200 shadow-lg">
                     <CardHeader className="border-b border-gray-200 pb-3">
                       <CardTitle className="text-gray-900 flex items-center">
                         <PieChart className="mr-2 h-5 w-5 text-[#167DBA]" />
@@ -416,7 +416,7 @@ export default function InventoryDashboard() {
                   </Card>
                   
                   {/* Recent Activity - Horizontal layout */}
-                  <Card className="bg-white border-gray-200 shadow-sm">
+                  <Card className="bg-white border-gray-200 shadow-lg">
                     <CardHeader className="border-b border-gray-200 pb-3">
                       <CardTitle className="text-gray-900 text-base flex items-center justify-between">
                         <div className="flex items-center">
@@ -468,7 +468,7 @@ export default function InventoryDashboard() {
                 </div>
               </TabsContent>
               <TabsContent value="departments" className="mt-0">
-                <Card className="bg-white border-gray-200 shadow-sm">
+                <Card className="bg-white border-gray-200 shadow-lg">
                   <CardHeader className="border-b border-gray-200 pb-3">
                     <CardTitle className="text-gray-900 flex items-center">
                       <Building className="mr-2 h-5 w-5 text-[#167DBA]" /> 
@@ -508,7 +508,7 @@ export default function InventoryDashboard() {
           <div className="col-span-12 lg:col-span-4">
             <div className="space-y-6">
               {/* System Time */}
-              <Card className="bg-white border-gray-200 shadow-sm overflow-hidden">
+              <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
                 <CardContent className="p-0">
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-b border-gray-200">
                     <div className="text-center">
@@ -536,7 +536,7 @@ export default function InventoryDashboard() {
               </Card>
 
               {/* Department Stats Summary */}
-              <Card className="bg-white border-gray-200 shadow-sm">
+              <Card className="bg-white border-gray-200 shadow-lg">
                 <CardHeader className="border-b border-gray-200 pb-3">
                   <CardTitle className="text-gray-900 flex items-center">
                     <Users className="mr-2 h-5 w-5 text-[#167DBA]" />
@@ -590,8 +590,8 @@ function StatCard({
 }) {
   const getColorClasses = () => {
     switch (color) {
-      case "cyan":
-        return "from-cyan-500 to-blue-500 border-cyan-500/30 text-cyan-500"
+      case "orange":
+        return "from-orange-500 to-orange-600 border-orange-500/30 text-orange-500"
       case "blue":
         return "from-blue-500 to-indigo-500 border-blue-500/30 text-blue-500"
       case "purple":
@@ -601,14 +601,14 @@ function StatCard({
       case "amber":
         return "from-amber-500 to-orange-500 border-amber-500/30 text-amber-500"
       default:
-        return "from-cyan-500 to-blue-500 border-cyan-500/30 text-cyan-500"
+        return "from-orange-500 to-orange-600 border-orange-500/30 text-orange-500"
     }
   }
 
   const colorClasses = getColorClasses()
 
   return (
-    <Card className={`bg-white border-gray-200 shadow-sm overflow-hidden relative`}>
+    <Card className={`bg-white border-gray-200 shadow-lg overflow-hidden relative`}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm text-gray-600">{title}</div>

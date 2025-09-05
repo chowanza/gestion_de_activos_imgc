@@ -127,7 +127,7 @@ const columns: ColumnDef<Modelo>[] = [
         <PopoverTrigger asChild> 
           <Button variant="ghost" 
           size="sm" 
-          className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-cyan-500" : "text-muted-foreground"}`}>
+          className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-orange-500" : "text-muted-foreground"}`}>
             <FilterIcon className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
@@ -160,7 +160,7 @@ const columns: ColumnDef<Modelo>[] = [
           <PopoverTrigger asChild>
             <Button variant="ghost" 
               size="sm" 
-              className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-cyan-500" : "text-muted-foreground"}`}>
+              className={`h-5 w-5 p-0 ml-1  ${column.getFilterValue() ? "text-orange-500" : "text-muted-foreground"}`}>
               <FilterIcon className="h-3 w-3" />
             </Button>
           </PopoverTrigger>

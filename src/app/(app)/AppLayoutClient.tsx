@@ -19,11 +19,11 @@ export default function AppLayoutClient({ children, user }: AppLayoutClientProps
   return (
     <SidebarProvider>
       <QueryClientProvider client={queryClient}>
-        <div className="w-full flex h-screen antialiased text-foreground">
+        <div className="w-full flex h-screen antialiased text-foreground bg-white">
           <AppSidebar className="flex-shrink-0 hidden md:block" user={user} />
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col bg-white">
             <SiteHeader />
-            <main className="flex-1 p-4 overflow-y-auto">{children}</main>
+            <main className="flex-1 p-4 overflow-y-auto bg-white">{children}</main>
           </div>
         </div>
       </QueryClientProvider>
