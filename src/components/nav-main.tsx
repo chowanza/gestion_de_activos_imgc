@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function NavMain({
   items,
@@ -23,6 +24,7 @@ export function NavMain({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { state } = useSidebar();
 
   const handleClick = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
@@ -42,9 +44,9 @@ export function NavMain({
                     // Clases base para todos los botones
                     "transition-colors duration-150 rounded-3xl py-5",
                     // Clases para el estado ACTIVO - fondo blanco con texto naranja
-                    isActive && "bg-white text-[#EA7704]",
+                    isActive && "bg-white text-[#EA7704] px-4",
                     // Clases para el estado HOVER (cuando NO está activo) - texto blanco
-                    !isActive && "text-white hover:bg-white/10"
+                    !isActive && "text-white hover:bg-white/10 px-4"
                   )}
                   tooltip={item.title}
                   onClick={(e) => {
@@ -53,8 +55,8 @@ export function NavMain({
                   asChild
                 >
                   <Link href={item.url} className="flex items-center gap-2">
-                    {item.icon && <item.icon className="h-5 w-5" />}
-                    <span>{item.title}</span>
+                    {item.icon && <item.icon className="h-7 w-7"/>}
+                    {state === "expanded" && <span>{item.title}</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
