@@ -1,30 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
+
+// Helper function to format date to dd/mm/yy
+function formatDateToDDMMYY(dateString: string): string {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear().toString().slice(-2);
+  return `${day}/${month}/${year}`;
+}
 
 
 export async function GET(request: NextRequest) {
   try {
     await Promise.resolve();
     const id = request.nextUrl.pathname.split('/')[3];
-    const usuario = await prisma.usuario.findUnique({
+    const empleado = await prisma.empleado.findUnique({
       where: {
         id: id,
       },
       include: {
         departamento: {
           include: {
-            gerencia: {}
+            empresa: true
+          }
+        },
+        cargo: true,
+        computadores: {
+          include: {
+            modelo: {
+              include: {
+                marca: true
+              }
+            }
+          }
+        },
+        dispositivos: {
+          include: {
+            modelo: {
+              include: {
+                marca: true
+              }
+            }
           }
         }
       }
     });
-    if (!usuario) {
-      return NextResponse.json({ message: 'usuario no encontrado' }, { status: 404 });
+    if (!empleado) {
+      return NextResponse.json({ message: 'empleado no encontrado' }, { status: 404 });
     }
-    return NextResponse.json(usuario, { status: 200 });
+    
+    // Agregar estado calculado basado en fechaDesincorporacion
+    const empleadoConEstado = {
+      ...empleado,
+      estado: empleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
+    };
+    
+    return NextResponse.json(empleadoConEstado, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: 'Error al obtener usuario' }, { status: 500 });
+    return NextResponse.json({ message: 'Error al obtener empleado' }, { status: 500 });
   }
 }
 
@@ -35,29 +70,45 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
 
         // Extraemos los datos del cuerpo de la petición.
-        // Asegúrate de que el frontend envía 'departamentoId'.
-        const { nombre, apellido, cargo, legajo, ced, departamentoId } = body;
+        const { nombre, apellido, cargoId, ced, cedula, departamentoId, fechaNacimiento, fechaIngreso } = body;
+        
+
+        // Función para procesar fechas y evitar problemas de zona horaria
+        const processDate = (dateString: string | null): string | null => {
+            if (!dateString) return null;
+            
+            // Si la fecha viene en formato ISO (YYYY-MM-DD), procesarla correctamente
+            if (dateString.includes('-')) {
+                // Crear una fecha en la zona horaria local para evitar el offset de UTC
+                const date = new Date(dateString + 'T00:00:00');
+                const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                return localDate.toISOString().split('T')[0];
+            }
+            
+            return dateString;
+        };
 
         // Construimos el objeto de datos para la actualización.
-        // Solo incluimos los campos que realmente queremos actualizar.
         const dataToUpdate: { [key: string]: any } = {};
         if (nombre) dataToUpdate.nombre = nombre;
         if (apellido) dataToUpdate.apellido = apellido;
-        if (cargo) dataToUpdate.cargo = cargo;
+        if (cargoId) dataToUpdate.cargoId = cargoId;
         if (ced) dataToUpdate.ced = ced;
-        // El legajo se debe convertir a número si viene como string
-        if (legajo !== undefined) dataToUpdate.legajo = Number(legajo);
-        // Aquí está la clave: usamos 'departamentoId'
+        if (cedula) dataToUpdate.ced = cedula; // Mapear cedula a ced
         if (departamentoId) dataToUpdate.departamentoId = departamentoId;
+        if (fechaNacimiento) dataToUpdate.fechaNacimiento = processDate(fechaNacimiento);
+        if (fechaIngreso) dataToUpdate.fechaIngreso = processDate(fechaIngreso);
+        
 
-        const updatedUsuario = await prisma.usuario.update({
+        const updatedEmpleado = await prisma.empleado.update({
             where: {
                 id: id,
             },
             data: dataToUpdate, // Pasamos el objeto de datos corregido
         });
 
-        return NextResponse.json(updatedUsuario, { status: 200 });
+
+        return NextResponse.json(updatedEmpleado, { status: 200 });
 
     } catch (error) {
         console.error("Error en PUT /api/usuarios/[id]:", error);
@@ -73,14 +124,14 @@ export async function DELETE(request: NextRequest) {
   try {
     await Promise.resolve();
     const id = request.nextUrl.pathname.split('/')[3];
-    await prisma.usuario.delete({
+    await prisma.empleado.delete({
       where: {
         id: id,
       },
     });
-    return NextResponse.json({ message: 'usuario eliminado' }, { status: 200 });
+    return NextResponse.json({ message: 'empleado eliminado' }, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: 'Error al eliminar usuario' }, { status: 500 });
+    return NextResponse.json({ message: 'Error al eliminar empleado' }, { status: 500 });
   }
 }

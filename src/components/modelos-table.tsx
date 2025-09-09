@@ -91,7 +91,7 @@ export function ModelosTable({}: EquiposTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [modelos, setModelos] = React.useState<Modelo[]>([]);
   const [marcas, setMarcas] = React.useState<{ id: string; nombre: string }[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   const isAdmin = useIsAdmin();
 
 const columns: ColumnDef<Modelo>[] = [

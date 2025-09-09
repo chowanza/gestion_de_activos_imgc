@@ -73,7 +73,7 @@ export function ComputadorTable({}: ComputadorTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
   const [computadores, setComputadores] = React.useState<Computador[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   const isAdmin = useIsAdmin();
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
   const [currentImage, setCurrentImage] = React.useState<string | null>(null);

@@ -68,10 +68,6 @@ export default function ModeloPage() {
   };
 
 
-  if (loading) {
-    return <Loading />;
-  }
-
   if (error) {
     return <div>Error: {error}</div>;
   }

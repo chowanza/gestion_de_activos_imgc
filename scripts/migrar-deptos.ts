@@ -23,16 +23,17 @@ async function main() {
   console.log('Iniciando migración de departamentos...');
 
   // --- PASO 1: Cargar Gerencias en memoria para mapeo ---
-  console.log('Obteniendo Gerencias de la base de datos...');
+  // Comentado porque el modelo gerencia ya no existe
+  console.log('Obteniendo Empresas de la base de datos...');
   
-  const gerencias = await prisma.gerencia.findMany();
+  const empresas = await prisma.empresa.findMany();
 
-  // Crea un mapa de búsqueda: la clave es el nombre de la gerencia y el valor es su ID.
-  const gerenciaMap = new Map(gerencias.map(g => [g.nombre.trim(), g.id]));
+  // Crea un mapa de búsqueda: la clave es el nombre de la empresa y el valor es su ID.
+  const empresaMap = new Map(empresas.map(e => [e.nombre.trim(), e.id]));
 
-  console.log(`Se encontraron ${gerenciaMap.size} gerencias.`);
-  if (gerenciaMap.size === 0) {
-    console.error("No se encontraron gerencias en la base de datos. Asegúrate de que ya estén creadas.");
+  console.log(`Se encontraron ${empresaMap.size} empresas.`);
+  if (empresaMap.size === 0) {
+    console.error("No se encontraron empresas en la base de datos. Asegúrate de que ya estén creadas.");
     return;
   }
 
@@ -48,20 +49,18 @@ async function main() {
         mapValues: ({ value }) => value.trim()
       }))
       .on('data', (row: DepartamentoCSVRow) => {
-        // Busca el ID de la gerencia usando el nombre que viene del CSV
-        const gerenciaId = gerenciaMap.get(row.gerencia_nombre);
+        // Busca el ID de la empresa usando el nombre que viene del CSV
+        const empresaId = empresaMap.get(row.gerencia_nombre);
 
-        if (!gerenciaId) {
-          console.warn(`ADVERTENCIA: No se encontró la gerencia "${row.gerencia_nombre}" para el departamento ${row.nombre}. Se omitirá esta fila.`);
+        if (!empresaId) {
+          console.warn(`ADVERTENCIA: No se encontró la empresa "${row.gerencia_nombre}" para el departamento ${row.nombre}. Se omitirá esta fila.`);
           return;
         }
 
         // Prepara el objeto de datos del departamento para Prisma
         const departamentoData = {
           nombre: row.nombre,
-          ceco: row.ceco,
-          sociedad: row.sociedad,
-          gerenciaId: gerenciaId, // <-- ID de la gerencia obtenido del mapa
+          empresaId: empresaId, // <-- ID de la empresa obtenido del mapa
         };
         departamentosParaCrear.push(departamentoData);
       })
@@ -81,7 +80,7 @@ async function main() {
     // Usamos `createMany` para una inserción masiva y eficiente
     const result = await prisma.departamento.createMany({
       data: departamentosParaCrear,
-      skipDuplicates: true, // Si un departamento con un campo unique ya existe, lo omite
+      // skipDuplicates no está soportado en SQL Server
     });
 
     console.log(`¡Migración completada! Se crearon ${result.count} nuevos departamentos.`);

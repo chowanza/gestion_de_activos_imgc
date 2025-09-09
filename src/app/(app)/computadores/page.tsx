@@ -57,10 +57,6 @@ export default function ComputadorPage() {
   };
 
 
-  if (loading) {
-    return <Loading  />;
-  }
-
   if (error) {
     return <div>Error: {error}</div>;
   }

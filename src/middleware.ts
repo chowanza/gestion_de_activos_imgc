@@ -14,6 +14,8 @@ const protectedRoutes = [
   '/modelos',
   '/usuarios',
   '/lineas',
+  '/historial',
+  '/empresas',
 ];
 
 // Rutas que SOLO el admin puede ver

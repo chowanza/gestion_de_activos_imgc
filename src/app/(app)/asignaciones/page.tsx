@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UsuarioTable } from "@/components/usuarios-table";
+import { EmpleadoTable } from "@/components/empleados-table";
 
 import Loading from "@/utils/loading";
 import { AsignacionesTable } from "@/components/asignaciones-table";

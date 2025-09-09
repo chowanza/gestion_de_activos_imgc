@@ -212,7 +212,7 @@ const columns: ColumnDef<Asignaciones>[] = [
               </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/asignaciones/${asignacion.id}/editar`}>
-                  Editar Usuario
+                  Editar Asignación
               </Link>
               </DropdownMenuItem>
             <DropdownMenuSeparator />

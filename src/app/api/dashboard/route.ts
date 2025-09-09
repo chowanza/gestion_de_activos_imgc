@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Asegúrate que la ruta a prisma sea correcta
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/dashboard/stats
@@ -17,7 +17,7 @@ export async function GET() {
       assignedComputers,
       storedComputers,
     ] = await Promise.all([
-      prisma.usuario.count(),
+      prisma.empleado.count(),
       prisma.dispositivo.count(),
       prisma.computador.count(),
       // Un computador está "Asignado" si tiene un usuario vinculado y su estado es "Activo".
@@ -41,7 +41,7 @@ export async function GET() {
       include: {
         _count: {
           select: {
-            usuarios: true,
+            empleados: true,
             computadores: true,
           },
         },
@@ -52,7 +52,7 @@ export async function GET() {
     const departmentStats = deptsData.map((dept) => ({
       name: dept.nombre,
       computers: dept._count.computadores,
-      users: dept._count.usuarios,
+      users: dept._count.empleados,
       percentage:
         totalComputers > 0
           ? parseFloat(((dept._count.computadores / totalComputers) * 100).toFixed(1))
@@ -68,7 +68,7 @@ export async function GET() {
       },
       include: {
         // Incluimos los datos necesarios para describir la actividad.
-        targetUsuario: { select: { nombre: true, apellido: true } },
+        targetEmpleado: { select: { nombre: true, apellido: true } },
         computador: { select: { serial: true, modelo: { select: { nombre: true } } } },
         dispositivo: { select: { serial: true, modelo: { select: { nombre: true } } } },
       },
@@ -87,7 +87,7 @@ export async function GET() {
             id: activity.id,
             action: activity.actionType, // Ej: "Asignación", "Devolución"
             device: deviceName,
-            user: activity.targetUsuario ? `${activity.targetUsuario.nombre} ${activity.targetUsuario.apellido}` : 'Sistema',
+            user: activity.targetEmpleado ? `${activity.targetEmpleado.nombre} ${activity.targetEmpleado.apellido}` : 'Sistema',
             time: activity.createdAt.toISOString(), // Enviamos fecha en formato ISO, el frontend la formatea.
             type: activity.actionType.toLowerCase().includes('asigna') ? 'assignment' : 'registration', // Lógica simple para el ícono
         }

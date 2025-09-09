@@ -11,24 +11,24 @@ export async function GET(
     const departamento = await prisma.departamento.findUnique({
       where: { id },
       include: {
-        gerencia: true, // Para mostrar el nombre de la gerencia
+        empresa: true, // Para mostrar el nombre de la empresa
         
         // Activos asignados DIRECTAMENTE al departamento
        computadores: { 
           include: { 
             modelo: { include: { marca: true } },
-            usuario: true, // <-- AÑADIDO: Trae el usuario si está asignado directamente
+            empleado: true, // <-- AÑADIDO: Trae el empleado si está asignado directamente
           } 
         },
         dispositivos: { 
           include: { 
             modelo: { include: { marca: true } },
-            usuario: true, // <-- AÑADIDO: Trae el usuario si está asignado directamente
+            empleado: true, // <-- AÑADIDO: Trae el empleado si está asignado directamente
           } 
         },
 
-        // Usuarios del departamento Y los activos de CADA usuario
-        usuarios: {
+        // Empleados del departamento Y los activos de CADA empleado
+        empleados: {
           include: {
             computadores: { include: { modelo: { include: { marca: true } } } },
             dispositivos: { include: { modelo: { include: { marca: true } } } },
@@ -42,8 +42,8 @@ export async function GET(
     }
 
     // --- PASO 2: OBTENER LAS LÍNEAS TELEFÓNICAS ASIGNADAS ---
-    // Necesitamos los IDs de los usuarios de este departamento para la consulta
-    const idsDeUsuariosDelDepto = departamento.usuarios.map(u => u.id);
+    // Necesitamos los IDs de los empleados de este departamento para la consulta
+    const idsDeEmpleadosDelDepto = departamento.empleados.map(e => e.id);
 
     const lineasAsignadas = await prisma.asignaciones.findMany({
       where: {
@@ -52,7 +52,7 @@ export async function GET(
         // Condición: La línea está asignada AL DEPARTAMENTO O A UNO DE SUS USUARIOS
         OR: [
           { targetDepartamentoId: id },
-          { targetUsuarioId: { in: idsDeUsuariosDelDepto } },
+          { targetEmpleadoId: { in: idsDeEmpleadosDelDepto } },
         ],
       },
       include: {
@@ -71,11 +71,11 @@ export async function GET(
     // Combinar computadores (los del depto + los de cada usuario)
         const todosLosComputadores = [
       ...departamento.computadores,
-      ...departamento.usuarios.flatMap(usuario => 
-        // Para cada computador de este usuario, le añadimos el objeto 'usuario' para consistencia
-        usuario.computadores.map(comp => ({
+      ...departamento.empleados.flatMap(empleado => 
+        // Para cada computador de este empleado, le añadimos el objeto 'empleado' para consistencia
+        empleado.computadores.map(comp => ({
             ...comp,
-            usuario: usuario
+            empleado: empleado
         }))
       )
     ];
@@ -83,10 +83,10 @@ export async function GET(
     // Combinar dispositivos (los del depto + los de cada usuario)
     const todosLosDispositivos = [
         ...departamento.dispositivos,
-        ...departamento.usuarios.flatMap(usuario => 
-            usuario.dispositivos.map(disp => ({
+        ...departamento.empleados.flatMap(empleado => 
+            empleado.dispositivos.map(disp => ({
                 ...disp,
-                usuario: usuario
+                empleado: empleado
             }))
         )
     ];
@@ -100,9 +100,7 @@ export async function GET(
     const responseData = {
       id: departamento.id,
       nombre: departamento.nombre,
-      gerencia: departamento.gerencia.nombre,
-      ceco: departamento.ceco,
-      sociedad: departamento.sociedad,
+      empresa: departamento.empresa.nombre,
       
       // Listas completas de activos
       computadores: computadoresUnicos,

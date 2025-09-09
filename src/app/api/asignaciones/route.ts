@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
           }
         },
         lineaTelefonica: true,        // Incluye el objeto Dispositivo si existe
-        targetUsuario: true,      // Incluye el objeto Usuario si existe
+        targetEmpleado: true,      // Incluye el objeto Empleado si existe
         targetDepartamento: true, // Incluye el objeto Departamento si existe
       },
     });
@@ -78,11 +78,11 @@ export async function GET(request: NextRequest) {
       }
 
       let asignadoA;
-      if (a.targetType === 'Usuario' && a.targetUsuario) {
+      if (a.targetType === 'Usuario' && a.targetEmpleado) {
         asignadoA = {
-          id: a.targetUsuario.id,
+          id: a.targetEmpleado.id,
           tipo: 'Usuario',
-          nombre: `${a.targetUsuario.nombre} ${a.targetUsuario.apellido}`,
+          nombre: `${a.targetEmpleado.nombre} ${a.targetEmpleado.apellido}`,
         };
       } else if (a.targetType === 'Departamento' && a.targetDepartamento) {
         asignadoA = {
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
         if (gerenteId) {
           // Si vino override, úsalo. Si también quieres snapshot de nombre:
-          const gSel = await tx.usuario.findUnique({ where: { id: gerenteId } });
+          const gSel = await tx.empleado.findUnique({ where: { id: gerenteId } });
           gerenteIdFinal = gSel?.id || null;
           gerenteNombreFinal = gSel ? `${gSel.nombre} ${gSel.apellido}` : null;
         } else if (gerenteAuto) {
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
             lineaTelefonicaId: itemType === 'LineaTelefonica' ? itemId : null,
 
             targetType: asignarA_type,
-            targetUsuarioId: asignarA_type === 'Usuario' ? asignarA_id : null,
+            targetEmpleadoId: asignarA_type === 'Usuario' ? asignarA_id : null,
             targetDepartamentoId: asignarA_type === 'Departamento' ? asignarA_id : null,
 
             notes: notas || null,
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
         // 4) Actualizar el activo
         const updateData: any = {
           estado: 'Asignado',
-          usuarioId: asignarA_type === 'Usuario' ? asignarA_id : null,
+          empleadoId: asignarA_type === 'Usuario' ? asignarA_id : null,
           departamentoId: asignarA_type === 'Departamento' ? asignarA_id : null,
         };
 
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
             lineaTelefonicaId: itemType === 'LineaTelefonica' ? itemId : null,
             targetType: ultimaAsignacion.targetType,
-            targetUsuarioId: ultimaAsignacion.targetUsuarioId,
+            targetEmpleadoId: ultimaAsignacion.targetEmpleadoId,
             targetDepartamentoId: ultimaAsignacion.targetDepartamentoId,
             notes: notas || `Devolución de ${ultimaAsignacion.targetType}`,
           },

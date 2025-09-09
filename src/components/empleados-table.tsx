@@ -4,7 +4,7 @@ import { Checkbox } from "@radix-ui/react-checkbox";
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import React, { useState } from "react";
 import {z} from "zod";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { AlertDialog, AlertDialogAction,
   AlertDialogCancel,
@@ -25,44 +25,56 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TableRowSkeleton from "@/utils/loading";
 
-export const usuarioSchema = z.object({
+export const empleadoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
-    departamentoId: z.string().min(1, "La Marca es Requerida"),
-    apellido: z.string().min(1, "El Estado de dispositivo es requerido"),
-    cargo: z.string().nullable(),
-    ced: z.string().nullable(),
-    legajo: z.number().nullable(),
+    departamentoId: z.string().min(1, "El departamento es requerido"),
+    apellido: z.string().min(1, "El apellido es requerido"),
+    cargoId: z.string().min(1, "El cargo es requerido"),
+    cedula: z.string().min(1, "La cédula es requerida"),
+    fechaNacimiento: z.string().optional(),
+    fechaIngreso: z.string().min(1, "La fecha de ingreso es requerida"),
 })
 
-export type UsuarioFormData = z.infer<typeof usuarioSchema>
+export type EmpleadoFormData = z.infer<typeof empleadoSchema>
 
-// Type for Modelo objects from API (assuming it includes an 'id' and 'marca' might be an object)
-export interface Usuario {
-    id: string; // Or number, depending on your API
+// Type for Empleado objects from API
+export interface Empleado {
+    id: string;
     nombre: string;
     apellido: string;
-    cargo: string;
-    ced: string;
-    legajo: number;
-    departamento: { id: string; nombre: string;  gerencia: { nombre?: string } }; // Assuming 'marca' is an object in the fetched data
+    cedula: string;
+    fechaNacimiento?: string;
+    fechaIngreso?: string;
+    fechaDesincorporacion?: string;
+    estado?: string;
+    departamento: { 
+        id: string; 
+        nombre: string; 
+        empresa: { nombre: string } 
+    };
+    cargo: { 
+        id: string; 
+        nombre: string; 
+        descripcion: string 
+    };
 }
 
 
 
-interface UsuarioTableProps {
-  data: Usuario[]
+interface EmpleadoTableProps {
+  data: Empleado[]
 }
 
-export function UsuarioTable({}: UsuarioTableProps) {
+export function EmpleadoTable({}: EmpleadoTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [usuarios, setUsuarios] = React.useState<Usuario[]>([]);
+  const [empleados, setEmpleados] = React.useState<Empleado[]>([]);
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(true);
 
   // Función para manejar la eliminación
   const handleDelete = async ({id}: {id: string}) => {
@@ -73,21 +85,21 @@ export function UsuarioTable({}: UsuarioTableProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Error al eliminar el usuario.');
+        throw new Error('Error al eliminar el empleado.');
       }
 
-      showToast.success("Usuario eliminado correctamente.");
+      showToast.success("Empleado eliminado correctamente.");
       fetchAllData();
       router.refresh(); // Refresca los datos en la página actual (App Router)
     } catch (error) {
       console.error(error);
-      showToast.error("No se pudo eliminar el usuario.");
+      showToast.error("No se pudo eliminar el empleado.");
     } finally {
       setIsDeleting(false);
     }
   };
 
-const columns: ColumnDef<Usuario>[] = [
+const columns: ColumnDef<Empleado>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -124,24 +136,128 @@ const columns: ColumnDef<Usuario>[] = [
       const apellido = row.getValue(id)?.toString().toLowerCase() || '';
       return apellido.includes(value);
     },
-  },  
+  },
   {
-    accessorFn: (row) => row.departamento?.gerencia?.nombre ?? "Sin gerencia",
-    id: "gerenciaNombre",
+    accessorKey: "cedula",
+    header: "Cédula",
+    cell: ({ row }) => <div>{row.getValue("cedula")}</div>,
+    filterFn: (row, id, value) => {
+      const cedula = row.getValue(id)?.toString().toLowerCase() || '';
+      return cedula.includes(value);
+    },
+  },
+  {
+    accessorKey: "fechaNacimiento",
+    header: "Cumpleaños",
+    cell: ({ row }) => {
+      const fecha = row.getValue("fechaNacimiento") as string;
+      if (!fecha) return <div>-</div>;
+      
+      // Si la fecha ya está en formato dd/mm/yy, mostrarla directamente
+      if (fecha.includes('/')) {
+        const [dia, mes] = fecha.split('/');
+        return <div>{`${dia}/${mes}`}</div>;
+      }
+      
+      // Si está en formato ISO, convertirla correctamente evitando problemas de zona horaria
+      if (fecha.includes('-')) {
+        const [year, month, day] = fecha.split('-');
+        return <div>{`${day}/${month}`}</div>;
+      }
+      
+      // Fallback para otros formatos
+      const fechaObj = new Date(fecha);
+      if (isNaN(fechaObj.getTime())) return <div>-</div>;
+      
+      const dia = fechaObj.getDate().toString().padStart(2, '0');
+      const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+      
+      return <div>{`${dia}/${mes}`}</div>;
+    },
+  },
+  {
+    accessorKey: "fechaNacimiento",
+    id: "edad",
+    header: "Edad",
+    cell: ({ row }) => {
+      const fecha = row.getValue("fechaNacimiento") as string;
+      if (!fecha) return <div>-</div>;
+      
+      let fechaNacimiento: Date;
+      
+      // Si la fecha está en formato dd/mm/yy, convertirla a Date
+      if (fecha.includes('/')) {
+        const [dia, mes, año] = fecha.split('/');
+        const añoCompleto = año.length === 2 ? `20${año}` : año;
+        fechaNacimiento = new Date(parseInt(añoCompleto), parseInt(mes) - 1, parseInt(dia));
+      } else if (fecha.includes('-')) {
+        // Si está en formato ISO, crear la fecha correctamente
+        const [year, month, day] = fecha.split('-');
+        fechaNacimiento = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      } else {
+        // Fallback para otros formatos
+        fechaNacimiento = new Date(fecha);
+      }
+      
+      if (isNaN(fechaNacimiento.getTime())) return <div>-</div>;
+      
+      const hoy = new Date();
+      let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+      const mes = hoy.getMonth() - fechaNacimiento.getMonth();
+      
+      if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNacimiento.getDate())) {
+        edad--;
+      }
+      
+      return <div>{edad} años</div>;
+    },
+  },
+  {
+    accessorKey: "fechaIngreso",
+    header: "Fecha de Ingreso",
+    cell: ({ row }) => {
+      const fecha = row.getValue("fechaIngreso") as string;
+      if (!fecha) return <div>-</div>;
+      
+      // Si la fecha ya está en formato dd/mm/yy, mostrarla directamente
+      if (fecha.includes('/')) {
+        return <div>{fecha}</div>;
+      }
+      
+      // Si está en formato ISO, convertirla correctamente evitando problemas de zona horaria
+      if (fecha.includes('-')) {
+        const [year, month, day] = fecha.split('-');
+        return <div>{`${day}/${month}/${year}`}</div>;
+      }
+      
+      // Fallback para otros formatos
+      const fechaObj = new Date(fecha);
+      if (isNaN(fechaObj.getTime())) return <div>-</div>;
+      
+      const dia = fechaObj.getDate().toString().padStart(2, '0');
+      const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+      const año = fechaObj.getFullYear();
+      
+      return <div>{`${dia}/${mes}/${año}`}</div>;
+    },
+  },
+  {
+    accessorFn: (row) => row.departamento?.empresa?.nombre ?? "Sin empresa",
+    id: "empresaNombre",
     header: ({ column }) => {
       const isFilterActive = !!column.getFilterValue();
-      // Obtener gerencias únicas
-      const uniqueGerencias = Array.from(
+      // Obtener empresas únicas
+      const uniqueEmpresas = Array.from(
         new Set(
-          usuarios
-            .map(u => u.departamento?.gerencia?.nombre)
+          empleados
+            .map(u => u.departamento?.empresa?.nombre)
             .filter(Boolean) as string[]
         )
       ).sort();
 
       return (
         <div className="flex items-center">
-          <span>Gerencia</span>
+          <span>Empresa</span>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -159,38 +275,38 @@ const columns: ColumnDef<Usuario>[] = [
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="select-all-gerencias"
-                    checked={uniqueGerencias.every(g => 
-                      (column.getFilterValue() as string[] || []).includes(g)
+                    id="select-all-empresas"
+                    checked={uniqueEmpresas.every(e => 
+                      (column.getFilterValue() as string[] || []).includes(e)
                     )}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        column.setFilterValue(uniqueGerencias);
+                        column.setFilterValue(uniqueEmpresas);
                       } else {
                         column.setFilterValue([]);
                       }
                     }}
                   />
-                  <label htmlFor="select-all-gerencias" className="text-sm">
+                  <label htmlFor="select-all-empresas" className="text-sm">
                     Seleccionar todas
                   </label>
                 </div>
-                {uniqueGerencias.map((gerencia) => (
-                  <div key={gerencia} className="flex items-center space-x-2">
+                {uniqueEmpresas.map((empresa) => (
+                  <div key={empresa} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`gerencia-${gerencia}`}
-                      checked={(column.getFilterValue() as string[] || []).includes(gerencia)}
+                      id={`empresa-${empresa}`}
+                      checked={(column.getFilterValue() as string[] || []).includes(empresa)}
                       onCheckedChange={(checked) => {
                         const currentFilters = (column.getFilterValue() as string[] || []);
                         if (checked) {
-                          column.setFilterValue([...currentFilters, gerencia]);
+                          column.setFilterValue([...currentFilters, empresa]);
                         } else {
-                          column.setFilterValue(currentFilters.filter(g => g !== gerencia));
+                          column.setFilterValue(currentFilters.filter(e => e !== empresa));
                         }
                       }}
                     />
-                    <label htmlFor={`gerencia-${gerencia}`} className="text-sm">
-                      {gerencia}
+                    <label htmlFor={`empresa-${empresa}`} className="text-sm">
+                      {empresa}
                     </label>
                   </div>
                 ))}
@@ -201,13 +317,13 @@ const columns: ColumnDef<Usuario>[] = [
       );
     },
     cell: ({ row }) => {
-      const gerenciaNombre = row.original.departamento?.gerencia?.nombre;
-      return <div>{gerenciaNombre || "Sin gerencia"}</div>;
+      const empresaNombre = row.original.departamento?.empresa?.nombre;
+      return <div>{empresaNombre || "Sin empresa"}</div>;
     },
     filterFn: (row, id, value) => {
       if (!value || value.length === 0) return true;
-      const gerencia = row.original.departamento?.gerencia?.nombre;
-      return value.includes(gerencia);
+      const empresa = row.original.departamento?.empresa?.nombre;
+      return value.includes(empresa);
     },
   },
   {
@@ -218,7 +334,7 @@ const columns: ColumnDef<Usuario>[] = [
       // Obtener departamentos únicos
       const uniqueDepartamentos = Array.from(
         new Set(
-          usuarios
+          empleados
             .map(u => u.departamento?.nombre)
             .filter(Boolean) as string[]
         )
@@ -295,18 +411,44 @@ const columns: ColumnDef<Usuario>[] = [
       return value.includes(departamento);
     },
   },
-    {
-      accessorKey: "legajo",
-      header: "Legajo",
+  {
+    accessorKey: "estado",
+    header: "Estado",
+    cell: ({ row }) => {
+      const estado = row.getValue("estado") as string;
+      const isActivo = estado === 'Activo';
+      
+      return (
+        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          isActivo 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'
+        }`}>
+          <div className={`w-2 h-2 rounded-full mr-1.5 ${
+            isActivo ? 'bg-green-400' : 'bg-red-400'
+          }`} />
+          {estado || 'Activo'}
+        </div>
+      );
     },
+    filterFn: (row, id, value) => {
+      if (!value || value.length === 0) return true;
+      const estado = row.getValue(id) as string;
+      return value.includes(estado || 'Activo');
+    },
+  },
     {
       accessorKey: "cargo",
       header: "Cargo",
+      cell: ({ row }) => {
+        const cargo = row.original.cargo;
+        return cargo ? cargo.nombre : "Sin cargo";
+      },
     },
   {
     id: "actions",
     cell: ({ row }) => {
-      const usuario = row.original
+      const empleado = row.original
 
       return (
         <AlertDialog>
@@ -318,23 +460,29 @@ const columns: ColumnDef<Usuario>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(usuario.legajo.toString())}>
-                Copiar Legajo
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(empleado.cedula)}>
+                Copiar Cédula
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/empleados/${empleado.id}`}>
+                  Ver Detalles
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/usuarios/${usuario.id}/asigned`}>
+                <Link href={`/empleados/${empleado.id}/asigned`}>
                   Ver Asignados
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/usuarios/${usuario.id}/editar`}>
-                    Editar Usuario
+                <Link href={`/empleados/${empleado.id}/editar`}>
+                    Editar Empleado
                 </Link>
                 </DropdownMenuItem>
               <DropdownMenuSeparator />
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                  Eliminar Usuario
+                  Eliminar Empleado
                 </DropdownMenuItem>
               </AlertDialogTrigger>
             </DropdownMenuContent>
@@ -344,7 +492,7 @@ const columns: ColumnDef<Usuario>[] = [
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario
+                Esta acción no se puede deshacer. Esto eliminará permanentemente al empleado
                 y borrará sus datos de nuestros servidores.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -352,7 +500,7 @@ const columns: ColumnDef<Usuario>[] = [
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 disabled={isDeleting}
-                onClick={() => handleDelete({ id: usuario.id })}
+                onClick={() => handleDelete({ id: empleado.id })}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {isDeleting ? "Eliminando..." : "Sí, eliminar"}
@@ -367,7 +515,7 @@ const columns: ColumnDef<Usuario>[] = [
 ]
 
   const table = useReactTable({
-    data: usuarios,
+    data: empleados,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -389,24 +537,26 @@ const columns: ColumnDef<Usuario>[] = [
     const search = filterValue.toLowerCase();
     const nombre = row.getValue('nombre')?.toString().toLowerCase() || '';
     const apellido = row.getValue('apellido')?.toString().toLowerCase() || '';
+    const cedula = row.getValue('cedula')?.toString().toLowerCase() || '';
     
-    return nombre.includes(search) || apellido.includes(search);
+    return nombre.includes(search) || apellido.includes(search) || cedula.includes(search);
   },
   });
 
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        const usuariosResponse = await fetch('/api/usuarios');
+        const empleadosResponse = await fetch('/api/usuarios');
 
   
-        if (!usuariosResponse.ok) {
-          throw new Error(`Error fetching usuarios: ${usuariosResponse.status}`);
+        if (!empleadosResponse.ok) {
+          throw new Error(`Error fetching empleados: ${empleadosResponse.status}`);
         }
   
-        const usuariosData: Usuario[] = await usuariosResponse.json();
+        const empleadosData: Empleado[] = await empleadosResponse.json();
         
-        setUsuarios(usuariosData);
+        
+        setEmpleados(empleadosData);
         setLoading(false);
 
       } catch (error: any) {
@@ -430,19 +580,65 @@ React.useEffect(() => {
   table.setGlobalFilter(searchQuery);
 }, [table, searchQuery]);
 
+// Verificar que la tabla esté lista antes de renderizar
+if (!table || !columns || columns.length === 0 || isLoading) {
+  return (
+    <Card className="border-none shadow-md">
+      <CardHeader className="bg-primary/5 rounded-t-lg">
+        <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-center h-32">
+          <div className="text-muted-foreground">Cargando tabla...</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 return (
     <Card className="border-none shadow-md">
       <CardHeader className="bg-primary/5 rounded-t-lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-2xl font-bold">Usuarios</CardTitle>
+          <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Buscar por nombre..."
+                placeholder="Buscar por nombre, apellido o cédula..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-sm border-primary/20"
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="min-w-[120px] justify-between">
+                    <FilterIcon className="h-4 w-4 mr-2" />
+                    Estado
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[150px]">
+                  <DropdownMenuLabel>Filtrar por estado</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={!table.getColumn("estado")?.getFilterValue()}
+                    onCheckedChange={() => table.getColumn("estado")?.setFilterValue(undefined)}
+                  >
+                    Todos
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={table.getColumn("estado")?.getFilterValue() === "Activo"}
+                    onCheckedChange={() => table.getColumn("estado")?.setFilterValue("Activo")}
+                  >
+                    Activo
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={table.getColumn("estado")?.getFilterValue() === "Inactivo"}
+                    onCheckedChange={() => table.getColumn("estado")?.setFilterValue("Inactivo")}
+                  >
+                    Inactivo
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="ml-auto">
@@ -462,14 +658,14 @@ return (
                           checked={column.getIsVisible()}
                           onCheckedChange={(value) => column.toggleVisibility(!!value)}
                         >
-                          {column.id === "legajo"
-                              ? "Legajo"
-                              : column.id === "ced"
-                                ? "Cedula"
-                                : column.id === "departamento"
-                                  ? "Departamento"
+                          {column.id === "cedula"
+                              ? "Cédula"
+                              : column.id === "departamento"
+                                ? "Departamento"
                                     : column.id === "cargo"
-                                        ? "Cargo" 
+                                        ? "Cargo"
+                                            : column.id === "fechaIngreso"
+                                                ? "Fecha de Ingreso"
                                                     : column.id}
                         </DropdownMenuCheckboxItem>
                       )
@@ -479,9 +675,9 @@ return (
             </div>
 
             <Button asChild>
-                <Link href="/usuarios/new">
+                <Link href="/empleados/new">
                       <PlusIcon className="mr-2 h-4 w-4" />
-                      Agregar Usuario
+                      Agregar Empleado
                 </Link>
             </Button>
           </div>
@@ -503,34 +699,32 @@ return (
                 </TableRow>
               ))}
             </TableHeader>
-                <TableBody>
-                    {isLoading ? (
-                        Array.from({ length: 5 }).map((_, index) => (
-                        <TableRowSkeleton 
-                            key={`skeleton-${index}`} 
-                            columnCount={columns.length || 5} 
-                    />
-                      ))
-                  ) : table.getRowModel().rows?.length ? (
-                      // Mostrar datos cuando están cargados
-                      table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                          {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                          ))}
-                      </TableRow>
-                      ))
-                  ) : (
-                      // Mostrar mensaje si no hay resultados
-                      <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center">
-                          {searchQuery ? "No se encontraron departamentos con ese filtro." : "No hay departamentos registrados."}
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRowSkeleton 
+                    key={`skeleton-${index}`} 
+                    columnCount={columns.length || 5} 
+                  />
+                ))
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
-                      </TableRow>
-                  )}
-              </TableBody>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    {searchQuery ? "No se encontraron empleados con ese filtro." : "No hay empleados registrados."}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
           </Table>
         </div>
         <div className="flex items-center justify-between space-x-2 py-4 px-4">

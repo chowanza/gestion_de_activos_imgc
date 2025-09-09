@@ -4,10 +4,12 @@ import prisma  from '@/lib/prisma';
 export async function GET() {
   try {
     // Si tienes relación Gerencia.gerenteId:
-    const gerentes = await prisma.usuario.findMany({
+    const gerentes = await prisma.empleado.findMany({
       where: {
-        // Filtra por cargo o por relación si tienes un campo rol
-        cargo: { contains: 'gerente', mode: 'insensitive' },
+        // Filtra por cargo que contenga 'gerente'
+        cargo: {
+          nombre: { contains: 'gerente' }
+        }
       },
       select: {
         id: true,

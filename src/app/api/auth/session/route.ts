@@ -1,8 +1,8 @@
 // app/api/auth/session/route.ts
-import { getSessionUser } from '@/lib/auth-server';
-import { NextResponse } from 'next/server';
+import { getServerUser } from '@/lib/auth-server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(request: NextRequest) {
+  const user = await getServerUser(request);
   return NextResponse.json({ user });
 }

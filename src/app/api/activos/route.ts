@@ -134,7 +134,7 @@ export async function GET(request: Request) {
                 orderBy: { date: "desc" },
                 distinct: ["computadorId", "dispositivoId", "lineaTelefonicaId"],
                 include: {
-                    targetUsuario: true,
+                    targetEmpleado: true,
                     targetDepartamento: true
                 }
             });
@@ -163,7 +163,7 @@ export async function GET(request: Request) {
 
                     // Construimos el string de a quién fue asignado.
                     const asignadoA = accion.targetType === "Usuario"
-                        ? `${accion.targetUsuario?.nombre} ${accion.targetUsuario?.apellido}`
+                        ? `${accion.targetEmpleado?.nombre} ${accion.targetEmpleado?.apellido}`
                         : accion.targetDepartamento?.nombre;
 
                     // Construimos la etiqueta descriptiva del activo.

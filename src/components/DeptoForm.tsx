@@ -19,7 +19,7 @@ import { showToast } from 'nextjs-toast-notify'; // Asumo que es la librería qu
 // Eliminamos los imports de Avatar, ImageIcon y ShadcnSelect ya que no se usarán para imagen o tipo aquí.
 
 // Interfaces
-interface Gerencia {
+interface Empresa {
     id: string;
     nombre: string;
 }
@@ -34,12 +34,19 @@ interface OptionType {
 import { DepartamentoFormData } from './depto-table'; // Asegúrate que esta defina gerenciaId
 ;
 
+interface Empleado {
+    id: string;
+    nombre: string;
+    apellido: string;
+}
+
 interface DepartamentoFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: FormData) => void; // onSubmit seguirá recibiendo FormData
-    gerencias: Gerencia[];
-    initialData?: DepartamentoFormData & { gerenciaId?: string } | null; // Asegurar que initialData pueda tener gerenciaId
+    onSubmit: (data: FormData) => void;
+    empresas: Empresa[];
+    empleados?: Empleado[];
+    initialData?: DepartamentoFormData & { empresaId?: string; gerenteId?: string } | null;
 }
 
 
@@ -47,88 +54,104 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
     isOpen,
     onClose,
     onSubmit,
-    gerencias = [],
+    empresas = [],
+    empleados = [],
     initialData,
 }) => {
     const [nombre, setNombre] = useState('');
-    const [ceco, setCeco] = useState('');
-    const [sociedad, setSociedad] = useState('');
-    const [selectedGerencia, setSelectedGerencia] = useState<OptionType | null>(null);
-    const [allGerencias, setAllGerencias] = useState<Gerencia[]>(gerencias); // Para manejar las gerencias creadas dinámicamente
-    const [isLoadingGerencias, setIsLoadingGerencias] = useState(false);
-    const [isCreatingGerencia, setIsCreatingGerencia] = useState(false);
+    const [selectedEmpresa, setSelectedEmpresa] = useState<OptionType | null>(null);
+    const [selectedGerente, setSelectedGerente] = useState<OptionType | null>(null);
+    const [allEmpresas, setAllEmpresas] = useState<Empresa[]>(empresas);
+    const [allEmpleados, setAllEmpleados] = useState<Empleado[]>(empleados);
+    const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
+    const [isCreatingEmpresa, setIsCreatingEmpresa] = useState(false);
 
 
     const isEditing = !!initialData  // Es edición si initialData tiene un ID
 
     useEffect(() => {
-        setAllGerencias(gerencias); // Sincronizar con las props cuando cambien
-    }, [gerencias]);
+        setAllEmpresas(empresas);
+        setAllEmpleados(empleados);
+    }, [empresas, empleados]);
 
     useEffect(() => {
         if (isOpen) {
             if (isEditing && initialData) {
                 setNombre(initialData.nombre || '');
-                setCeco(initialData.ceco || '');
-                setSociedad(initialData.sociedad || '');
 
-                // Corregir la lógica para preseleccionar la gerencia
-                if (initialData.gerenciaId) {
-                    const gerenciaActual = allGerencias.find(g => g.id === initialData.gerenciaId);
-                    if (gerenciaActual) {
-                        setSelectedGerencia({ value: gerenciaActual.id, label: gerenciaActual.nombre });
+                // Preseleccionar la empresa
+                if (initialData.empresaId) {
+                    const empresaActual = allEmpresas.find(e => e.id === initialData.empresaId);
+                    if (empresaActual) {
+                        setSelectedEmpresa({ value: empresaActual.id, label: empresaActual.nombre });
                     } else {
-                        setSelectedGerencia(null); // Si no se encuentra, no preseleccionar
+                        setSelectedEmpresa(null);
                     }
                 } else {
-                    setSelectedGerencia(null);
+                    setSelectedEmpresa(null);
+                }
+
+                // Preseleccionar el gerente
+                if (initialData.gerenteId) {
+                    const gerenteActual = allEmpleados.find(e => e.id === initialData.gerenteId);
+                    if (gerenteActual) {
+                        setSelectedGerente({ 
+                            value: gerenteActual.id, 
+                            label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
+                        });
+                    } else {
+                        setSelectedGerente(null);
+                    }
+                } else {
+                    setSelectedGerente(null);
                 }
 
             } else {
                 // Resetear para creación
                 setNombre('');
-                setCeco('');
-                setSociedad('');
-                setSelectedGerencia(null);
+                setSelectedEmpresa(null);
+                setSelectedGerente(null);
             }
         }
-    }, [isOpen, initialData, isEditing, allGerencias]); // allGerencias en dependencias
+    }, [isOpen, initialData, isEditing, allEmpresas, allEmpleados]);
 
-    const handleCreateGerencia = async (inputValue: string) => {
-            setIsCreatingGerencia(true);
+    const handleCreateEmpresa = async (inputValue: string) => {
+            setIsCreatingEmpresa(true);
             // Create a temporary option for the user to see
-            const newGerenciaOption: OptionType = {
+            const newEmpresaOption: OptionType = {
                 value: inputValue, // For a new brand, value and label can be the same initially
                 label: inputValue,
                 __isNew__: true, // Flag it as a new brand
             };
-            setSelectedGerencia(newGerenciaOption);
-            setIsCreatingGerencia(false); // This is a quick operation, no need for long loading
-            showToast.success(`Gerencia"${inputValue}" lista para ser creada.`, { position: "top-right" });
+            setSelectedEmpresa(newEmpresaOption);
+            setIsCreatingEmpresa(false); // This is a quick operation, no need for long loading
+            showToast.success(`Empresa"${inputValue}" lista para ser creada.`, { position: "top-right" });
     };
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
 
-        if (!nombre.trim() || !ceco.trim() || !sociedad.trim() || !selectedGerencia) {
-            showToast.warning("Todos los campos son requeridos, incluyendo la gerencia.", { position: "top-right" });
+        if (!nombre.trim() || !selectedEmpresa) {
+            showToast.warning("El nombre y la empresa son requeridos.", { position: "top-right" });
             return;
         }
 
         const formDataToSubmit = new FormData();
         formDataToSubmit.append('nombre', nombre.trim());
-        formDataToSubmit.append('ceco', ceco.trim());
-        formDataToSubmit.append('sociedad', sociedad.trim());
 
-        if (selectedGerencia.__isNew__) {
-            // If it's a new brand, send the name for the backend to create
-            formDataToSubmit.append('gerenciaNombre', selectedGerencia.label);
+        if (selectedEmpresa.__isNew__) {
+            // If it's a new empresa, send the name for the backend to create
+            formDataToSubmit.append('empresaNombre', selectedEmpresa.label);
         } else {
-            // If it's an existing brand, send its ID
-            formDataToSubmit.append('gerenciaId', selectedGerencia.value);
+            // If it's an existing empresa, send its ID
+            formDataToSubmit.append('empresaId', selectedEmpresa.value);
         }
 
-        
+        // Agregar gerente si está seleccionado
+        if (selectedGerente) {
+            formDataToSubmit.append('gerenteId', selectedGerente.value);
+        }
+
         onSubmit(formDataToSubmit);
     };
 
@@ -143,33 +166,50 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                         {isEditing ? "Modifique los detalles del Departamento aquí." : "Complete los detalles para el nuevo departamento."}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="grid gap-6 py-4"> {/* Aumentado el gap general */}
+                <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="nombre" className="text-right">Nombre</Label>
-                        <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="col-span-3" placeholder="Nombre del Departamento"/>
+                        <Label htmlFor="nombre" className="text-right">Nombre *</Label>
+                        <Input 
+                            id="nombre" 
+                            value={nombre} 
+                            onChange={(e) => setNombre(e.target.value)} 
+                            className="col-span-3" 
+                            placeholder="Nombre del Departamento"
+                            required
+                        />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="ceco" className="text-right">CECO</Label>
-                        <Input id="ceco" value={ceco} onChange={(e) => setCeco(e.target.value)} className="col-span-3" placeholder="Centro de Costo"/>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="sociedad" className="text-right">Sociedad</Label>
-                        <Input id="sociedad" value={sociedad} onChange={(e) => setSociedad(e.target.value)} className="col-span-3" placeholder="Sociedad a la que pertenece"/>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="gerencia-select" className="text-right">Gerencia</Label>
+                        <Label htmlFor="empresa-select" className="text-right">Empresa *</Label>
                         <div className="col-span-3">
                         <CreatableSelect
-                            inputId="gerencia-select"
+                            inputId="empresa-select"
                             className="w-full"
-                            options={allGerencias.map(g => ({ value: g.id, label: g.nombre }))}
-                            value={selectedGerencia}
-                            onChange={opt => setSelectedGerencia(opt as OptionType | null)}
-                            onCreateOption={handleCreateGerencia}
-                            placeholder="Seleccionar o crear Gerencia"
+                            options={allEmpresas.map(e => ({ value: e.id, label: e.nombre }))}
+                            value={selectedEmpresa}
+                            onChange={opt => setSelectedEmpresa(opt as OptionType | null)}
+                            onCreateOption={handleCreateEmpresa}
+                            placeholder="Seleccionar o crear Empresa"
                             isClearable
-                            isLoading={isLoadingGerencias}
+                            isLoading={isLoadingEmpresas}
                             formatCreateLabel={val => `Crear "${val}"`}
+                            styles={reactSelectStyles}
+                        />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="gerente-select" className="text-right">Gerente</Label>
+                        <div className="col-span-3">
+                        <CreatableSelect
+                            inputId="gerente-select"
+                            className="w-full"
+                            options={allEmpleados.map(e => ({ 
+                                value: e.id, 
+                                label: `${e.nombre} ${e.apellido}` 
+                            }))}
+                            value={selectedGerente}
+                            onChange={opt => setSelectedGerente(opt as OptionType | null)}
+                            placeholder="Seleccionar Gerente (opcional)"
+                            isClearable
                             styles={reactSelectStyles}
                         />
                         </div>

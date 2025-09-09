@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
-import { createSession } from '@/lib/auth-server';
+import { encrypt } from '@/lib/auth';
 
 
 // Esquema de validación con Zod
@@ -34,9 +34,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Credenciales inválidas' }, { status: 401 });
     }
     
-    const session = await createSession(user.id, user.role as 'user' | 'admin');
+    // Crear el token JWT
+    const session = await encrypt({
+      sub: user.id,
+      role: user.role as 'user' | 'admin',
+      username: user.username,
+    });
 
-    return NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
+    // Crear la respuesta con la cookie de sesión
+    const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
+    
+    // Establecer la cookie de sesión
+    response.cookies.set('session', session, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 días
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('[LOGIN_API_ERROR]', error);

@@ -13,12 +13,12 @@ export async function GET(request: Request) {
   
     if (asignado === 'false') {
       // Si queremos los NO asignados, ambos campos de ID deben ser null
-      where = { usuarioId: null, departamentoId: null };
+      where = { empleadoId: null, departamentoId: null };
     } else if (asignado === 'true') {
       // Si queremos los SÍ asignados, al menos uno de los campos de ID NO debe ser null
       where = {
         OR: [
-          { usuarioId: { not: null } },
+          { empleadoId: { not: null } },
           { departamentoId: { not: null } },
         ],
       };
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
             marca: true, // Incluye la marca del modelo
           }
         },
-        usuario: true, // Incluye el usuario asignado (si existe)
+        empleado: true, // Incluye el empleado asignado (si existe)
         departamento: true, // Incluye el departamento asignado (si existe)
       },
       orderBy: {

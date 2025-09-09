@@ -36,7 +36,7 @@ export async function GET(
                 marca: true, // Incluir la marca del modelo
               },
             },
-            usuario: true, // Si el computador está directamente asignado a un usuario
+            empleado: true, // Si el computador está directamente asignado a un empleado
             departamento: true, // Si el computador está directamente asignado a un departamento
           },
         },
@@ -47,23 +47,24 @@ export async function GET(
                 marca: true,
               },
             },
-            usuario: true,
+            empleado: true,
             departamento: true,
           },
         },
         lineaTelefonica:true,
-        targetUsuario: {
+        targetEmpleado: {
           include: {
             departamento: {
               include: {
-                gerencia: true, // Incluir la gerencia del departamento
+                empresa: true, // Incluir la empresa del departamento
               },
             },
+            cargo: true, // Incluir el cargo del empleado
           },
         },
         targetDepartamento: {
           include: {
-            gerencia: true,
+            empresa: true,
           },
         },
       },
@@ -90,18 +91,18 @@ export async function GET(
     }
 
 
-    // Datos del Usuario/Departamento Asignado (Target)
+    // Datos del Empleado/Departamento Asignado (Target)
     if (asignacion.targetType === 'Usuario') {
       worksheet.getCell('B4').value = asignacion.date.toLocaleDateString('es-ES');
-      worksheet.getCell('B5').value = `${asignacion.targetUsuario?.nombre} ${asignacion.targetUsuario?.apellido}`;
-      worksheet.getCell('B6').value = asignacion.targetUsuario?.ced || '';
-      worksheet.getCell('B7').value = asignacion.targetUsuario?.cargo || '';
-      worksheet.getCell('B8').value = asignacion.targetUsuario?.legajo;
-      worksheet.getCell('B9').value = asignacion.targetUsuario?.departamento.sociedad;
-      worksheet.getCell('B10').value = asignacion.targetUsuario?.departamento.nombre;
+      worksheet.getCell('B5').value = `${asignacion.targetEmpleado?.nombre} ${asignacion.targetEmpleado?.apellido}`;
+      worksheet.getCell('B6').value = asignacion.targetEmpleado?.ced || '';
+      worksheet.getCell('B7').value = asignacion.targetEmpleado?.cargo?.nombre || '';
+      worksheet.getCell('B8').value = ''; // legajo removido
+      worksheet.getCell('B9').value = asignacion.targetEmpleado?.departamento?.empresa?.nombre || '';
+      worksheet.getCell('B10').value = asignacion.targetEmpleado?.departamento?.nombre || '';
       worksheet.getCell('B11').value = asignacion.localidad;
       worksheet.getCell('B12').value = asignacion.gerente;
-      worksheet.getCell('B13').value =asignacion.targetUsuario?.departamento.ceco;
+      worksheet.getCell('B13').value = ''; // ceco removido
       worksheet.getCell('B15').value = asignacion.motivo;
     } else { // targetType === 'Departamento'
       worksheet.getCell('B5').value = '';
@@ -110,9 +111,9 @@ export async function GET(
       worksheet.getCell('B8').value = '';
       worksheet.getCell('B4').value = asignacion.date.toLocaleDateString('es-ES');
       worksheet.getCell('B10').value = asignacion.targetDepartamento?.nombre;
-      worksheet.getCell('B6').value = asignacion.targetDepartamento?.gerencia.nombre;
-      worksheet.getCell('B13').value = asignacion.targetDepartamento?.ceco;
-      worksheet.getCell('B9').value = asignacion.targetDepartamento?.sociedad;
+      worksheet.getCell('B6').value = asignacion.targetDepartamento?.empresa?.nombre;
+      worksheet.getCell('B13').value = ''; // ceco removido
+      worksheet.getCell('B9').value = ''; // sociedad removida
       worksheet.getCell('B11').value = asignacion.localidad;
       worksheet.getCell('B12').value = asignacion.gerente;
     }

@@ -87,9 +87,9 @@ async function main() {
     console.log('Insertando usuarios en la base de datos...');
     
     // Usamos `createMany` para una inserción masiva y más eficiente
-    const result = await prisma.usuario.createMany({
+    const result = await prisma.empleado.createMany({
       data: usuariosParaCrear,
-      skipDuplicates: true, // Si un email ya existe, simplemente lo omite
+      // skipDuplicates no está soportado en SQL Server
     });
 
     console.log(`¡Migración completada! Se crearon ${result.count} nuevos usuarios.`);

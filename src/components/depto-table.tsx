@@ -27,28 +27,31 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import CreatableSelect from 'react-select/creatable'; // For CreatableSelect
-import { ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, FilterIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react"; // Assuming lucide-react for icons
+import { ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, FilterIcon, MoreHorizontalIcon, PlusIcon, XIcon } from "lucide-react"; // Assuming lucide-react for icons
 import { toast as showToast } from "sonner"; // Assuming sonner for toasts
 import TableRowSkeleton from '@/utils/loading';
 import { AlertDialog } from '@radix-ui/react-alert-dialog';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useDepartamentoRefresh } from '@/hooks/useDataRefresh';
 
 // Zod Schema for form validation
 export const deptoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
-    ceco: z.string().min(1, "El CECO es requerido"),
-    sociedad: z.string().min(1, "La sociedad es requerida"),
-    gerencia: z.string().min(1, "La gerencia es requerida"), // This implies gerencia is an ID string
+    empresaId: z.string().min(1, "La empresa es requerida"),
+    gerenteId: z.string().optional(),
 });
 
 export type DepartamentoFormData = z.infer<typeof deptoSchema>;
@@ -57,13 +60,13 @@ export type DepartamentoFormData = z.infer<typeof deptoSchema>;
 export interface Departamento {
     id: string;
     nombre: string;
-    gerencia: { id: string; nombre: string }; // Table expects gerencia as an object
-    ceco: string;
-    sociedad: string;
+    empresa: { id: string; nombre: string };
+    gerente?: { id: string; nombre: string; apellido: string } | null;
+    _count: { empleados: number };
 }
 
-// Type for Gerencia objects (used in form and for data fetching)
-export interface Gerencia {
+// Type for Empresa objects (used in form and for data fetching)
+export interface Empresa {
     id: string;
     nombre: string;
 }
@@ -72,15 +75,16 @@ export interface Gerencia {
 export interface DepartamentoFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: FormData) => void; // Form currently submits FormData
-    gerencias: Gerencia[];
-    initialData?: { // Data to pre-fill the form for editing
+    onSubmit: (data: FormData) => void;
+    empresas: Empresa[];
+    empleados?: { id: string; nombre: string; apellido: string; departamentoId?: string; }[];
+    initialData?: {
         nombre: string;
-        sociedad: string;
-        ceco: string;
-        gerenciaId: string; // ID of the selected gerencia
-    } | null; // Allow null for clarity when not editing
-    isEditing?: boolean; // Explicitly pass if it's an edit operation
+        empresaId: string;
+        gerenteId?: string;
+        departamentoId?: string;
+    } | null;
+    isEditing?: boolean;
 }
 
 // Props for DepartamentoTable
@@ -116,82 +120,107 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
     isOpen,
     onClose,
     onSubmit,
-    gerencias,
+    empresas,
+    empleados = [],
     initialData,
-    isEditing: propIsEditing // Renamed to avoid conflict
+    isEditing: propIsEditing
 }) => {
     const [nombre, setNombre] = useState('');
-    const [ceco, setCeco] = useState('');
-    const [sociedad, setSociedad] = useState('');
-    const [selectedGerencia, setSelectedGerencia] = useState<OptionType | null>(null);
-    const [allGerencias, setAllGerencias] = useState<Gerencia[]>([]);
-    const [isLoadingGerencias, setIsLoadingGerencias] = useState(false); // Example state for loading
-    // const [isCreatingGerencia, setIsCreatingGerencia] = useState(false); // Not strictly needed if optimistic
+    const [selectedEmpresa, setSelectedEmpresa] = useState<OptionType | null>(null);
+    const [selectedGerente, setSelectedGerente] = useState<OptionType | null>(null);
+    const [allEmpresas, setAllEmpresas] = useState<Empresa[]>([]);
+    const [allEmpleados, setAllEmpleados] = useState<{ id: string; nombre: string; apellido: string; departamentoId?: string; }[]>([]);
+    const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
 
     const isEditing = !!initialData && propIsEditing;
 
+    // Filtrar empleados según el departamento cuando se está editando
+    const empleadosFiltrados = React.useMemo(() => {
+        if (isEditing && initialData?.departamentoId) {
+            // Solo mostrar empleados del departamento actual
+            return allEmpleados.filter(emp => emp.departamentoId === initialData.departamentoId);
+        }
+        // Para creación, mostrar todos los empleados
+        return allEmpleados;
+    }, [allEmpleados, isEditing, initialData?.departamentoId]);
+
     useEffect(() => {
-        setAllGerencias(gerencias);
-    }, [gerencias]);
+        setAllEmpresas(empresas || []);
+        setAllEmpleados(empleados || []);
+    }, [empresas, empleados]);
 
     useEffect(() => {
         if (isOpen) {
             if (isEditing && initialData) {
                 setNombre(initialData.nombre || '');
-                setCeco(initialData.ceco || '');
-                setSociedad(initialData.sociedad || '');
-                if (initialData.gerenciaId) {
-                    const gerenciaActual = allGerencias.find(g => g.id === initialData.gerenciaId);
-                    if (gerenciaActual) {
-                        setSelectedGerencia({ value: gerenciaActual.id, label: gerenciaActual.nombre });
+                
+                // Preseleccionar la empresa
+                if (initialData.empresaId && allEmpresas) {
+                    const empresaActual = allEmpresas.find(e => e.id === initialData.empresaId);
+                    if (empresaActual) {
+                        setSelectedEmpresa({ value: empresaActual.id, label: empresaActual.nombre });
                     } else {
-                        setSelectedGerencia(null);
+                        setSelectedEmpresa(null);
                     }
                 } else {
-                    setSelectedGerencia(null);
+                    setSelectedEmpresa(null);
+                }
+
+                // Preseleccionar el gerente
+                if (initialData.gerenteId && empleadosFiltrados) {
+                    const gerenteActual = empleadosFiltrados.find(e => e.id === initialData.gerenteId);
+                    if (gerenteActual) {
+                        setSelectedGerente({ 
+                            value: gerenteActual.id, 
+                            label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
+                        });
+                    } else {
+                        setSelectedGerente(null);
+                    }
+                } else {
+                    setSelectedGerente(null);
                 }
             } else {
                 // Reset for creation
                 setNombre('');
-                setCeco('');
-                setSociedad('');
-                setSelectedGerencia(null);
+                setSelectedEmpresa(null);
+                setSelectedGerente(null);
             }
         }
-    }, [isOpen, initialData, isEditing, allGerencias]);
+    }, [isOpen, initialData, isEditing, allEmpresas, allEmpleados, empleadosFiltrados]);
 
-    const handleCreateGerencia = async (inputValue: string) => {
-        // setIsCreatingGerencia(true); // UI feedback if needed
-        const newGerenciaOption: OptionType = {
-            value: inputValue, // For a new brand, value might be temporary or same as label
+    const handleCreateEmpresa = async (inputValue: string) => {
+        const newEmpresaOption: OptionType = {
+            value: inputValue,
             label: inputValue,
             __isNew__: true,
         };
-        setSelectedGerencia(newGerenciaOption);
-        // setIsCreatingGerencia(false);
-        showToast.info(`Gerencia "${inputValue}" lista para ser creada junto con el departamento.`, { position: "top-right" });
+        setSelectedEmpresa(newEmpresaOption);
+        showToast.info(`Empresa "${inputValue}" lista para ser creada junto con el departamento.`, { position: "top-right" });
     };
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
 
-        // Basic validation (Zod could be integrated more deeply here)
-        if (!nombre.trim() || !ceco.trim() || !sociedad.trim() || !selectedGerencia) {
-            showToast.warning("Todos los campos son requeridos, incluyendo la gerencia.", { position: "top-right" });
+        if (!nombre.trim() || !selectedEmpresa) {
+            showToast.warning("El nombre y la empresa son requeridos.", { position: "top-right" });
             return;
         }
 
         const formDataToSubmit = new FormData();
         formDataToSubmit.append('nombre', nombre.trim());
-        formDataToSubmit.append('ceco', ceco.trim());
-        formDataToSubmit.append('sociedad', sociedad.trim());
 
-        if (selectedGerencia) { // Ensure selectedGerencia is not null
-            if (selectedGerencia.__isNew__) {
-                formDataToSubmit.append('gerenciaNombre', selectedGerencia.label); // Send name for new gerencia
+        if (selectedEmpresa) {
+            if (selectedEmpresa.__isNew__) {
+                formDataToSubmit.append('empresaNombre', selectedEmpresa.label);
             } else {
-                formDataToSubmit.append('gerenciaId', selectedGerencia.value); // Send ID for existing gerencia
+                formDataToSubmit.append('empresaId', selectedEmpresa.value);
             }
+        }
+
+        // Agregar gerente si está seleccionado
+        if (selectedGerente) {
+            formDataToSubmit.append('gerenteId', selectedGerente.value);
         }
         
         onSubmit(formDataToSubmit);
@@ -208,32 +237,59 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="nombre" className="text-right">Nombre</Label>
-                        <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="col-span-3" placeholder="Nombre del Departamento" />
+                        <Label htmlFor="nombre" className="text-right">Nombre *</Label>
+                        <Input 
+                            id="nombre" 
+                            value={nombre} 
+                            onChange={(e) => setNombre(e.target.value)} 
+                            className="col-span-3" 
+                            placeholder="Nombre del Departamento"
+                            required
+                        />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="ceco" className="text-right">CECO</Label>
-                        <Input id="ceco" value={ceco} onChange={(e) => setCeco(e.target.value)} className="col-span-3" placeholder="Centro de Costo" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="sociedad" className="text-right">Sociedad</Label>
-                        <Input id="sociedad" value={sociedad} onChange={(e) => setSociedad(e.target.value)} className="col-span-3" placeholder="Sociedad a la que pertenece" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="gerencia-select" className="text-right">Gerencia</Label>
+                        <Label htmlFor="empresa-select" className="text-right">Empresa *</Label>
                         <div className="col-span-3">
                             <CreatableSelect
-                                instanceId="gerencia-creatable-select"
+                                instanceId="empresa-creatable-select"
                                 styles={reactSelectStyles}
-                                options={allGerencias.map(g => ({ value: g.id, label: g.nombre }))}
-                                value={selectedGerencia}
-                                onChange={(option) => setSelectedGerencia(option as OptionType | null)}
-                                onCreateOption={handleCreateGerencia}
-                                placeholder="Seleccionar o crear Gerencia"
+                                options={allEmpresas?.map(e => ({ value: e.id, label: e.nombre })) || []}
+                                value={selectedEmpresa}
+                                onChange={(option) => setSelectedEmpresa(option as OptionType | null)}
+                                onCreateOption={handleCreateEmpresa}
+                                placeholder="Seleccionar o crear Empresa"
                                 isClearable
-                                isLoading={isLoadingGerencias}
-                                formatCreateLabel={(inputValue) => `Crear nueva gerencia: "${inputValue}"`}
+                                isLoading={isLoadingEmpresas}
+                                formatCreateLabel={(inputValue) => `Crear nueva empresa: "${inputValue}"`}
                             />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="gerente-select" className="text-right">Gerente</Label>
+                        <div className="col-span-3">
+                            <CreatableSelect
+                                instanceId="gerente-creatable-select"
+                                styles={reactSelectStyles}
+                                options={empleadosFiltrados?.map(e => ({ 
+                                    value: e.id, 
+                                    label: `${e.nombre} ${e.apellido}` 
+                                })) || []}
+                                value={selectedGerente}
+                                onChange={(option) => setSelectedGerente(option as OptionType | null)}
+                                placeholder={
+                                    isEditing && empleadosFiltrados.length === 0 
+                                        ? "No hay empleados en este departamento" 
+                                        : "Seleccionar Gerente (opcional)"
+                                }
+                                isClearable
+                                isDisabled={isEditing && empleadosFiltrados.length === 0}
+                            />
+                            {isEditing && empleadosFiltrados.length === 0 && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    No hay empleados registrados en este departamento. 
+                                    Agregue empleados al departamento para poder asignar un gerente.
+                                </p>
+                            )}
                         </div>
                     </div>
                     <DialogFooter>
@@ -249,6 +305,8 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
 
 // DepartamentoTable Component
 export function DepartamentoTable({}: DepartamentoTableProps) {
+    const router = useRouter();
+    const notifyDepartamentoChange = useDepartamentoRefresh();
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -257,18 +315,12 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [editingDepartamento, setEditingDepartamento] = React.useState<Departamento | null>(null);
     const [searchQuery, setSearchQuery] = React.useState("")
+    const [empresaFilter, setEmpresaFilter] = React.useState<string>("")
     const [departamentos, setDepartamentos] = React.useState<Departamento[]>([]);
-    const [gerencias, setGerencias] = React.useState<Gerencia[]>([]);
-    const [isLoading, setLoading] = React.useState(false) // Gerencia[] type
+    const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
+    const [empleados, setEmpleados] = React.useState<{ id: string; nombre: string; apellido: string; }[]>([]);
+    const [isLoading, setLoading] = React.useState(true)
 
-    // API Data type for Departamento if gerencia is just an ID from backend
-    interface DepartamentoFromAPI {
-        id: string;
-        nombre: string;
-        gerenciaId: string; // Assuming API returns gerenciaId
-        ceco: string;
-        sociedad: string;
-    }
 
 
     const columns: ColumnDef<Departamento>[] = [
@@ -296,60 +348,32 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
             header: "Nombre",
         },
         {
-            accessorKey: "gerencia.nombre",
-            header: ({ column }) => {
-            const isFilterActive = !!column.getFilterValue();
-            
-            // Obtener modelos únicos de los computadores
-            const uniqueModelos = Array.from(
-                new Set(departamentos
-                .map(c => c.gerencia?.nombre)
-                .filter(Boolean) as string[]
-                )
-            ).sort();
-
-            return (
-                <div className="flex items-center">
-                <span>Modelo</span>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className={`h-5 w-5 p-0 ml-1 ${isFilterActive ? "text-[#EA7704]" : "text-muted-foreground"}`}
-                    >
-                        <FilterIcon className="h-3 w-3" />
-                        {isFilterActive && (
-                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#EA7704]"></span>
-                        )}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-40 p-2">
-                    <select
-                        value={(column.getFilterValue() as string) ?? ""}
-                        onChange={(e) => column.setFilterValue(e.target.value)}
-                        className="h-8 w-full border rounded text-sm px-2 py-1"
-                    >
-                        <option value="">Todos los modelos</option>
-                        {uniqueModelos.map((modelo) => (
-                        <option key={modelo} value={modelo}>
-                            {modelo}
-                        </option>
-                        ))}
-                    </select>
-                    </PopoverContent>
-                </Popover>
-                </div>
-            );
+            accessorKey: "empresa.nombre",
+            header: "Empresa",
+            cell: ({ row }) => {
+                const empresa = row.original.empresa;
+                return <div>{empresa?.nombre || "N/A"}</div>;
             },
         },
         {
-            accessorKey: "ceco",
-            header: "CECO",
+            accessorKey: "gerente",
+            header: "Gerente",
+            cell: ({ row }) => {
+                const gerente = row.original.gerente;
+                return <div>{gerente ? `${gerente.nombre} ${gerente.apellido}` : "Sin asignar"}</div>;
+            },
         },
         {
-            accessorKey: "sociedad",
-            header: "Sociedad"
+            accessorKey: "_count.empleados",
+            header: "Empleados",
+            cell: ({ row }) => {
+                const count = row.original._count?.empleados || 0;
+                return (
+                    <Badge variant={count > 0 ? "default" : "secondary"}>
+                        {count} empleado{count !== 1 ? 's' : ''}
+                    </Badge>
+                );
+            },
         },
         {
             id: "actions",
@@ -366,18 +390,23 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                                <Link href={`/departamentos/${depto.id}/asigned`}>
-                                    Ver Asignados
-                                </Link>
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem
+                                onClick={() => navigator.clipboard.writeText(depto.id)}
+                            >
+                                Copiar ID
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleViewDetails(depto)}>
+                                Ver Detalles
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleOpenEditModal(depto)}>
-                                Editar departamento
+                                Editar Departamento
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialogTrigger asChild>
                                 <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                    Eliminar departamento
+                                    Eliminar Departamento
                                 </DropdownMenuItem>
                             </AlertDialogTrigger>
                         </DropdownMenuContent>
@@ -407,8 +436,27 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
         },
     ];
 
+    // Filtrar departamentos por empresa y búsqueda usando el estado local
+    const departamentosFiltrados = React.useMemo(() => {
+        let filtered = departamentos;
+        
+        // Filtrar por empresa
+        if (empresaFilter) {
+            filtered = filtered.filter(depto => depto.empresa.id === empresaFilter);
+        }
+        
+        // Filtrar por búsqueda de nombre
+        if (searchQuery) {
+            filtered = filtered.filter(depto => 
+                depto.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        
+        return filtered;
+    }, [departamentos, empresaFilter, searchQuery]);
+
     const table = useReactTable({
-        data: departamentos, // Use the processed 'departamentos' state
+        data: departamentosFiltrados, // Use the filtered departamentos
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -433,35 +481,29 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
     const fetchAllData = async () => {
         setLoading(true);
         try {
-            const [departamentosResponse, gerenciasResponse] = await Promise.all([
+            const [departamentosResponse, empresasResponse, empleadosResponse] = await Promise.all([
                 fetch('/api/departamentos'),
-                fetch('/api/gerencias')
+                fetch('/api/empresas'),
+                fetch('/api/usuarios')
             ]);
 
             if (!departamentosResponse.ok) {
                 throw new Error(`Error fetching departamentos: ${departamentosResponse.statusText}`);
             }
-            if (!gerenciasResponse.ok) {
-                throw new Error(`Error fetching gerencias: ${gerenciasResponse.statusText}`);
+            if (!empresasResponse.ok) {
+                throw new Error(`Error fetching empresas: ${empresasResponse.statusText}`);
+            }
+            if (!empleadosResponse.ok) {
+                throw new Error(`Error fetching empleados: ${empleadosResponse.statusText}`);
             }
 
-            const departamentosDataFromAPI: DepartamentoFromAPI[] = await departamentosResponse.json();
-            const gerenciasData: Gerencia[] = await gerenciasResponse.json();
+            const departamentosData: Departamento[] = await departamentosResponse.json();
+            const empresasData: Empresa[] = await empresasResponse.json();
+            const empleadosData: { id: string; nombre: string; apellido: string; }[] = await empleadosResponse.json();
 
-            // Create a map for quick lookup of gerencia names
-            const gerenciasMap = new Map(gerenciasData.map(g => [g.id, g.nombre]));
-
-            // Enrich departamentos data with gerencia object
-            const processedDepartamentos: Departamento[] = departamentosDataFromAPI.map(d => ({
-                ...d,
-                gerencia: {
-                    id: d.gerenciaId,
-                    nombre: gerenciasMap.get(d.gerenciaId) || "N/A", // Fallback for missing gerencia
-                },
-            }));
-
-            setDepartamentos(processedDepartamentos);
-            setGerencias(gerenciasData);
+            setDepartamentos(departamentosData);
+            setEmpresas(empresasData);
+            setEmpleados(empleadosData);
             setLoading(false);
         } catch (error: any) {
             showToast.error(`¡Error al cargar datos!: ${error.message}`, {
@@ -474,14 +516,24 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
         fetchAllData();
     }, []);
 
-    React.useEffect(() => {
-        if (searchQuery) {
-          table.getColumn("nombre")?.setFilterValue(searchQuery);
-        } else {
-          table.getColumn("nombre")?.setFilterValue("");
-        }
-      }, [table, searchQuery]);
+    // Removido: Ya no necesitamos filtrar por columnas individuales
+    // El filtrado se maneja en departamentosFiltrados
     
+    // Verificar que la tabla esté lista antes de renderizar
+    if (!table || !columns || columns.length === 0 || isLoading) {
+        return (
+            <Card className="border-none shadow-md">
+                <CardHeader className="bg-primary/5 rounded-t-lg">
+                    <CardTitle className="text-2xl font-bold">Departamentos</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                    <div className="flex items-center justify-center h-32">
+                        <div className="text-muted-foreground">Cargando tabla...</div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     const handleDelete = async ({id}: {id: string}) => {
     setLoading(true);
@@ -496,6 +548,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
 
         showToast.success("Departamento eliminado correctamente.");
         fetchAllData();
+        notifyDepartamentoChange(); // Notificar cambios
     } catch (error) {
         console.error(error);
         showToast.error("No se pudo eliminar el depto.");
@@ -508,6 +561,11 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
     const handleOpenEditModal = (departamento: Departamento) => {
         setEditingDepartamento(departamento);
         setIsEditModalOpen(true);
+    };
+
+    const handleViewDetails = (departamento: Departamento) => {
+        // Navegar a la página de detalles del departamento
+        router.push(`/departamentos/${departamento.id}`);
     };
 
     const handleCreateDepartamento = async (data: FormData) => {
@@ -529,6 +587,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
             showToast.success("Departamento creado correctamente 👍", { duration: 4000, position: "top-right" });
             setIsCreateModalOpen(false);
             await fetchAllData(); // Refresh data
+            notifyDepartamentoChange(); // Notificar cambios
         } catch (error: any) {
             showToast.error(`Error al guardar el departamento: ${error.message}`, { duration: 4000, position: "top-right" });
         }
@@ -556,12 +615,18 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
             setIsEditModalOpen(false);
             setEditingDepartamento(null);
             await fetchAllData(); // Refresh data
+            notifyDepartamentoChange(); // Notificar cambios
         } catch (error: any) {
             showToast.error(`Error al actualizar el departamento: ${error.message}`, { duration: 4000, position: "top-right" });
         }
     };
 
+    const clearFilters = () => {
+        setSearchQuery("");
+        setEmpresaFilter("");
+    };
 
+    const hasActiveFilters = searchQuery || empresaFilter;
 
     return (
         <Card className="border-none shadow-md">
@@ -571,11 +636,49 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                     <div className="flex flex-col gap-2 sm:flex-row">
                         <div className="flex items-center gap-2">
                             <Input
-                                placeholder="Filtrar por nombre..." // Update placeholder
+                                placeholder="Filtrar por nombre..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="max-w-sm border-primary/20"
                             />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="min-w-[140px] justify-between">
+                                        <FilterIcon className="h-4 w-4 mr-2" />
+                                        {empresaFilter ? empresas.find(e => e.id === empresaFilter)?.nombre || "Empresa" : "Empresas"}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-[200px]">
+                                    <DropdownMenuLabel>Filtrar por empresa</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={() => setEmpresaFilter("")}
+                                        className={!empresaFilter ? "bg-accent" : ""}
+                                    >
+                                        Todas las empresas
+                                    </DropdownMenuItem>
+                                    {empresas.map((empresa) => (
+                                        <DropdownMenuItem
+                                            key={empresa.id}
+                                            onClick={() => setEmpresaFilter(empresa.id)}
+                                            className={empresaFilter === empresa.id ? "bg-accent" : ""}
+                                        >
+                                            {empresa.nombre}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={clearFilters}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    <XIcon className="h-4 w-4 mr-1" />
+                                    Limpiar filtros
+                                </Button>
+                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" className="ml-auto">
@@ -594,9 +697,9 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                                 checked={column.getIsVisible()}
                                                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
                                             >
-                                                {/* Custom display names for columns */}
-                                                {column.id === "gerencia.nombre" ? "Gerencia" :
-                                                 column.id === "ceco" ? "CECO" :
+                                                {column.id === "empresa.nombre" ? "Empresa" :
+                                                 column.id === "gerente" ? "Gerente" :
+                                                 column.id === "_count.empleados" ? "Empleados" :
                                                  column.id}
                                             </DropdownMenuCheckboxItem>
                                         ))}
@@ -611,7 +714,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="rounded-md border overflow-x-auto"> {/* Added overflow for responsiveness */}
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -623,36 +726,49 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                     ))}
                                 </TableRow>
                             ))}
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            Array.from({ length: 5 }).map((_, index) => (
-                            <TableRowSkeleton 
-                                key={`skeleton-${index}`} 
-                                columnCount={columns.length || 5} 
-                        />
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                Array.from({ length: 5 }).map((_, index) => (
+                                    <TableRowSkeleton 
+                                        key={`skeleton-${index}`} 
+                                        columnCount={columns.length || 5} 
+                                    />
                                 ))
                             ) : table.getRowModel().rows?.length ? (
-                                // Mostrar datos cuando están cargados
                                 table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                                    {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </TableCell>
-                                    ))}
-                                </TableRow>
+                                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
                                 ))
                             ) : (
-                                // Mostrar mensaje si no hay resultados
                                 <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    {searchQuery ? "No se encontraron departamentos con ese filtro." : "No hay departamentos registrados."}
-                                </TableCell>
+                                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                                        {hasActiveFilters ? (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <span>No se encontraron departamentos con los filtros aplicados.</span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={clearFilters}
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <XIcon className="h-4 w-4 mr-1" />
+                                                    Limpiar filtros
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            "No hay departamentos registrados."
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             )}
-                    </TableBody>
-                </Table>
+                        </TableBody>
+                    </Table>
                 </div>
                 <div className="flex items-center justify-between space-x-2 py-4 px-4">
                     <div className="flex-1 text-sm text-muted-foreground">
@@ -686,12 +802,13 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSubmit={handleCreateDepartamento}
-                gerencias={gerencias}
-                key="create-departamento-form" // Explicit key for create
+                empresas={empresas}
+                empleados={empleados}
+                key="create-departamento-form"
             />
 
             {/* Edit Modal */}
-            {editingDepartamento && ( // Conditionally render to ensure initialData is available
+            {editingDepartamento && (
                 <DepartamentoForm
                     isOpen={isEditModalOpen}
                     onClose={() => {
@@ -699,15 +816,16 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                         setEditingDepartamento(null);
                     }}
                     onSubmit={handleUpdateDepartamento}
-                    initialData={{ // Map data for the edit form
+                    initialData={{
                         nombre: editingDepartamento.nombre,
-                        gerenciaId: editingDepartamento.gerencia.id, // Pass the ID of the gerencia
-                        ceco: editingDepartamento.ceco,
-                        sociedad: editingDepartamento.sociedad,
+                        empresaId: editingDepartamento.empresa.id,
+                        gerenteId: editingDepartamento.gerente?.id,
+                        departamentoId: editingDepartamento.id,
                     }}
-                    gerencias={gerencias}
-                    isEditing={true} // Explicitly set isEditing
-                    key={editingDepartamento.id} // Crucial for React to reinitialize/reset the form state
+                    empresas={empresas}
+                    empleados={empleados}
+                    isEditing={true}
+                    key={editingDepartamento.id}
                 />
             )}
         </Card>

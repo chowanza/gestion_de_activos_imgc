@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo blanco -->
+  <rect width="32" height="32" fill="white"/>
+  
+  <!-- Letra i latina azul -->
+  <rect x="14" y="8" width="4" height="16" fill="#2563eb"/>
+  
+  <!-- Punto cuadrado de la i naranja (misma anchura que el palito) -->
+  <rect x="14" y="4" width="4" height="4" fill="#EA7704"/>
+</svg>

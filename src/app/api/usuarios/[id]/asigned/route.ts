@@ -7,20 +7,21 @@ export async function GET(
   await Promise.resolve();
     const id = request.nextUrl.pathname.split('/')[3];
   try {
-    // Paso 1: Verificar si el usuario existe y obtener sus datos básicos.
-    const usuario = await prisma.usuario.findUnique({
+    // Paso 1: Verificar si el empleado existe y obtener sus datos básicos.
+    const empleado = await prisma.empleado.findUnique({
       where: { id },
       include: {
         departamento: {
           include: {
-            gerencia: true,
+            empresa: true,
           },
         },
+        cargo: true,
       },
     });
 
-    if (!usuario) {
-      return NextResponse.json({ message: `Usuario con ID ${id} no encontrado` }, { status: 404 });
+    if (!empleado) {
+      return NextResponse.json({ message: `Empleado con ID ${id} no encontrado` }, { status: 404 });
     }
 
     // Paso 2: Ejecutar todas las búsquedas de activos Y los conteos en paralelo.
@@ -31,9 +32,9 @@ export async function GET(
         totalComputadores, // <-- NUEVO
         totalDispositivos, // <-- NUEVO
     ] = await Promise.all([
-      // Buscar computadores directamente asignados al usuario
+      // Buscar computadores directamente asignados al empleado
       prisma.computador.findMany({
-        where: { usuarioId: id },
+        where: { empleadoId: id },
         include: {
           modelo: {
             include: {
@@ -42,9 +43,9 @@ export async function GET(
           },
         },
       }),
-      // Buscar dispositivos directamente asignados al usuario
+      // Buscar dispositivos directamente asignados al empleado
       prisma.dispositivo.findMany({
-        where: { usuarioId: id },
+        where: { empleadoId: id },
         include: {
           modelo: {
             include: {
@@ -53,10 +54,10 @@ export async function GET(
           },
         },
       }),
-      // Buscar en el historial de asignaciones las líneas telefónicas asignadas a este usuario
+      // Buscar en el historial de asignaciones las líneas telefónicas asignadas a este empleado
       prisma.asignaciones.findMany({
         where: {
-          targetUsuarioId: id,
+          targetEmpleadoId: id,
           itemType: 'LineaTelefonica',
           actionType: 'Asignacion',
         },
@@ -65,8 +66,8 @@ export async function GET(
         },
       }),
       // --- NUEVAS CONSULTAS DE CONTEO ---
-      prisma.computador.count({ where: { usuarioId: id } }),
-      prisma.dispositivo.count({ where: { usuarioId: id } }),
+      prisma.computador.count({ where: { empleadoId: id } }),
+      prisma.dispositivo.count({ where: { empleadoId: id } }),
     ]);
 
     // Paso 3: Extraer y limpiar los datos de las líneas telefónicas.
@@ -78,12 +79,12 @@ export async function GET(
 
     // Paso 4: Construir el objeto de respuesta final, incluyendo las estadísticas.
     const responseData = {
-      id: usuario.id,
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      cargo: usuario.cargo,
-      departamento: usuario.departamento.nombre,
-      gerencia: usuario.departamento.gerencia.nombre,
+      id: empleado.id,
+      nombre: empleado.nombre,
+      apellido: empleado.apellido,
+      cargo: empleado.cargo,
+      departamento: empleado.departamento.nombre,
+      empresa: empleado.departamento.empresa.nombre,
       computadores,
       dispositivos,
       lineasTelefonicas,
@@ -99,7 +100,7 @@ export async function GET(
     return NextResponse.json(responseData, { status: 200 });
 
   } catch (error) {
-    console.error(`Error al obtener activos para el usuario ${id}:`, error);
+    console.error(`Error al obtener activos para el empleado ${id}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el servidor';
     return NextResponse.json({ message: 'Error al obtener los activos asignados', error: errorMessage }, { status: 500 });
   }

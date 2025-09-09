@@ -15,31 +15,32 @@ export async function getGerente(tx: Tx, args: GetGerenteArgs) {
   if (args.targetType === 'Departamento') {
     const depto = await tx.departamento.findUnique({
       where: { id: args.targetId },
-      include: { gerencia: { include: { gerente: true } } },
+      include: { gerente: true },
     });
-    return depto?.gerencia?.gerente || null;
+    return depto?.gerente || null;
   }
 
-  // targetType === 'Usuario'
-  const usuario = await tx.usuario.findUnique({
+  // targetType === 'Empleado'
+  const empleado = await tx.empleado.findUnique({
     where: { id: args.targetId },
     include: {
-      departamento: { include: { gerencia: { include: { gerente: true } } } },
+      departamento: { include: { gerente: true } },
+      cargo: true,
     },
   });
 
-  if (!usuario) return null;
+  if (!empleado) return null;
 
-  const esGerente = (usuario.cargo || '').toLowerCase().includes('gerente');
+  const esGerente = (empleado.cargo?.nombre || '').toLowerCase().includes('gerente');
 
   if (preferGG && esGerente) {
     // Si tienes la tabla Configuracion
-    const cfg = await tx.configuracion.findUnique({
-      where: { id: 1 },
-      include: { gerenteGeneral: true },
-    });
-    if (cfg?.gerenteGeneral) return cfg.gerenteGeneral;
+    // const cfg = await tx.configuracion.findUnique({
+    //   where: { id: 1 },
+    //   include: { gerenteGeneral: true },
+    // });
+    // if (cfg?.gerenteGeneral) return cfg.gerenteGeneral;
   }
 
-  return usuario.departamento?.gerencia?.gerente || null;
+  return empleado.departamento?.gerente || null;
 }

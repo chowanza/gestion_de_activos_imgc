@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem, 
          SidebarMenuButton, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { ChartPie, Printer, Tag, Laptop, Factory, 
-         UsersIcon, ClipboardListIcon, Phone, Globe, History, LogOut
+         UsersIcon, ClipboardListIcon, Phone, Globe, History, LogOut, Building2
 } from 'lucide-react';
 import Link from 'next/link';
 import { NavMain } from './nav-main';
@@ -21,12 +21,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const navData = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: ChartPie },
+    { title: "Empresas", url: "/empresas", icon: Building2 },
     { title: "Modelos", url: "/modelos", icon: Tag },
     { title: "Dispositivos", url: "/dispositivos", icon: Printer },
     { title: "Computadoras", url: "/computadores", icon: Laptop },
     { title: "Líneas telefónicas", url: "/lineas", icon: Phone },
     { title: "Departamentos", url: "/departamentos", icon: Globe },
-    { title: "Usuarios", url: "/usuarios", icon: UsersIcon },
+    { title: "Empleados", url: "/empleados", icon: UsersIcon },
     { title: "Asignaciones", url: "/asignaciones", icon: ClipboardListIcon },
     { title: "Historial", url: "/historial", icon: History },
   ],
@@ -50,7 +51,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     // Si no es admin, excluir ciertos items
     switch(item.title) {
       case 'Modelos':
-      case 'Usuarios':
+      case 'Empleados':
       case 'Departamentos':
         return false;
       default:

@@ -3,14 +3,14 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import UsuarioForm, { UsuarioFormData } from "@/components/UsuarioForm";
+import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
 import { useRouter } from "next/navigation";
 import { showToast } from "nextjs-toast-notify";
 
-export default function NuevoUsuarioPage() {
+export default function NuevoEmpleadoPage() {
     const router = useRouter();
 
-    const handleCreateUsuario = async (data: UsuarioFormData) => {
+    const handleCreateEmpleado = async (data: EmpleadoFormData) => {
         try {
             const response = await fetch('/api/usuarios', {
                 method: 'POST',
@@ -24,7 +24,7 @@ export default function NuevoUsuarioPage() {
             }
             
             showToast.success("Usuario creado con éxito");
-            router.push('/usuarios'); // Redirigir a la lista
+            router.push('/empleados'); // Redirigir a la lista
             router.refresh(); // Opcional: para forzar la actualización de datos en la página de lista
         } catch (error: any) {
             showToast.error(`Error: ${error.message}`);
@@ -34,11 +34,11 @@ export default function NuevoUsuarioPage() {
     return (
         <Card className="m-2">
             <CardHeader>
-                <CardTitle>Agregar Nuevo Usuario</CardTitle>
-                <CardDescription>Complete los detalles para registrar una nueva instancia de Usuario.</CardDescription>
+                <CardTitle>Agregar Nuevo Empleado</CardTitle>
+                <CardDescription>Complete los detalles para registrar una nueva instancia de Empleado.</CardDescription>
             </CardHeader>
             <CardContent>
-                <UsuarioForm onSubmit={handleCreateUsuario} />
+                <EmpleadoForm onSubmit={handleCreateEmpleado} />
             </CardContent>
         </Card>
     );

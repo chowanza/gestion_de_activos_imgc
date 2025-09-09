@@ -1,13 +1,43 @@
-import { NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const user = await getServerUser(request);
+    
     const departamentos = await prisma.departamento.findMany({
       include: {
-        gerencia: true,
+        empresa: true,
+        gerente: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true
+          }
+        },
+        _count: {
+          select: {
+            empleados: true
+          }
+        }
+      },
+      orderBy: {
+        nombre: 'asc'
       }
     });
+
+    // Registrar acceso a la lista de departamentos
+    if (user) {
+      await AuditLogger.logView(
+        'departamentos',
+        'lista',
+        `Usuario ${user.username} accedió a la lista de departamentos`,
+        user.id as string
+      );
+    }
+
     return NextResponse.json(departamentos, { status: 200 });
   } catch (error) {
     console.error(error);
@@ -15,64 +45,93 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Es mejor parsear el JSON directamente.
-    // El manejo de texto plano es solo para depuración y puede ser eliminado.
     const body = await request.json();
+    const user = await getServerUser(request);
     console.log("Cuerpo parseado:", body);
 
-    const { nombre, ceco, sociedad, gerenciaId, gerenciaNombre } = body;
+    const { nombre, empresaId, empresaNombre, gerenteId } = body;
 
     // Validación básica
-    if (!nombre || !ceco || !sociedad) {
+    if (!nombre) {
       return NextResponse.json(
-        { message: "Los campos nombre, ceco y sociedad son requeridos." },
+        { message: "El campo nombre es requerido." },
         { status: 400 }
       );
     }
     
-    // Si no se provee ni un ID de gerencia ni un nombre para crear una nueva
-    if (!gerenciaId && !gerenciaNombre) {
+    // Si no se provee ni un ID de empresa ni un nombre para crear una nueva
+    if (!empresaId && !empresaNombre) {
         return NextResponse.json(
-          { message: "Debe proporcionar una gerencia existente (gerenciaId) o crear una nueva (gerenciaNombre)." },
+          { message: "Debe proporcionar una empresa existente (empresaId) o crear una nueva (empresaNombre)." },
           { status: 400 }
         );
     }
 
     let dataForDepartamento: any = {
       nombre,
-      ceco,
-      sociedad,
+      gerenteId: gerenteId || null,
     };
 
-    // Lógica para manejar la Gerencia
-    if (gerenciaNombre) {
-      // Caso 1: Se está creando una nueva gerencia.
-      // Primero, creamos la gerencia.
-      const newGerencia = await prisma.gerencia.create({
+    // Lógica para manejar la Empresa
+    if (empresaNombre) {
+      // Caso 1: Se está creando una nueva empresa.
+      const newEmpresa = await prisma.empresa.create({
         data: {
-          nombre: gerenciaNombre,
+          nombre: empresaNombre,
+          descripcion: null,
         },
       });
-      // Luego, usamos su ID para la relación.
-      dataForDepartamento.gerenciaId = newGerencia.id;
+      dataForDepartamento.empresaId = newEmpresa.id;
 
     } else {
-      // Caso 2: Se está conectando a una gerencia existente.
-      dataForDepartamento.gerenciaId = gerenciaId;
+      // Caso 2: Se está conectando a una empresa existente.
+      dataForDepartamento.empresaId = empresaId;
     }
 
-    // Ahora, creamos el departamento con los datos correctos y estructurados.
+    // Crear el departamento
     const newDepartamento = await prisma.departamento.create({
       data: dataForDepartamento,
+      include: {
+        empresa: true,
+        gerente: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true
+          }
+        },
+        _count: {
+          select: {
+            empleados: true
+          }
+        }
+      }
     });
+
+    // Auditoría - Registrar creación
+    if (user) {
+      await AuditLogger.logCreate(
+        'departamento',
+        newDepartamento.id,
+        `Departamento "${nombre}" creado en la empresa "${newDepartamento.empresa.nombre}"`,
+        user.id as string,
+        {
+          departamentoCreado: {
+            nombre: newDepartamento.nombre,
+            empresa: newDepartamento.empresa.nombre,
+            gerente: newDepartamento.gerente ? `${newDepartamento.gerente.nombre} ${newDepartamento.gerente.apellido}` : null,
+            empleados: newDepartamento._count.empleados
+          }
+        }
+      );
+    }
 
     return NextResponse.json(newDepartamento, { status: 201 });
 
   } catch (error) {
     console.error("Error al crear departamento:", error);
-    // Este log es más útil para ver errores de Prisma
     if (error instanceof Error) {
         console.error("Error Name:", error.name);
         console.error("Error Message:", error.message);

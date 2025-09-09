@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
     // Un equipo NO está asignado si AMBOS campos son null o vacíos.
     where = {
       AND: [
-        { usuarioId: null },
+        { empleadoId: null },
         { departamentoId: null }
       ]
     };
   } else if (asignado === 'true') {
     where = {
       OR: [
-        { usuarioId: { not: null } },
+        { empleadoId: { not: null } },
         { departamentoId: { not: null } },
       ],
     };
@@ -45,14 +45,14 @@ export async function GET(request: NextRequest) {
                         marca: true // Dentro de 'modelo', incluye también la 'marca'
                     }
                 },
-                usuario: {
+                empleado: {
                   include:{
-                      departamento: true // Incluye el objeto 'departamento' del usuario asignado (si existe)
+                      departamento: true // Incluye el objeto 'departamento' del empleado asignado (si existe)
                   }
-                },      // Incluye el objeto 'usuario' asignado (si existe)
+                },      // Incluye el objeto 'empleado' asignado (si existe)
                 departamento: {
                   include: {
-                    gerencia: true, // Incluye la 'gerencia' del departamento (si existe)
+                    empresa: true, // Incluye la 'empresa' del departamento (si existe)
                   }
                 },
             }
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
                 date: 'desc' // El más reciente primero
             },
           include: {
-            targetUsuario: {
+            targetEmpleado: {
               select: { nombre: true, apellido: true }
             },
             targetDepartamento: {

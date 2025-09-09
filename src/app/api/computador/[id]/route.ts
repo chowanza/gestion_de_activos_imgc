@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  prisma  from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Prisma, HistorialModificaciones } from '@prisma/client';
+import { AuditLogger } from '@/lib/audit-logger';
 
 
 export async function GET(request: NextRequest) {
@@ -17,14 +18,14 @@ export async function GET(request: NextRequest) {
     // Un equipo NO está asignado si AMBOS campos son null o vacíos.
     where = {
       AND: [
-        { usuarioId: null },
+        { empleadoId: null },
         { departamentoId: null }
       ]
     };
   } else if (asignado === 'true') {
     where = {
       OR: [
-        { usuarioId: { not: null } },
+        { empleadoId: { not: null } },
         { departamentoId: { not: null } },
       ],
     };
@@ -45,18 +46,18 @@ export async function GET(request: NextRequest) {
                 },
                 asignaciones: {
                   include: {
-                    targetUsuario: true,
+                    targetEmpleado: true,
                     targetDepartamento: true
                   }
                 },
-                usuario: {
+                empleado: {
                   include:{
-                      departamento: true // Incluye el objeto 'departamento' del usuario asignado (si existe)
+                      departamento: true // Incluye el objeto 'departamento' del empleado asignado (si existe)
                   }
                 },      // Incluye el objeto 'usuario' asignado (si existe)
                 departamento: {
                   include: {
-                    gerencia: true, // Incluye la 'gerencia' del departamento (si existe)
+                    empresa: true, // Incluye la 'empresa' del departamento (si existe)
                   }
                 },
                 historialModificaciones: {
@@ -163,13 +164,25 @@ export async function PUT(request: NextRequest) {
             sapVersion: body.sapVersion,
             officeVersion: body.officeVersion,
             modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,
-            usuario: body.usuarioId ? { connect: { id: body.usuarioId } } : { disconnect: true },
+            empleado: body.empleadoId ? { connect: { id: body.empleadoId } } : { disconnect: true },
             departamento: body.departamentoId ? { connect: { id: body.departamentoId } } : undefined, // Ajusta según tu lógica si puede ser null
         },
       });
 
       return equipoActualizado;
     });
+
+    // Registrar en auditoría
+    await AuditLogger.logUpdate(
+      'computador',
+      id,
+      `Computador ${computadorActual.serial} actualizado`,
+      undefined, // TODO: Obtener userId del token/sesión
+      {
+        modificaciones: modificaciones.length,
+        camposModificados: modificaciones.map(m => m.campo)
+      }
+    );
 
     return NextResponse.json(updatedEquipo, { status: 200 });
 
@@ -181,13 +194,30 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    await Promise.resolve();
     const id = request.nextUrl.pathname.split('/')[3];
-    await prisma.computador.delete({
-      where: {
-        id: id,
-      },
+    
+    // Obtener datos del computador antes de eliminarlo para auditoría
+    const computador = await prisma.computador.findUnique({
+      where: { id },
+      select: { serial: true, modelo: { select: { nombre: true } } }
     });
+
+    if (!computador) {
+      return NextResponse.json({ message: 'Computador no encontrado' }, { status: 404 });
+    }
+
+    await prisma.computador.delete({
+      where: { id },
+    });
+
+    // Registrar en auditoría
+    await AuditLogger.logDelete(
+      'computador',
+      id,
+      `Computador ${computador.serial} (${computador.modelo.nombre}) eliminado`,
+      undefined // TODO: Obtener userId del token/sesión
+    );
+
     return NextResponse.json({ message: 'Equipo eliminado' }, { status: 200 });
   } catch (error) {
     console.error(error);

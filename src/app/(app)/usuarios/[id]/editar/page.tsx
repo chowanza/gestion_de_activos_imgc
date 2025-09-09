@@ -5,22 +5,22 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { showToast } from "nextjs-toast-notify";
 import { Spinner } from "@/components/ui/spinner"; // Asumiendo que tienes un componente Spinner
-import UsuarioForm, { UsuarioFormData } from "@/components/UsuarioForm";
+import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
 
-export default function EditarUsuarioPage() {
+export default function EditarEmpleadoPage() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
 
-    const [initialData, setInitialData] = useState<UsuarioFormData | null>(null);
+    const [initialData, setInitialData] = useState<EmpleadoFormData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (id) {
-            const fetchUsuario = async () => {
+            const fetchEmpleado = async () => {
                 try {
                     const response = await fetch(`/api/usuarios/${id}`);
-                    if (!response.ok) throw new Error("No se pudo cargar el Usuario.");
+                    if (!response.ok) throw new Error("No se pudo cargar el Empleado.");
                     const data = await response.json();
                     setInitialData(data);
                 } catch (error: any) {
@@ -29,11 +29,11 @@ export default function EditarUsuarioPage() {
                     setLoading(false);
                 }
             };
-            fetchUsuario();
+            fetchEmpleado();
         }
     }, [id]);
 
-    const handleUpdateUsuario = async (data: UsuarioFormData) => {
+    const handleUpdateEmpleado = async (data: EmpleadoFormData) => {
         try {
             const response = await fetch(`/api/usuarios/${id}`, {
                 method: 'PUT',
@@ -46,8 +46,8 @@ export default function EditarUsuarioPage() {
                 throw new Error(errorData.message || "Error al actualizar");
             }
 
-            showToast.success("Usuario actualizado con éxito");
-            router.push('/usuarios');
+            showToast.success("Empleado actualizado con éxito");
+            router.push('/empleados');
             router.refresh();
         } catch (error: any) {
             showToast.error(`Error: ${error.message}`);
@@ -65,12 +65,12 @@ export default function EditarUsuarioPage() {
     return (
         <Card className="m-4">
             <CardHeader>
-                <CardTitle>Editar Usuario</CardTitle>
-                <CardDescription>Actualice los detalles del Usuario: {initialData.nombre}</CardDescription>
+                <CardTitle>Editar Empleado</CardTitle>
+                <CardDescription>Actualice los detalles del Empleado: {initialData.nombre}</CardDescription>
             </CardHeader>
             <CardContent>
-                <UsuarioForm
-                    onSubmit={handleUpdateUsuario}
+                <EmpleadoForm
+                    onSubmit={handleUpdateEmpleado}
                     initialData={initialData}
                     isEditing={true}
                 />

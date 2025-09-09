@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 import type { UserJwtPayload } from "@/lib/auth"; // Adjust the import path as needed
+import { useAuditLogger } from "@/hooks/useAuditLogger";
 
 type AppLayoutClientProps = {
   children: ReactNode;
@@ -15,6 +16,9 @@ type AppLayoutClientProps = {
 const queryClient = new QueryClient();
 
 export default function AppLayoutClient({ children, user }: AppLayoutClientProps) {
+  // Registrar visitas a rutas automáticamente
+  useAuditLogger();
+
   return (
     <SidebarProvider>
       <QueryClientProvider client={queryClient}>

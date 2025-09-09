@@ -225,13 +225,13 @@ export default function InventoryDashboard() {
         {/* Main Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
-            title="Total Usuarios"
+            title="Total Empleados"
             value={dashboardData.totalUsers}
             trend={dashboardData.trends.users}
             icon={Users}
             color="orange"
-            description="Usuarios registrados"
-          />
+            description="Empleados registrados"
+          /> 
           <StatCard
             title="Dispositivos Totales"
             value={dashboardData.totalDevices}

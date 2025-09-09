@@ -13,9 +13,9 @@ export async function GET() {
         },
         // Solo necesitamos la más reciente
         take: 1,
-        // Incluimos los datos del usuario o departamento al que fue asignada
+        // Incluimos los datos del empleado o departamento al que fue asignada
         include: {
-          targetUsuario: {
+          targetEmpleado: {
             select: { nombre: true, apellido: true } // Solo trae los campos que necesitas
           },
           targetDepartamento: {

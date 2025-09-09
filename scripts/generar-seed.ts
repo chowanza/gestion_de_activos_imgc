@@ -15,11 +15,11 @@ async function main() {
   console.log('Iniciando la generación del script de siembra a partir de la base de datos actual...');
 
   // 1. Leer los datos de todas las tablas que quieres respaldar
-  console.log('Leyendo datos de Gerencias, Departamentos y Usuarios...');
-  const gerencias = await prisma.gerencia.findMany();
+  console.log('Leyendo datos de Departamentos y Usuarios...');
+  // const gerencias = await prisma.gerencia.findMany(); // Comentado porque el modelo ya no existe
   const users = await prisma.user.findMany();
   const departamentos = await prisma.departamento.findMany();
-  const usuarios = await prisma.usuario.findMany();
+  const empleados = await prisma.empleado.findMany();
   const dispositivos = await prisma.dispositivo.findMany();
   const computadores = await prisma.computador.findMany();
   const asignaciones = await prisma.asignaciones.findMany();
@@ -43,11 +43,11 @@ async function main() {
     // Insertar Gerencias
     // NOTA: No podemos usar createMany porque no maneja bien las relaciones anidadas.
     // Además, para la restauración, es mejor ir tabla por tabla.
-    await tx.gerencia.createMany({
-      data: ${JSON.stringify(gerencias, null, 2)},
-      skipDuplicates: true,
-    });
-    console.log('${gerencias.length} gerencias procesadas.');
+    // await tx.gerencia.createMany({
+    //   data: [], // gerencias ya no existe
+    //   skipDuplicates: true,
+    // });
+    // console.log('0 gerencias procesadas.');
 
     // Insertar Departamentos
     await tx.departamento.createMany({
@@ -56,12 +56,12 @@ async function main() {
     });
     console.log('${departamentos.length} departamentos procesados.');
 
-    // Insertar Usuarios
-    await tx.user.createMany({
-      data: ${JSON.stringify(usuarios, null, 2)},
+    // Insertar Empleados
+    await tx.empleado.createMany({
+      data: ${JSON.stringify(empleados, null, 2)},
       skipDuplicates: true,
     });
-    console.log('${usuarios.length} usuarios procesados.');
+    console.log('${empleados.length} empleados procesados.');
 
     // Agrega aquí los createMany para otros modelos
     /*

@@ -116,7 +116,7 @@ async function main() {
     // `createMany` para inserción masiva y eficiente
     const result = await prisma.computador.createMany({
       data: computadoresParaCrear,
-      skipDuplicates: true, // Omite la inserción si un computador con el mismo 'serial' (que es @unique) ya existe
+      // skipDuplicates no está soportado en SQL Server
     });
 
     console.log(`🎉 ¡Migración completada! Se crearon ${result.count} nuevos computadores.`);

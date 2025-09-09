@@ -67,10 +67,6 @@ export default function DepartamentoPage() {
   };
 
 
-  if (loading) {
-    return <Loading  />;
-  }
-
   if (error) {
     return <div>Error: {error}</div>;
   }

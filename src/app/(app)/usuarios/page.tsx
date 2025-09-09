@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UsuarioTable } from "@/components/usuarios-table";
+import { EmpleadoTable } from "@/components/empleados-table";
 
 import Loading from "@/utils/loading";
 
@@ -68,7 +68,11 @@ export default function usuariosPage() {
 
   return (
     <div>
-      <UsuarioTable data={data.length > 0 ? data : []} />
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Gestión de Empleados</h1>
+        <p className="text-sm text-gray-600 mt-1">Administra la información de los empleados de la empresa</p>
+      </div>
+      <EmpleadoTable data={data.length > 0 ? data : []} />
     </div>
   );
 }

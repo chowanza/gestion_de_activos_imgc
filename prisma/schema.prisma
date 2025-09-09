@@ -10,111 +10,185 @@ datasource db {
 // --- DATOS MAESTROS DE EQUIPOS ---
 model Marca {
   id      String              @id @default(uuid())
-  nombre  String              @unique // Nombre de la marca, ej: Dell, HP, Apple
-  modelos ModeloDispositivo[] // Una marca puede tener muchos modelos
+  nombre  String              @unique
+  modelos ModeloDispositivo[]
 }
 
 model ModeloDispositivo {
   id      String  @id @default(uuid())
-  nombre  String // Nombre del modelo, ej: Latitude 5400, iPhone 13, ThinkPad T480
+  nombre  String
   marcaId String
   marca   Marca   @relation(fields: [marcaId], references: [id])
   tipo    String
-  img     String? // Ej: "Laptop", "Desktop", "Monitor", "Teléfono IP", "Impresora", "Switch"
-  // Puedes añadir más campos específicos del modelo aquí si es necesario,
-  // como especificaciones base, año de lanzamiento, etc.
+  img     String?
 
   computadores Computador[]
-  dispositivos Dispositivo[] // Renombrado de Equipos a Dispositivo
+  dispositivos Dispositivo[]
 }
 
-// --- ESTRUCTURAS EXISTENTES MODIFICADAS ---
-model Gerencia {
-  id            String         @id @default(uuid())
-  nombre        String
-  gerenteId     String?
-  gerente       Usuario?       @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+// --- ESTRUCTURAS ORGANIZACIONALES ---
+model Empresa {
+  id           String         @id @default(uuid())
+  nombre       String         @unique
+  descripcion  String?
+  logo         String?
   departamentos Departamento[]
-}
-
-model Configuracion {
-  id               Int      @id @default(1)
-  gerenteGeneralId String?  @unique
-  gerenteGeneral   Usuario? @relation(fields: [gerenteGeneralId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model Departamento {
   id           String         @id @default(uuid())
   nombre       String
-  gerenciaId   String
-  ceco         String
-  sociedad     String
-  gerencia     Gerencia       @relation(fields: [gerenciaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios     Usuario[]
+  empresaId    String
+  empresa      Empresa        @relation(fields: [empresaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gerenteId    String?
+  gerente      Empleado?      @relation("DepartamentoGerente", fields: [gerenteId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  empleados    Empleado[]     @relation("DepartamentoEmpleados")
   computadores Computador[]
   dispositivos Dispositivo[]
-  asignaciones Asignaciones[] // Renombrado de Equipos a Dispositivo
+  asignaciones Asignaciones[]
+  cargos       Cargo[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
-model Usuario {
-  id                 String         @id @default(uuid())
-  nombre             String
-  apellido           String
-  cargo              String
-  legajo             Int
-  ced                String
-  departamentoId     String
-  departamento       Departamento   @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  computadores       Computador[]
-  dispositivos       Dispositivo[]
-  asignaciones       Asignaciones[] // Renombrado de Equipos a Dispositivo
-  gerencias          Gerencia[] // Opposite relation field
-  configuracion      Configuracion? // Opposite relation field for gerenteGeneral
-  targetAsignaciones Asignaciones[] @relation("targetUsuario") // Opposite relation field for targetUsuario
+model Cargo {
+  id             String    @id @default(uuid())
+  nombre         String
+  descripcion    String?
+  departamentoId String
+  departamento   Departamento @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleados      Empleado[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Empleado {
+  id                     String         @id @default(uuid())
+  nombre                 String
+  apellido               String
+  ced                    String
+  fechaNacimiento        String?
+  fechaIngreso           String?
+  fechaDesincorporacion  String?
+  departamentoId         String
+  cargoId                String
+  departamento           Departamento   @relation("DepartamentoEmpleados", fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cargo                  Cargo          @relation(fields: [cargoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  computadores           Computador[]
+  dispositivos           Dispositivo[]
+  asignaciones           Asignaciones[]
+  targetAsignaciones     Asignaciones[] @relation("targetEmpleado")
+  departamentosGerenciados Departamento[] @relation("DepartamentoGerente")
 }
 
 model Computador {
   id                      String                    @id @default(uuid())
-  serial                  String                    @unique // El serial es único para esta instancia
-  estado                  String // Ej: Activo, En Reparación, De Baja, Almacenado
-  modeloId                String // Relación al modelo específico
+  serial                  String                    @unique
+  estado                  String
+  modeloId                String
   modelo                  ModeloDispositivo         @relation(fields: [modeloId], references: [id])
-  usuarioId               String?
-  usuario                 Usuario?                  @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleadoId              String?
+  empleado                Empleado?                 @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   departamentoId          String?
   departamento            Departamento?             @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // --- CAMPOS TÉCNICOS BASADOS EN DIAGNÓSTICO ---
+  // Identificación del equipo
+  equipo                  String?
   nsap                    String?
   host                    String?
   sede                    String?
   ubicacion               String?
+  telefono                String?
+  
+  // Sistema Operativo
   sisOperativo            String?
   arquitectura            String?
+  
+  // Hardware - Procesador
+  procesador              String?
+  
+  // Hardware - Memoria RAM
+  ram                     String?
+  ramTipo                 String?
+  ramVelocidad            String?
+  ramConfiguracion        String?
+  
+  // Hardware - Almacenamiento
+  almacenamiento          String?
+  almacenamientoTipo      String?
+  almacenamientoMarca     String?
+  almacenamientoModelo    String?
+  
+  // Hardware - Placa Base
+  placaBase               String?
+  
+  // Hardware - Gráficos
+  grafica                 String?
+  monitor                 String?
+  
+  // Hardware - Red
   macWifi                 String?
   macEthernet             String?
-  ram                     String?
-  almacenamiento          String?
-  procesador              String?
-  sapVersion              String?
+  
+  // Software
   officeVersion           String?
+  sapVersion              String?
+  
+  // Unidades ópticas
+  unidadOptica            String?
+  
+  // Campos adicionales del diagnóstico
+  certificaciones         String?
+  regModel                String?
+  regTypeNo               String?
+  inputData               String?
+  ndAgrement              String?
+  dpn                     String?
+  ex                      String?
+  st                      String?
+  
+  // Relaciones
   asignaciones            Asignaciones[]
   historialModificaciones HistorialModificaciones[]
 }
 
 model HistorialModificaciones {
   id            String   @id @default(uuid())
-  fecha         DateTime @default(now()) // La fecha en que se hizo el cambio
-  campo         String // El campo que se modificó, ej: "ram", "procesador"
-  valorAnterior String? // El valor que tenía antes del cambio
-  valorNuevo    String? // El nuevo valor
+  fecha         DateTime @default(now())
+  campo         String
+  valorAnterior String?
+  valorNuevo    String?
 
-  // Relación con el computador modificado
   computadorId String
   computador   Computador @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([computadorId])
 }
 
-// Renombrado de Equipos a Dispositivo para mayor claridad y evitar colisión de nombres
+model HistorialMovimientos {
+  id          String   @id @default(uuid())
+  fecha       DateTime @default(now())
+  accion      String
+  entidad     String
+  entidadId   String?
+  descripcion String
+  detalles    String?
+  
+  usuarioId   String?
+  usuario     User?    @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  ipAddress   String?
+  userAgent   String?
+  
+  @@index([fecha])
+  @@index([accion])
+  @@index([entidad])
+  @@index([usuarioId])
+}
+
 model Dispositivo {
   id             String            @id @default(uuid())
   serial         String            @unique
@@ -122,8 +196,8 @@ model Dispositivo {
   modeloId       String
   ubicacion      String?
   modelo         ModeloDispositivo @relation(fields: [modeloId], references: [id])
-  usuarioId      String?
-  usuario        Usuario?          @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleadoId     String?
+  empleado       Empleado?         @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   departamentoId String?
   mac            String?
   ip             String?
@@ -136,9 +210,9 @@ model LineaTelefonica {
   id           String         @id @default(uuid())
   numero       String
   proveedor    String
-  destino      String? // Número asignado a la línea
-  estado       String? // Ej: Activa, Inactiva, En Reparación
-  imei         String? // IMEI del dispositivo móvil, si aplica
+  destino      String?
+  estado       String?
+  imei         String?
   asignaciones Asignaciones[]
 }
 
@@ -146,7 +220,9 @@ model User {
   id       String @id @default(uuid())
   username String @unique
   password String
-  role     String @default("user")
+  role     String @default("viewer")
+  
+  movimientos HistorialMovimientos[]
 }
 
 model Asignaciones {
@@ -157,22 +233,20 @@ model Asignaciones {
   motivo     String?
   gerente    String?
   localidad  String?
-  serialC    String? // Serial del computador asignado
-  modeloC    String? // Modelo del computador asignado
+  serialC    String?
+  modeloC    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // --- A QUÉ SE ASIGNA (Polimórfico: Usuario o Departamento) ---
-  targetType String // "Usuario" o "Departamento"
+  targetType String
 
-  targetUsuarioId String?
-  targetUsuario   Usuario? @relation(fields: [targetUsuarioId], references: [id], name: "targetUsuario", onDelete: NoAction, onUpdate: NoAction)
+  targetEmpleadoId String?
+  targetEmpleado   Empleado? @relation(fields: [targetEmpleadoId], references: [id], name: "targetEmpleado", onDelete: NoAction, onUpdate: NoAction)
 
   targetDepartamentoId String?
   targetDepartamento   Departamento? @relation(fields: [targetDepartamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  // --- QUÉ SE ASIGNA (Polimórfico: Computador o Dispositivo) ---
-  itemType String // "Computador" o "Dispositivo"
+  itemType String
 
   computadorId String?
   computador   Computador? @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -183,5 +257,5 @@ model Asignaciones {
   lineaTelefonicaId String?
   lineaTelefonica   LineaTelefonica? @relation(fields: [lineaTelefonicaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   gerenteId         String?
-  gerenteUsuario    Usuario?         @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gerenteEmpleado   Empleado?        @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
