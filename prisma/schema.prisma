@@ -72,6 +72,7 @@ model Empleado {
   fechaNacimiento        String?
   fechaIngreso           String?
   fechaDesincorporacion  String?
+  fotoPerfil             String? @db.Text
   departamentoId         String
   cargoId                String
   departamento           Departamento   @relation("DepartamentoEmpleados", fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)

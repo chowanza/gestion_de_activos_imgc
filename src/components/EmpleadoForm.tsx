@@ -38,6 +38,7 @@ export interface EmpleadoFormData {
     cedula: string;
     fechaNacimiento: string;
     fechaIngreso: string;
+    fotoPerfil?: string;
     cargoId: string;
 }
 
@@ -61,6 +62,7 @@ const initialState: EmpleadoFormData = {
     cedula: '',
     fechaNacimiento: '',
     fechaIngreso: '',
+    fotoPerfil: '',
     cargoId: '',
 };
 
@@ -77,6 +79,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
     const [isLoadingDepartamentos, setIsLoadingDepartamentos] = useState(false);
     const [isLoadingCargos, setIsLoadingCargos] = useState(false);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // --- useEffect para cargar datos iniciales ---
     useEffect(() => {
@@ -132,6 +135,9 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
         if (initialData) {
             console.log('Cargando initialData:', initialData);
             setFormData(initialData);
+            if (initialData.fotoPerfil) {
+                setPreviewImage(initialData.fotoPerfil);
+            }
         }
     }, [initialData]);
 
@@ -159,6 +165,36 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
             ...prev,
             [id]: value
         }));
+    };
+
+    // Handler para manejar la carga de imágenes
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validar que sea una imagen
+            if (!file.type.startsWith('image/')) {
+                showToast.error("Por favor seleccione un archivo de imagen válido.", { position: "top-right" });
+                return;
+            }
+            
+            // Validar tamaño (máximo 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast.error("La imagen debe ser menor a 5MB.", { position: "top-right" });
+                return;
+            }
+            
+            // Crear preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const result = e.target?.result as string;
+                setPreviewImage(result);
+                setFormData(prev => ({
+                    ...prev,
+                    fotoPerfil: result
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleEmpresaChange = (option: OptionType | null) => {
@@ -330,6 +366,38 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                         onChange={handleInputChange}
                         required
                     />
+                </div>
+            </div>
+
+            {/* Campo de Foto de Perfil */}
+            <div className="grid gap-2">
+                <Label htmlFor="fotoPerfil">Foto de Perfil</Label>
+                <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center bg-gray-50">
+                        {previewImage || formData.fotoPerfil ? (
+                            <img 
+                                src={previewImage || formData.fotoPerfil} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="text-gray-400 text-sm text-center">
+                                Sin foto
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <Input 
+                            id="fotoPerfil" 
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Formatos soportados: JPG, PNG, GIF. Tamaño máximo: 5MB
+                        </p>
+                    </div>
                 </div>
             </div>
 

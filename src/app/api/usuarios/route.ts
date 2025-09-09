@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       fechaNacimiento: empleado.fechaNacimiento, // Mantener formato original
       fechaIngreso: empleado.fechaIngreso, // Mantener formato original
       fechaDesincorporacion: empleado.fechaDesincorporacion, // Incluir fecha de desincorporación
+      fotoPerfil: empleado.fotoPerfil, // Incluir foto de perfil
       departamentoId: empleado.departamentoId, // Incluir departamentoId para filtrado
       // Calcular estado basado en fechaDesincorporacion
       estado: empleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
@@ -101,18 +102,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Procesar fechas y excluir empresaId (no existe en el modelo Empleado)
-    const { fechaNacimiento, fechaIngreso, fechaDesincorporacion, ...otherFields } = rest;
+    const { fechaNacimiento, fechaIngreso, fechaDesincorporacion, fotoPerfil, ...otherFields } = rest;
     
     // Función para procesar fechas y evitar problemas de zona horaria
     const processDate = (dateString: string | null): string | null => {
       if (!dateString) return null;
       
-      // Si la fecha viene en formato ISO (YYYY-MM-DD), procesarla correctamente
+      // Si la fecha viene en formato ISO (YYYY-MM-DD), mantenerla tal como está
       if (dateString.includes('-')) {
-        // Crear una fecha en la zona horaria local para evitar el offset de UTC
-        const date = new Date(dateString + 'T00:00:00');
-        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-        return localDate.toISOString().split('T')[0];
+        // Simplemente retornar la fecha sin procesamiento adicional
+        // para evitar problemas de zona horaria
+        return dateString;
       }
       
       return dateString;
@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
       fechaNacimiento: processDate(fechaNacimiento),
       fechaIngreso: processDate(fechaIngreso),
       fechaDesincorporacion: processDate(fechaDesincorporacion),
+      fotoPerfil: fotoPerfil || null,
     };
 
 

@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     const empleadoConEstado = {
       ...empleado,
       estado: empleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
+      fotoPerfil: empleado.fotoPerfil,
     };
     
     return NextResponse.json(empleadoConEstado, { status: 200 });
@@ -70,7 +71,7 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
 
         // Extraemos los datos del cuerpo de la petición.
-        const { nombre, apellido, cargoId, ced, cedula, departamentoId, fechaNacimiento, fechaIngreso } = body;
+        const { nombre, apellido, cargoId, ced, cedula, departamentoId, fechaNacimiento, fechaIngreso, fotoPerfil } = body;
         
 
         // Función para procesar fechas y evitar problemas de zona horaria
@@ -98,6 +99,7 @@ export async function PUT(request: NextRequest) {
         if (departamentoId) dataToUpdate.departamentoId = departamentoId;
         if (fechaNacimiento) dataToUpdate.fechaNacimiento = processDate(fechaNacimiento);
         if (fechaIngreso) dataToUpdate.fechaIngreso = processDate(fechaIngreso);
+        if (fotoPerfil !== undefined) dataToUpdate.fotoPerfil = fotoPerfil;
         
 
         const updatedEmpleado = await prisma.empleado.update({

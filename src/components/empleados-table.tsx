@@ -46,6 +46,7 @@ export interface Empleado {
     fechaNacimiento?: string;
     fechaIngreso?: string;
     fechaDesincorporacion?: string;
+    fotoPerfil?: string;
     estado?: string;
     departamento: { 
         id: string; 
@@ -118,6 +119,37 @@ const columns: ColumnDef<Empleado>[] = [
     ),
     enableSorting: false,
     enableHiding: false,
+  },
+  {
+    accessorKey: "fotoPerfil",
+    header: "Foto",
+    cell: ({ row }) => {
+      const fotoPerfil = row.getValue("fotoPerfil") as string;
+      const nombre = row.getValue("nombre") as string;
+      const apellido = row.getValue("apellido") as string;
+      
+      if (fotoPerfil) {
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden">
+            <img 
+              src={fotoPerfil} 
+              alt={`${nombre} ${apellido}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        );
+      }
+      
+      // Avatar por defecto con iniciales
+      const iniciales = `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
+      return (
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <span className="text-sm font-medium text-primary">{iniciales}</span>
+        </div>
+      );
+    },
+    enableSorting: false,
+    enableHiding: true,
   },
   {
     accessorKey: "nombre",
