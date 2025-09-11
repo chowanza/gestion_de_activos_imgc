@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         },
         empleado: true, // Incluye el empleado asignado (si existe)
         departamento: true, // Incluye el departamento asignado (si existe)
+        ubicacion: true, // Incluye la ubicación asignada (si existe)
       },
       orderBy: {
         modelo: {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   try {
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
-    const { modeloId, serial, nsap, estado } = body;
+    const { modeloId, serial, nsap, estado, ubicacionId, mac } = body;
 
     // Validación
     if (!modeloId || !serial  || !estado) {
@@ -65,6 +66,8 @@ export async function POST(request: Request) {
         serial,
         nsap,
         estado,
+        ubicacionId: ubicacionId || null,
+        mac: mac || null,
         // ... otros campos como usuarioId, departamentoId ...
       },
     });

@@ -16,13 +16,18 @@ interface Modelo {
     nombre: string;
 }
 
+interface Ubicacion {
+    id: string;
+    nombre: string;
+}
+
 export interface ComputadorFormData {
     id?: string;
     modeloId: string;
     serial: string;
     estado: string;
     nsap?: string;
-    ubicacion?: string;
+    ubicacionId?: string;
     host?: string;
     sisOperativo?: string;
     arquitectura?: "32" | "64" | "";
@@ -61,7 +66,7 @@ const initialState: ComputadorFormData = {
     procesador: '',
     sapVersion: '',
     officeVersion: '',
-    ubicacion: '',
+    ubicacionId: '',
     macEthernet: '',
     macWifi:''
 };
@@ -74,7 +79,9 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
     const [formData, setFormData] = useState<ComputadorFormData>(initialState);
     const [modelos, setModelos] = useState<Modelo[]>([]);
+    const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
     const [isLoadingModelos, setIsLoadingModelos] = useState(false);
+    const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
 
     // --- useEffect CORREGIDO para manejar el estado del formulario ---
         useEffect(() => {
@@ -91,7 +98,23 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                     setIsLoadingModelos(false);
                 }
             };
+
+            const fetchUbicaciones = async () => {
+                setIsLoadingUbicaciones(true);
+                try {
+                    const response = await fetch('/api/ubicaciones');
+                    if (!response.ok) throw new Error('Error al cargar ubicaciones');
+                    const data: Ubicacion[] = await response.json();
+                    setUbicaciones(data);
+                } catch (error) {
+                    showToast.error("¡Error en Cargar Ubicaciones!", { position: "top-right" });
+                } finally {
+                    setIsLoadingUbicaciones(false);
+                }
+            };
+
             fetchModelos();
+            fetchUbicaciones();
     
            if (initialData) {
             setFormData(initialData);
@@ -107,6 +130,10 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
         setFormData(prev => ({ ...prev, modeloId: option?.value ?? '' }));
     };
 
+    const handleUbicacionChange = (option: OptionType | null) => {
+        setFormData(prev => ({ ...prev, ubicacionId: option?.value ?? '' }));
+    };
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!formData.modeloId || !formData.serial || !formData.estado) {
@@ -118,7 +145,9 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     
     // Preparar opciones para react-select
     const modeloOptions = modelos.map(modelo => ({ value: modelo.id, label: modelo.nombre }));
+    const ubicacionOptions = ubicaciones.map(ubicacion => ({ value: ubicacion.id, label: ubicacion.nombre }));
     const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
+    const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;
 
     return (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -147,8 +176,18 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                      />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="ubicacion">UBICACION</Label>
-                                    <Input id="ubicacion" value={formData.ubicacion || ''} onChange={handleInputChange} placeholder="Ej: Edificio 1, Oficina Gerencia"/>
+                                    <Label htmlFor="ubicacionId">Ubicación</Label>
+                                    <Select
+                                        id="ubicacionId"
+                                        options={ubicacionOptions}
+                                        value={selectedUbicacionValue}
+                                        onChange={handleUbicacionChange}
+                                        placeholder="Seleccionar ubicación"
+                                        isSearchable
+                                        isLoading={isLoadingUbicaciones}
+                                        styles={reactSelectStyles}
+                                        isClearable
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="nsap">Ficha SAP (Opcional)</Label>

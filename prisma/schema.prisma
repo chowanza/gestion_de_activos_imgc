@@ -14,6 +14,7 @@ model Marca {
   modelos ModeloDispositivo[]
 }
 
+
 model ModeloDispositivo {
   id      String  @id @default(uuid())
   nombre  String
@@ -27,6 +28,19 @@ model ModeloDispositivo {
 }
 
 // --- ESTRUCTURAS ORGANIZACIONALES ---
+model Ubicacion {
+  id           String         @id @default(uuid())
+  nombre       String         @unique
+  descripcion  String?
+  direccion    String?
+  piso         String?
+  sala         String?
+  computadores Computador[]
+  dispositivos Dispositivo[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
 model Empresa {
   id           String         @id @default(uuid())
   nombre       String         @unique
@@ -94,6 +108,8 @@ model Computador {
   empleado                Empleado?                 @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   departamentoId          String?
   departamento            Departamento?             @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ubicacionId             String?
+  ubicacion               Ubicacion?                @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   
   // --- CAMPOS TÉCNICOS BASADOS EN DIAGNÓSTICO ---
   // Identificación del equipo
@@ -101,7 +117,6 @@ model Computador {
   nsap                    String?
   host                    String?
   sede                    String?
-  ubicacion               String?
   telefono                String?
   
   // Sistema Operativo
@@ -195,27 +210,19 @@ model Dispositivo {
   serial         String            @unique
   estado         String
   modeloId       String
-  ubicacion      String?
   modelo         ModeloDispositivo @relation(fields: [modeloId], references: [id])
   empleadoId     String?
   empleado       Empleado?         @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   departamentoId String?
+  departamento   Departamento?     @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ubicacionId    String?
+  ubicacion      Ubicacion?        @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   mac            String?
   ip             String?
-  departamento   Departamento?     @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   nsap           String?
   asignaciones   Asignaciones[]
 }
 
-model LineaTelefonica {
-  id           String         @id @default(uuid())
-  numero       String
-  proveedor    String
-  destino      String?
-  estado       String?
-  imei         String?
-  asignaciones Asignaciones[]
-}
 
 model User {
   id       String @id @default(uuid())
@@ -255,8 +262,6 @@ model Asignaciones {
   dispositivoId String?
   dispositivo   Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  lineaTelefonicaId String?
-  lineaTelefonica   LineaTelefonica? @relation(fields: [lineaTelefonicaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   gerenteId         String?
   gerenteEmpleado   Empleado?        @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

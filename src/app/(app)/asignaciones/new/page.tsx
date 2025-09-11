@@ -18,7 +18,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 interface Activo {
     value: string; // id
     label: string; // nombre descriptivo
-    type: 'Computador' | 'Dispositivo' | 'LineaTelefonica' ; // tipo de activo
+    type: 'Computador' | 'Dispositivo' ; // tipo de activo
     asignadoA?: string;
 }
 interface Target {
@@ -42,7 +42,7 @@ export default function AsignacionesPage() {
     
     // --- ESTADOS DEL FORMULARIO Y FLUJO GUIADO ---
     const [loading, setLoading] = useState(true);
-    const [assetType, setAssetType] = useState<'Computador' | 'Dispositivo' | 'LineaTelefonica' | ''>('');
+    const [assetType, setAssetType] = useState<'Computador' | 'Dispositivo' | ''>('');
     
     const [selectedMarca, setSelectedMarca] = useState<Target | null>(null);
     const [modelos, setModelos] = useState<Target[]>([]);
@@ -151,18 +151,6 @@ export default function AsignacionesPage() {
         fetchActivos();
     }, [selectedModelo]);
 
-    // 5. Cargar LÍNEAS TELEFÓNICAS cuando se selecciona un PROVEEDOR
-    useEffect(() => {
-        setActivosDisponibles([]);
-        setSelectedEquipo(null);
-        if (!selectedProveedor) return;
-
-        const fetchLineas = async () => {
-            const res = await fetch(`/api/activos?proveedor=${selectedProveedor.value}`);
-            setActivosDisponibles(await res.json());
-        };
-        fetchLineas();
-    }, [selectedProveedor]);
 
     useEffect(() => {
     const fetchGerenteDefault = async () => {
@@ -188,7 +176,6 @@ export default function AsignacionesPage() {
     fetchGerenteDefault();
     }, [asignarA, selectedTarget]);
 
-// Nota: Necesitarás una lógica similar para 'LineaTelefonica' que use proveedores en lugar de marcas/modelos.
 
         // AÑADIDO: Función para limpiar la preselección
     const handleClearPreselection = () => {
@@ -293,11 +280,10 @@ export default function AsignacionesPage() {
                             options={[
                                 { value: "Computador", label: "Computador" },
                                 { value: "Dispositivo", label: "Dispositivo" },
-                                { value: "LineaTelefonica", label: "Línea Telefónica" }
                             ]}
                             value={
                                 assetType
-                                    ? { value: assetType, label: assetType === "LineaTelefonica" ? "Línea Telefónica" : assetType }
+                                    ? { value: assetType, label: assetType }
                                     : null
                             }
                             onChange={(option) => setAssetType(option ? option.value as typeof assetType : '')}
@@ -351,41 +337,6 @@ export default function AsignacionesPage() {
                         </div>
                     )}
 
-                   {assetType === 'LineaTelefonica' && (
-                    <div className="space-y-4 animate-in fade-in-0">
-
-                        {/* --- Dropdown para el Proveedor --- */}
-                        <div className="space-y-2">
-                            <Label>2. Selecciona el Proveedor</Label>
-                            <Select
-                                instanceId="proveedor-select"
-                                options={proveedores}
-                                value={selectedProveedor}
-                                onChange={setSelectedProveedor}
-                                styles={reactSelectStyles}
-                                placeholder="Buscar proveedor..."
-                                isClearable
-                            />
-                        </div>
-
-                        {/* --- Dropdown para el Número de Línea --- */}
-                        <div className="space-y-2">
-                            <Label>3. Selecciona la Línea Específica (Número)</Label>
-                            <Select
-                                instanceId="linea-select"
-                                options={activosDisponibles}
-                                value={selectedEquipo}
-                                onChange={setSelectedEquipo}
-                                styles={reactSelectStyles}
-                                placeholder="Elige un número..."
-                                isClearable
-                                // Se deshabilita hasta que se seleccione un proveedor
-                                isDisabled={!selectedProveedor}
-                            />
-                        </div>
-                        
-                    </div>
-                )}
 
                     <div className="space-y-2">
                         <Label>2. Elige el Destino de la Asignación</Label>

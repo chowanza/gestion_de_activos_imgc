@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
                     empresa: true, // Incluye la 'empresa' del departamento (si existe)
                   }
                 },
+                ubicacion: true, // Incluye la ubicación asignada (si existe)
             }
         });
 
@@ -117,7 +118,7 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json();
           
-        const { serial, nsap, estado, ubicacion, mac, modeloId } = body;
+        const { serial, nsap, estado, ubicacionId, mac, modeloId } = body;
 
         const updatedEquipo = await prisma.dispositivo.update({
             where: { id },
@@ -126,7 +127,7 @@ export async function PUT(request: NextRequest) {
                 nsap,
                 estado,
                 mac,
-                ubicacion,
+                ubicacionId: ubicacionId || null,
             }, // Cuidado con 'as any', valida y tipa los datos.
         });
 

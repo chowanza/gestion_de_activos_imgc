@@ -271,7 +271,15 @@ export default function UserProfile() {
                           </div>
                           <div>
                             <p className="text-xs text-slate-400 mb-1">Ubicación</p>
-                            <p className="text-sm text-slate-200">{computador.ubicacion}</p>
+                            <div>
+                              <p className="text-sm text-slate-200">{computador.ubicacion?.nombre || 'Sin ubicación'}</p>
+                              {computador.ubicacion?.piso && (
+                                <p className="text-xs text-slate-400">Piso: {computador.ubicacion.piso}</p>
+                              )}
+                              {computador.ubicacion?.sala && (
+                                <p className="text-xs text-slate-400">Sala: {computador.ubicacion.sala}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        lineaTelefonica: true,
         gerenteEmpleado: {
           select: {
             id: true,
@@ -77,14 +76,6 @@ export async function GET(request: NextRequest) {
           tipo: 'Dispositivo'
         };
         itemType = 'Dispositivo';
-      } else if (asignacion.lineaTelefonica) {
-        itemInfo = {
-          id: asignacion.lineaTelefonica.id,
-          numero: asignacion.lineaTelefonica.numero,
-          proveedor: asignacion.lineaTelefonica.proveedor,
-          tipo: 'Línea Telefónica'
-        };
-        itemType = 'Línea Telefónica';
       }
 
       return {

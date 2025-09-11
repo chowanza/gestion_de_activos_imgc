@@ -8,7 +8,7 @@ import { getGerente } from '@/utils/getGerente';
 const asignacionSchema = z.object({
   action: z.enum(['asignar', 'desvincular']),
   itemId: z.string().uuid(),
-  itemType: z.enum(['Computador', 'Dispositivo', 'LineaTelefonica']),
+  itemType: z.enum(['Computador', 'Dispositivo']),
   asignarA_id: z.string().uuid().optional(),
   asignarA_type: z.enum(['Usuario', 'Departamento']).optional(),
   notas: z.string().optional(),
@@ -43,7 +43,6 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        lineaTelefonica: true,        // Incluye el objeto Dispositivo si existe
         targetEmpleado: true,      // Incluye el objeto Empleado si existe
         targetDepartamento: true, // Incluye el objeto Departamento si existe
       },
@@ -67,13 +66,6 @@ export async function GET(request: NextRequest) {
           detalles: {
             tipoDispositivo: a.dispositivo.modelo.tipo,
           },
-        };
-      } else if (a.itemType === 'LineaTelefonica' && a.lineaTelefonica) {
-        itemAsignado = {
-          id: a.lineaTelefonica.id,
-          tipo: 'LineaTelefonica',
-          serial: a.lineaTelefonica.imei,
-          descripcion: `${a.lineaTelefonica.proveedor} - ${a.lineaTelefonica.numero}`,
         };
       }
 
@@ -130,7 +122,7 @@ export async function POST(request: NextRequest) {
     const {
       action,                 // 'asignar' | 'desvincular'
       itemId,
-      itemType,               // 'Computador' | 'Dispositivo' | 'LineaTelefonica'
+      itemType,               // 'Computador' | 'Dispositivo'
       asignarA_id,            // id del Usuario o Departamento
       asignarA_type,          // 'Usuario' | 'Departamento'
       notas,
@@ -145,7 +137,6 @@ export async function POST(request: NextRequest) {
     const prismaModelMapping = {
       Computador: 'computador',
       Dispositivo: 'dispositivo',
-      LineaTelefonica: 'lineaTelefonica',
     } as const;
 
     const prismaModelName = prismaModelMapping[itemType as keyof typeof prismaModelMapping];
@@ -189,7 +180,6 @@ export async function POST(request: NextRequest) {
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
-            lineaTelefonicaId: itemType === 'LineaTelefonica' ? itemId : null,
 
             targetType: asignarA_type,
             targetEmpleadoId: asignarA_type === 'Usuario' ? asignarA_id : null,
@@ -242,7 +232,6 @@ export async function POST(request: NextRequest) {
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
-            lineaTelefonicaId: itemType === 'LineaTelefonica' ? itemId : null,
             targetType: ultimaAsignacion.targetType,
             targetEmpleadoId: ultimaAsignacion.targetEmpleadoId,
             targetDepartamentoId: ultimaAsignacion.targetDepartamentoId,

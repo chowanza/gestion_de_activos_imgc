@@ -47,7 +47,7 @@ export interface Computador {
     estado: string;
     nsap?: string;
     host?: string;
-    ubicacion:string;
+    ubicacion?: { id: string; nombre: string; descripcion?: string; direccion?: string; piso?: string; sala?: string };
     sisOperativo?: string;
     arquitectura?: string;
     macWifi?: string;
@@ -291,7 +291,35 @@ const columns: ColumnDef<Computador>[] = [
   filterFn: (row, id, value) => {
     return value.includes(row.getValue(id));
   },
-},
+  },
+  {
+    accessorKey: "ubicacion.nombre",
+    header: "Ubicación",
+    cell: ({ row }) => {
+      const ubicacion = row.original.ubicacion;
+      return (
+        <div className="flex items-center">
+          {ubicacion ? (
+            <div>
+              <div className="font-medium">{ubicacion.nombre}</div>
+              {ubicacion.piso && (
+                <div className="text-xs text-muted-foreground">
+                  Piso: {ubicacion.piso}
+                </div>
+              )}
+              {ubicacion.sala && (
+                <div className="text-xs text-muted-foreground">
+                  Sala: {ubicacion.sala}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground italic">Sin ubicación</span>
+          )}
+        </div>
+      );
+    },
+  },
   {
     id: "actions",
     cell: ({ row }) => {

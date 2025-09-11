@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem, 
          SidebarMenuButton, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { ChartPie, Printer, Tag, Laptop, Factory, 
-         UsersIcon, ClipboardListIcon, Phone, Globe, History, LogOut, Building2
+         UsersIcon, ClipboardListIcon, Globe, History, LogOut, Building2, MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { NavMain } from './nav-main';
@@ -22,12 +22,12 @@ const navData = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: ChartPie },
     { title: "Empresas", url: "/empresas", icon: Building2 },
-    { title: "Modelos", url: "/modelos", icon: Tag },
-    { title: "Dispositivos", url: "/dispositivos", icon: Printer },
-    { title: "Computadoras", url: "/computadores", icon: Laptop },
-    { title: "Líneas telefónicas", url: "/lineas", icon: Phone },
     { title: "Departamentos", url: "/departamentos", icon: Globe },
     { title: "Empleados", url: "/empleados", icon: UsersIcon },
+    { title: "Ubicaciones", url: "/ubicaciones", icon: MapPin },
+    { title: "Catálogo", url: "/catalogo", icon: Tag },
+    { title: "Dispositivos", url: "/dispositivos", icon: Printer },
+    { title: "Computadoras", url: "/computadores", icon: Laptop },
     { title: "Asignaciones", url: "/asignaciones", icon: ClipboardListIcon },
     { title: "Historial", url: "/historial", icon: History },
   ],

@@ -32,6 +32,11 @@ interface DispositivoFormProps {
   modelos: ModeloParaSelect[]; // El componente necesita recibir la lista de modelos
 }
 
+interface Ubicacion {
+  id: string;
+  nombre: string;
+}
+
 const DispositivoForm: React.FC<DispositivoFormProps> = ({
   isOpen,
   onClose,
@@ -40,6 +45,8 @@ const DispositivoForm: React.FC<DispositivoFormProps> = ({
   modelos, // Recibimos los modelos como prop
 }) => {
   const isEditing = !!initialData?.id;
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
 
 // En tu definición de estado inicial
 const [formData, setFormData] = useState<DispositivoFormData>({
@@ -49,7 +56,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   estado: '',
   nsap: null,
   mac: null,
-  ubicacion: null,
+  ubicacionId: null,
 });
 
   // ==================================================================
@@ -58,31 +65,47 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   // Popula el formulario con los datos para editar o lo resetea para crear.
   // ==================================================================
   useEffect(() => {
-  if (isOpen) {
-    if (initialData) {
-      setFormData({
-        id: initialData.id, // <-- LA LÍNEA MÁS IMPORTANTE QUE FALTA
-        modeloId: initialData.modeloId || '',
-        serial: initialData.serial || '',
-        estado: initialData.estado || '',
-        nsap: initialData.nsap || null,
-        mac: initialData.mac || null,
-        ubicacion: initialData.ubicacion || null,
-      });
-    } else {
-      // Resetea el formulario para creación (importante incluir el 'id' como undefined)
-      setFormData({
-        id: undefined,
-        modeloId: '',
-        serial: '',
-        estado: '',
-        nsap: null,
-        mac: null,
-        ubicacion: null,
-      });
+    const fetchUbicaciones = async () => {
+      setIsLoadingUbicaciones(true);
+      try {
+        const response = await fetch('/api/ubicaciones');
+        if (!response.ok) throw new Error('Error al cargar ubicaciones');
+        const data: Ubicacion[] = await response.json();
+        setUbicaciones(data);
+      } catch (error) {
+        console.error('Error loading ubicaciones:', error);
+      } finally {
+        setIsLoadingUbicaciones(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchUbicaciones();
+      
+      if (initialData) {
+        setFormData({
+          id: initialData.id, // <-- LA LÍNEA MÁS IMPORTANTE QUE FALTA
+          modeloId: initialData.modeloId || '',
+          serial: initialData.serial || '',
+          estado: initialData.estado || '',
+          nsap: initialData.nsap || null,
+          mac: initialData.mac || null,
+          ubicacionId: initialData.ubicacionId || null,
+        });
+      } else {
+        // Resetea el formulario para creación (importante incluir el 'id' como undefined)
+        setFormData({
+          id: undefined,
+          modeloId: '',
+          serial: '',
+          estado: '',
+          nsap: null,
+          mac: null,
+          ubicacionId: null,
+        });
+      }
     }
-  }
-}, [initialData, isOpen]); // Depende de initialData e isOpen
+  }, [initialData, isOpen]); // Depende de initialData e isOpen
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -90,6 +113,10 @@ const [formData, setFormData] = useState<DispositivoFormData>({
 
   const handleSelectChange = (option: OptionType | null) => {
     setFormData(prev => ({ ...prev, modeloId: option?.value ?? '' }));
+  };
+
+  const handleUbicacionChange = (option: OptionType | null) => {
+    setFormData(prev => ({ ...prev, ubicacionId: option?.value ?? '' }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -109,7 +136,9 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   
   // Mapea los modelos recibidos para el componente Select
   const modeloOptions = Array.isArray(modelos) ? modelos.map(modelo => ({ value: modelo.id, label: modelo.nombre })) : [];
+  const ubicacionOptions = ubicaciones.map(ubicacion => ({ value: ubicacion.id, label: ubicacion.nombre }));
   const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
+  const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -162,8 +191,17 @@ const [formData, setFormData] = useState<DispositivoFormData>({
 
           {/* Campos Opcionales */}
           <div className="grid gap-2">
-            <Label htmlFor="ubicacion">Ubicación</Label>
-            <Input id="ubicacion" value={formData.ubicacion || ''} onChange={handleInputChange} placeholder="Ej: Edificio 1, Oficina de Gerencia" />
+            <Label htmlFor="ubicacionId">Ubicación</Label>
+            <Select
+              id="ubicacionId"
+              options={ubicacionOptions}
+              value={selectedUbicacionValue}
+              onChange={handleUbicacionChange}
+              placeholder="Seleccionar ubicación"
+              isSearchable
+              isLoading={isLoadingUbicaciones}
+              isClearable
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="mac">Dirección MAC</Label>

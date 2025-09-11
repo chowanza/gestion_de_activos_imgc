@@ -32,6 +32,7 @@ export async function GET(request: Request) {
         },
         empleado: true, // Incluimos esto para saber a quién está asignado
         departamento: true, // Y a qué depto
+        ubicacion: true, // Incluimos la ubicación asignada (si existe)
       },
       orderBy: {
         modelo: {

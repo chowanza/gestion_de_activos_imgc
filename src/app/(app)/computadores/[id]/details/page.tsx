@@ -416,7 +416,15 @@ const departamentoTag = (
                           <p className="text-xs text-slate-400 uppercase tracking-wider">Ubicación</p>
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 text-slate-400 mr-2" />
-                            <p className="text-sm text-slate-200">{equipo.ubicacion}</p>
+                            <div>
+                              <p className="text-sm text-slate-200">{equipo.ubicacion?.nombre || 'Sin ubicación'}</p>
+                              {equipo.ubicacion?.piso && (
+                                <p className="text-xs text-slate-400">Piso: {equipo.ubicacion.piso}</p>
+                              )}
+                              {equipo.ubicacion?.sala && (
+                                <p className="text-xs text-slate-400">Sala: {equipo.ubicacion.sala}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
 

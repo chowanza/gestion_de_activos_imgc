@@ -1,0 +1,461 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  ArrowLeft, 
+  MapPin, 
+  Building, 
+  Laptop, 
+  Printer, 
+  User, 
+  Globe,
+  Edit,
+  Trash2
+} from 'lucide-react';
+import { UbicacionForm } from '@/components/ubicacion-form';
+
+interface Computador {
+  id: string;
+  serial: string;
+  estado: string;
+  modelo: {
+    nombre: string;
+    marca: {
+      nombre: string;
+    };
+  };
+  empleado?: {
+    nombre: string;
+    apellido: string;
+    departamento: {
+      nombre: string;
+      empresa: {
+        nombre: string;
+      };
+    };
+  };
+}
+
+interface Dispositivo {
+  id: string;
+  serial: string;
+  estado: string;
+  modelo: {
+    nombre: string;
+    marca: {
+      nombre: string;
+    };
+  };
+  empleado?: {
+    nombre: string;
+    apellido: string;
+    departamento: {
+      nombre: string;
+      empresa: {
+        nombre: string;
+      };
+    };
+  };
+}
+
+interface UbicacionDetails {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  direccion?: string;
+  piso?: string;
+  sala?: string;
+  createdAt: string;
+  updatedAt: string;
+  computadores: Computador[];
+  dispositivos: Dispositivo[];
+  _count: {
+    computadores: number;
+    dispositivos: number;
+  };
+}
+
+export default function UbicacionDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [ubicacion, setUbicacion] = useState<UbicacionDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showEditForm, setShowEditForm] = useState(false);
+
+  const fetchUbicacion = async () => {
+    try {
+      const response = await fetch(`/api/ubicaciones/${params.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUbicacion(data);
+      } else {
+        console.error('Error fetching ubicacion');
+      }
+    } catch (error) {
+      console.error('Error fetching ubicacion:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (params.id) {
+      fetchUbicacion();
+    }
+  }, [params.id]);
+
+  const handleDelete = async () => {
+    if (!ubicacion) return;
+    
+    if (!confirm(`¿Estás seguro de que quieres eliminar la ubicación "${ubicacion.nombre}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ubicaciones/${ubicacion.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        router.push('/ubicaciones');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al eliminar la ubicación');
+      }
+    } catch (error) {
+      console.error('Error deleting ubicacion:', error);
+      alert('Error al eliminar la ubicación');
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditForm(false);
+    fetchUbicacion();
+  };
+
+  const getEstadoBadgeVariant = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case 'operativo':
+        return 'default';
+      case 'asignado':
+        return 'secondary';
+      case 'resguardo':
+        return 'outline';
+      case 'reparacion':
+        return 'destructive';
+      case 'de baja':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Cargando ubicación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ubicacion) {
+    return (
+      <div className="text-center py-8">
+        <MapPin className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Ubicación no encontrada</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          La ubicación que buscas no existe o ha sido eliminada.
+        </p>
+        <Button onClick={() => router.push('/ubicaciones')} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver a Ubicaciones
+        </Button>
+      </div>
+    );
+  }
+
+  const totalEquipos = ubicacion._count.computadores + ubicacion._count.dispositivos;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => router.push('/ubicaciones')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <MapPin className="h-8 w-8" />
+              {ubicacion.nombre}
+            </h1>
+            <p className="text-muted-foreground">
+              Detalles de la ubicación y equipos asignados
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEditForm(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar
+          </Button>
+        </div>
+      </div>
+
+      {/* Ubicación Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Información de la Ubicación</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Descripción</Label>
+                <p className="mt-1">
+                  {ubicacion.descripcion || (
+                    <span className="text-gray-400 italic">Sin descripción</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Dirección</Label>
+                <p className="mt-1">
+                  {ubicacion.direccion || (
+                    <span className="text-gray-400 italic">Sin dirección</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Piso</Label>
+                <p className="mt-1">
+                  {ubicacion.piso || (
+                    <span className="text-gray-400 italic">No especificado</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Sala</Label>
+                <p className="mt-1">
+                  {ubicacion.sala || (
+                    <span className="text-gray-400 italic">No especificado</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Resumen de Equipos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumen de Equipos</CardTitle>
+          <CardDescription>
+            Total de equipos asignados a esta ubicación
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Laptop className="h-5 w-5 text-blue-600" />
+                <span className="text-2xl font-bold">{ubicacion._count.computadores}</span>
+              </div>
+              <p className="text-sm text-gray-600">Computadoras</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Printer className="h-5 w-5 text-green-600" />
+                <span className="text-2xl font-bold">{ubicacion._count.dispositivos}</span>
+              </div>
+              <p className="text-sm text-gray-600">Dispositivos</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Building className="h-5 w-5 text-gray-600" />
+                <span className="text-2xl font-bold">{totalEquipos}</span>
+              </div>
+              <p className="text-sm text-gray-600">Total Equipos</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Computadoras */}
+      {ubicacion.computadores.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Laptop className="h-5 w-5" />
+              Computadoras ({ubicacion.computadores.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serial</TableHead>
+                  <TableHead>Modelo</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Asignado a</TableHead>
+                  <TableHead>Empresa/Departamento</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ubicacion.computadores.map((computador) => (
+                  <TableRow key={computador.id}>
+                    <TableCell className="font-mono">{computador.serial}</TableCell>
+                    <TableCell>
+                      {computador.modelo.marca.nombre} {computador.modelo.nombre}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getEstadoBadgeVariant(computador.estado)}>
+                        {computador.estado}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {computador.empleado ? (
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          {computador.empleado.nombre} {computador.empleado.apellido}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">Sin asignar</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {computador.empleado ? (
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-gray-500" />
+                          {computador.empleado.departamento.empresa.nombre} / {computador.empleado.departamento.nombre}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dispositivos */}
+      {ubicacion.dispositivos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5" />
+              Dispositivos ({ubicacion.dispositivos.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serial</TableHead>
+                  <TableHead>Modelo</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Asignado a</TableHead>
+                  <TableHead>Empresa/Departamento</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ubicacion.dispositivos.map((dispositivo) => (
+                  <TableRow key={dispositivo.id}>
+                    <TableCell className="font-mono">{dispositivo.serial}</TableCell>
+                    <TableCell>
+                      {dispositivo.modelo.marca.nombre} {dispositivo.modelo.nombre}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getEstadoBadgeVariant(dispositivo.estado)}>
+                        {dispositivo.estado}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {dispositivo.empleado ? (
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          {dispositivo.empleado.nombre} {dispositivo.empleado.apellido}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">Sin asignar</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {dispositivo.empleado ? (
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-gray-500" />
+                          {dispositivo.empleado.departamento.empresa.nombre} / {dispositivo.empleado.departamento.nombre}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sin equipos */}
+      {totalEquipos === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Building className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              No hay equipos asignados
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Esta ubicación no tiene computadoras ni dispositivos asignados.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Form Modal */}
+      {showEditForm && (
+        <UbicacionForm
+          ubicacion={ubicacion}
+          onClose={() => setShowEditForm(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+    </div>
+  );
+}
+
+// Helper component for Label
+function Label({ className, children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
+  return (
+    <label className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`} {...props}>
+      {children}
+    </label>
+  );
+}

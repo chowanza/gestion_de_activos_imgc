@@ -27,7 +27,7 @@ export const dispositivoSchema = z.object({
   modeloId: z.string().min(1, "El Modelo es Requerido"),
   estado: z.string().min(1, "El estado es requerido"),
   nsap: z.string().nullable(),
-  ubicacion: z.string().nullable(),
+  ubicacionId: z.string().nullable(),
   mac: z.string().nullable()
 });
 
@@ -42,7 +42,7 @@ export interface Dispositivo {
   serial: string;
   estado: string;
   nsap?: string;
-  ubicacion?: string;
+  ubicacion?: { id: string; nombre: string; descripcion?: string; direccion?: string; piso?: string; sala?: string };
   mac?: string; // Optional, as it might not be present in all devices
   modelo: { id: string; nombre: string; img?: string; marca?: { nombre?: string } }; // Added img and marca properties
 }
@@ -55,7 +55,7 @@ export interface DispositivoFormProps {
     serial: string;
     estado: string;
     nsap: string | null;
-    ubicacion: string | null;
+    ubicacionId: string | null;
     mac: string | null;
   };
 }
@@ -294,6 +294,34 @@ const columns: ColumnDef<Dispositivo>[] = [
     },
   },
   {
+    accessorKey: "ubicacion.nombre",
+    header: "Ubicación",
+    cell: ({ row }) => {
+      const ubicacion = row.original.ubicacion;
+      return (
+        <div className="flex items-center">
+          {ubicacion ? (
+            <div>
+              <div className="font-medium">{ubicacion.nombre}</div>
+              {ubicacion.piso && (
+                <div className="text-xs text-muted-foreground">
+                  Piso: {ubicacion.piso}
+                </div>
+              )}
+              {ubicacion.sala && (
+                <div className="text-xs text-muted-foreground">
+                  Sala: {ubicacion.sala}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground italic">Sin ubicación</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const dispositivo = row.original
@@ -458,7 +486,7 @@ const columns: ColumnDef<Dispositivo>[] = [
       modeloId: data.modeloId,
       estado: data.estado,
       nsap: data.nsap,
-      ubicacion: data.ubicacion,
+      ubicacionId: data.ubicacionId,
       mac: data.mac,
     };
 

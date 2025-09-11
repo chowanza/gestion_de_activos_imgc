@@ -1,36 +1,88 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
-export async function POST(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const nombre = await request.json();
-    console.log(nombre);
-    if (!nombre) {
-      return NextResponse.json({ message: 'El nombre de la marca es requerido.' }, { status: 400 });
-    }
-
-    const newMarca = await prisma.marca.create({
-      data: nombre,
+    const user = await getServerUser(request);
+    
+    const marcas = await prisma.marca.findMany({
+      orderBy: {
+        nombre: 'asc'
+      }
     });
 
-    return NextResponse.json(newMarca, { status: 201 });
+    // Registrar acceso
+    if (user) {
+      await AuditLogger.logView(
+        'marcas',
+        'all',
+        `Usuario ${user.username} accedió a la lista de marcas`,
+        user.id as string
+      );
+    }
+
+    return NextResponse.json(marcas, { status: 200 });
   } catch (error) {
-    console.error("Error en POST /api/marcas:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear la marca';
-    return NextResponse.json({ message: errorMessage }, { status: 500 });
+    console.error('Error al obtener marcas:', error);
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    const marcas = await prisma.marca.findMany({
-      orderBy:{
-        nombre: 'asc',
+    const user = await getServerUser(request);
+    const body = await request.json();
+    const { nombre } = body;
+
+    if (!nombre) {
+      return NextResponse.json(
+        { message: 'El nombre de la marca es requerido' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si ya existe una marca con el mismo nombre (case-insensitive)
+    const allMarcas = await prisma.marca.findMany();
+    
+    const existingMarca = allMarcas.find(m => 
+      m.nombre.toLowerCase() === nombre.toLowerCase()
+    );
+
+    if (existingMarca) {
+      return NextResponse.json(
+        { message: 'Ya existe una marca con ese nombre' },
+        { status: 400 }
+      );
+    }
+
+    const marca = await prisma.marca.create({
+      data: {
+        nombre
       }
     });
-    return NextResponse.json(marcas, { status: 200 });
+
+    // Registrar creación
+    if (user) {
+      await AuditLogger.logCreate(
+        'marca',
+        marca.id,
+        `Usuario ${user.username} creó la marca: ${marca.nombre}`,
+        user.id as string,
+        { nombre: marca.nombre }
+      );
+    }
+
+    return NextResponse.json(marca, { status: 201 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Error al obtener marcas' }, { status: 500 });
+    console.error('Error al crear marca:', error);
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }

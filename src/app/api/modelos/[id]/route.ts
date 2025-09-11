@@ -76,72 +76,54 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: "Modelo not found" }, { status: 404 });
     }
 
-    // 2. Leer los datos del formulario
-    const data = await request.formData();
-    const nombre = data.get('nombre') as string;
-    const marcaId = data.get('marcaId') as string;
-    const tipo = data.get('tipo') as string;
-    // Tomamos el archivo de imagen (si existe)
-    const imagenFile = data.get('img') as File | null;
-    const marcaNombre = data.get('marcaNombre') as string | null;
+    // 2. Leer los datos del FormData
+    const formData = await request.formData();
+    const nombre = formData.get('nombre') as string;
+    const marcaId = formData.get('marcaId') as string;
+    const tipo = formData.get('tipo') as string;
+    const imgFile = formData.get('img') as File;
 
     // Validar que 'nombre' exista
     if (!nombre || typeof nombre !== 'string') {
       return NextResponse.json({ message: "El campo 'nombre' es obligatorio" }, { status: 400 });
     }
 
-    // 3. Procesar la marca: usar el ID existente o, si se proporciona un nombre, buscar o crear la marca.
-    let finalMarcaId: string;
-    if (marcaId && marcaId.trim() !== '') {
-      finalMarcaId = marcaId;
-    } else if (marcaNombre && marcaNombre.trim() !== '') {
-      let existingMarca = await prisma.marca.findUnique({
-        where: { nombre: marcaNombre },
-      });
-      if (existingMarca) {
-        finalMarcaId = existingMarca.id;
-      } else {
-        const newMarca = await prisma.marca.create({
-          data: { nombre: marcaNombre },
-        });
-        finalMarcaId = newMarca.id;
-      }
-    } else {
+    // 3. Validar marca
+    if (!marcaId || typeof marcaId !== 'string') {
       return NextResponse.json({ message: "La marca es requerida." }, { status: 400 });
     }
 
     // 4. Manejo de la imagen
-    // Por defecto se mantiene la URL de imagen existente
     let finalImageUrl: string | null = existingModelo.img;
-    let oldImageToDelete: string | null = null;
-
-    // Si se ha enviado un archivo para "img" y no es de tipo string (p. ej., File)
-    if (imagenFile && typeof imagenFile !== 'string') {
-      if (imagenFile.size > 0) {
-        // Hay una nueva imagen, se sube el archivo
-        oldImageToDelete = existingModelo.img; // Se marcará la imagen anterior para eliminar
-        const uploadDir = path.join(process.cwd(), 'public/uploads/equipos');
-        await ensureDirExists(uploadDir);
-
-        const bytes = await imagenFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const safeOriginalName = imagenFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filename = `${Date.now()}-${safeOriginalName}`;
-        const imagePath = path.join(uploadDir, filename);
-
-        await writeFile(imagePath, buffer);
-        finalImageUrl = `/uploads/equipos/${filename}`;
-      } else {
-        // Si se envía el campo pero está vacío, se puede interpretar como "se desea eliminar la imagen actual"
-        finalImageUrl = null;
+    
+    if (imgFile && imgFile.size > 0) {
+      // Eliminar imagen anterior si existe
+      if (existingModelo.img) {
+        await deletePreviousImage(existingModelo.img);
       }
+
+      // Crear directorio si no existe
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'modelos');
+      await ensureDirExists(uploadDir);
+
+      // Generar nombre único para el archivo
+      const fileExtension = path.extname(imgFile.name);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      // Guardar archivo
+      const bytes = await imgFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
+
+      finalImageUrl = `/uploads/modelos/${fileName}`;
     }
 
     // 5. Preparar los datos a actualizar
     const dataToUpdate: { [key: string]: any } = {
       nombre,
       tipo,
-      marcaId: finalMarcaId,
+      marcaId,
       img: finalImageUrl,
     };
 
@@ -150,11 +132,6 @@ export async function PUT(request: NextRequest) {
       where: { id },
       data: dataToUpdate,
     });
-
-    // 7. Si se subió una nueva imagen y había una anterior, borrarla del sistema de archivos
-    if (finalImageUrl !== existingModelo.img && oldImageToDelete) {
-      await deletePreviousImage(oldImageToDelete);
-    }
 
     return NextResponse.json(updatedModelo, { status: 200 });
   } catch (error: any) {
@@ -187,9 +164,10 @@ export async function DELETE(request: NextRequest) {
       const imagePath = path.join(process.cwd(), 'public', modelo.img);
       try {
         await unlink(imagePath);
+        console.log(`Imagen eliminada: ${imagePath}`);
       } catch (unlinkError) {
         console.error("Error deleting image:", unlinkError);
-        return NextResponse.json({ message: "Error deleting image" }, { status: 500 });
+        // No retornar error aquí, solo registrar el error
       }
     }
 

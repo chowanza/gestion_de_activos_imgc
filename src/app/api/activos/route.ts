@@ -67,42 +67,6 @@ export async function GET(request: Request) {
             console.log("[Bloque 1] Activos disponibles filtrados y devueltos:", activosDisponibles);
             return NextResponse.json(activosDisponibles);
         }
-       if (proveedor) {
-            // 1. Encontrar todas las líneas para el proveedor.
-            const lineasDelProveedor = await prisma.lineaTelefonica.findMany({
-                where: { proveedor },
-            });
-
-            const idsLineas = lineasDelProveedor.map(l => l.id);
-            if (idsLineas.length === 0) {
-                return NextResponse.json([]);
-            }
-
-            // 2. Encontrar la última acción solo para esas líneas.
-            const ultimasAcciones = await prisma.asignaciones.findMany({
-                where: { lineaTelefonicaId: { in: idsLineas } },
-                orderBy: { date: 'desc' },
-                distinct: ['lineaTelefonicaId'],
-            });
-
-            const mapaAcciones = new Map(
-                ultimasAcciones.map(a => [a.lineaTelefonicaId, a.actionType])
-            );
-
-            // 3. Filtrar las líneas que están disponibles.
-            const lineasDisponibles = lineasDelProveedor
-                .filter(linea => {
-                    const accion = mapaAcciones.get(linea.id);
-                    return !accion || accion === "Devolucion";
-                })
-                .map(linea => ({
-                    value: linea.id,
-                    label: `Línea ${linea.proveedor} (${linea.numero})`,
-                    type: "LineaTelefonica",
-                }));
-
-            return NextResponse.json(lineasDisponibles);
-        }
 
         // =================================================================================
         // Bloque 3: Lógica principal de filtrado por estado (CON DEBUGGING)
@@ -112,12 +76,10 @@ export async function GET(request: Request) {
             
             const computadores = await prisma.computador.findMany({ include: { modelo: { include: { marca: true } } } });
             const dispositivos = await prisma.dispositivo.findMany({ include: { modelo: { include: { marca: true } } } });
-            const lineas = await prisma.lineaTelefonica.findMany();
 
             const todosLosActivos = [
                 ...computadores.map(c => ({ ...c, itemType: "Computador" as const })),
                 ...dispositivos.map(d => ({ ...d, itemType: "Dispositivo" as const })),
-                ...lineas.map(l => ({ ...l, itemType: "LineaTelefonica" as const })),
             ];
 
             const idsActivos = todosLosActivos.map(a => a.id);
@@ -128,11 +90,10 @@ export async function GET(request: Request) {
                     OR: [
                         { computadorId: { in: idsActivos } },
                         { dispositivoId: { in: idsActivos } },
-                        { lineaTelefonicaId: { in: idsActivos } }
                     ]
                 },
                 orderBy: { date: "desc" },
-                distinct: ["computadorId", "dispositivoId", "lineaTelefonicaId"],
+                distinct: ["computadorId", "dispositivoId"],
                 include: {
                     targetEmpleado: true,
                     targetDepartamento: true
@@ -143,7 +104,7 @@ export async function GET(request: Request) {
             console.log("[Bloque 3] Resultado de la consulta 'ultimasAcciones':", JSON.stringify(ultimasAcciones, null, 2));
 
             const mapaAcciones = new Map(
-                ultimasAcciones.map(a => [a.computadorId || a.dispositivoId || a.lineaTelefonicaId, a])
+                ultimasAcciones.map(a => [a.computadorId || a.dispositivoId, a])
             );
             
             console.log(`[Bloque 3] Mapa de acciones construido con ${mapaAcciones.size} elementos.`);
@@ -168,9 +129,7 @@ export async function GET(request: Request) {
 
                     // Construimos la etiqueta descriptiva del activo.
                     // AGREGAMOS "?." (optional chaining) para evitar errores si un modelo o marca es null.
-                    const label = activo.itemType === 'LineaTelefonica'
-                        ? `Línea ${activo.proveedor} (${activo.numero})`
-                        : `${activo.modelo?.marca?.nombre ?? 'Marca Desconocida'} ${activo.modelo?.nombre ?? 'Modelo Desconocido'} (Serial: ${activo.serial})`;
+                    const label = `${activo.modelo?.marca?.nombre ?? 'Marca Desconocida'} ${activo.modelo?.nombre ?? 'Modelo Desconocido'} (Serial: ${activo.serial})`;
 
                     // Devolvemos el objeto con la estructura que el frontend espera.
                     return {
