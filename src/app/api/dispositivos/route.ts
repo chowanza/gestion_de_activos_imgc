@@ -53,22 +53,26 @@ export async function POST(request: Request) {
   try {
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
-    const { modeloId, serial, nsap, estado, ubicacionId, mac } = body;
+    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto } = body;
 
     // Validación
-    if (!modeloId || !serial  || !estado) {
-        return NextResponse.json({ message: 'Todos los campos son requeridos' }, { status: 400 });
+    if (!modeloId || !serial || !estado || !codigoImgc) {
+        return NextResponse.json({ message: 'Modelo, Serial, Estado y Código IMGC son requeridos' }, { status: 400 });
     }
 
     const nuevoDispositivo = await prisma.dispositivo.create({
       data: {
         modeloId,
         serial,
-        nsap,
+        codigoImgc,  // Campo obligatorio
         estado,
         ubicacionId: ubicacionId || null,
         mac: mac || null,
-        // ... otros campos como usuarioId, departamentoId ...
+        // Nuevos campos de compra
+        fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
+        numeroFactura: numeroFactura || null,
+        proveedor: proveedor || null,
+        monto: monto || null,
       },
     });
     return NextResponse.json(nuevoDispositivo, { status: 201 });

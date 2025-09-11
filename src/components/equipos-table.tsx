@@ -26,9 +26,14 @@ export const dispositivoSchema = z.object({
   serial: z.string().min(1, "El serial es requerido"),
   modeloId: z.string().min(1, "El Modelo es Requerido"),
   estado: z.string().min(1, "El estado es requerido"),
-  nsap: z.string().nullable(),
+  codigoImgc: z.string().min(1, "El Código IMGC es requerido"),  // Cambio de nsap a codigoImgc - OBLIGATORIO
   ubicacionId: z.string().nullable(),
-  mac: z.string().nullable()
+  mac: z.string().nullable(),
+  // Nuevos campos de compra
+  fechaCompra: z.string().nullable(),
+  numeroFactura: z.string().nullable(),
+  proveedor: z.string().nullable(),
+  monto: z.number().nullable()
 });
 
 export type DispositivoFormData = z.infer<typeof dispositivoSchema>;
@@ -41,10 +46,15 @@ export interface Dispositivo {
   modeloId: string; // Or number, depending on your API
   serial: string;
   estado: string;
-  nsap?: string;
+  codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
   ubicacion?: { id: string; nombre: string; descripcion?: string; direccion?: string; piso?: string; sala?: string };
   mac?: string; // Optional, as it might not be present in all devices
   modelo: { id: string; nombre: string; img?: string; marca?: { nombre?: string } }; // Added img and marca properties
+  // Nuevos campos de compra
+  fechaCompra?: string;
+  numeroFactura?: string;
+  proveedor?: string;
+  monto?: number;
 }
 
 export interface DispositivoFormProps {
@@ -54,9 +64,14 @@ export interface DispositivoFormProps {
     id?: string;
     serial: string;
     estado: string;
-    nsap: string | null;
+    codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
     ubicacionId: string | null;
     mac: string | null;
+    // Nuevos campos de compra
+    fechaCompra: string | null;
+    numeroFactura: string | null;
+    proveedor: string | null;
+    monto: number | null;
   };
 }
 
@@ -485,9 +500,14 @@ const columns: ColumnDef<Dispositivo>[] = [
       serial: data.serial,
       modeloId: data.modeloId,
       estado: data.estado,
-      nsap: data.nsap,
+      codigoImgc: data.codigoImgc,  // Cambio de nsap a codigoImgc
       ubicacionId: data.ubicacionId,
       mac: data.mac,
+      // Nuevos campos de compra
+      fechaCompra: data.fechaCompra,
+      numeroFactura: data.numeroFactura,
+      proveedor: data.proveedor,
+      monto: data.monto,
     };
 
     try {

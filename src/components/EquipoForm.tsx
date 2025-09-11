@@ -54,9 +54,14 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   modeloId: '',
   serial: '',
   estado: '',
-  nsap: null,
+  codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
   mac: null,
   ubicacionId: null,
+  // Nuevos campos de compra
+  fechaCompra: null,
+  numeroFactura: null,
+  proveedor: null,
+  monto: null,
 });
 
   // ==================================================================
@@ -88,9 +93,14 @@ const [formData, setFormData] = useState<DispositivoFormData>({
           modeloId: initialData.modeloId || '',
           serial: initialData.serial || '',
           estado: initialData.estado || '',
-          nsap: initialData.nsap || null,
+          codigoImgc: initialData.codigoImgc || '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
           mac: initialData.mac || null,
           ubicacionId: initialData.ubicacionId || null,
+          // Nuevos campos de compra
+          fechaCompra: initialData.fechaCompra || null,
+          numeroFactura: initialData.numeroFactura || null,
+          proveedor: initialData.proveedor || null,
+          monto: initialData.monto || null,
         });
       } else {
         // Resetea el formulario para creación (importante incluir el 'id' como undefined)
@@ -99,9 +109,14 @@ const [formData, setFormData] = useState<DispositivoFormData>({
           modeloId: '',
           serial: '',
           estado: '',
-          nsap: null,
+          codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
           mac: null,
           ubicacionId: null,
+          // Nuevos campos de compra
+          fechaCompra: null,
+          numeroFactura: null,
+          proveedor: null,
+          monto: null,
         });
       }
     }
@@ -184,6 +199,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
               <option value="">Seleccionar estado</option>
               <option value="Resguardo">Resguardo</option>
               <option value="Asignado">Asignado</option>
+              <option value="Operativo">Operativo</option>
               <option value="En reparación">En reparación</option>
               <option value="De baja">De baja</option>
             </select>
@@ -208,8 +224,53 @@ const [formData, setFormData] = useState<DispositivoFormData>({
             <Input id="mac" value={formData.mac || ''} onChange={handleInputChange} placeholder="Ej: a1:b2:c3:d4:f4:g5" />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="nsap">Ficha SAP (Opcional)</Label>
-            <Input id="nsap" value={formData.nsap || ''} onChange={handleInputChange} placeholder="N° de Ficha SAP" />
+            <Label htmlFor="codigoImgc">Código IMGC <span className="text-destructive">*</span></Label>
+            <Input id="codigoImgc" value={formData.codigoImgc || ''} onChange={handleInputChange} placeholder="Código IMGC" required />
+          </div>
+
+          {/* Información de Compra */}
+          <div className="grid gap-4">
+            <h4 className="text-sm font-medium text-muted-foreground">Información de Compra</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="fechaCompra">Fecha de Compra</Label>
+                <Input 
+                  id="fechaCompra" 
+                  type="date"
+                  value={formData.fechaCompra || ''} 
+                  onChange={handleInputChange} 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="numeroFactura">Número de Factura</Label>
+                <Input 
+                  id="numeroFactura" 
+                  value={formData.numeroFactura || ''} 
+                  onChange={handleInputChange} 
+                  placeholder="Número de factura"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="proveedor">Proveedor</Label>
+                <Input 
+                  id="proveedor" 
+                  value={formData.proveedor || ''} 
+                  onChange={handleInputChange} 
+                  placeholder="A quién fue comprado"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="monto">Monto</Label>
+                <Input 
+                  id="monto" 
+                  type="number"
+                  step="0.01"
+                  value={formData.monto || ''} 
+                  onChange={handleInputChange} 
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
           </div>
           
           <DialogFooter>

@@ -118,16 +118,21 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json();
           
-        const { serial, nsap, estado, ubicacionId, mac, modeloId } = body;
+        const { serial, codigoImgc, estado, ubicacionId, mac, modeloId, fechaCompra, numeroFactura, proveedor, monto } = body;
 
         const updatedEquipo = await prisma.dispositivo.update({
             where: { id },
             data: {
                 serial,
-                nsap,
+                codigoImgc,  // Campo obligatorio
                 estado,
                 mac,
                 ubicacionId: ubicacionId || null,
+                // Nuevos campos de compra
+                fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
+                numeroFactura: numeroFactura || null,
+                proveedor: proveedor || null,
+                monto: monto || null,
             }, // Cuidado con 'as any', valida y tipa los datos.
         });
 

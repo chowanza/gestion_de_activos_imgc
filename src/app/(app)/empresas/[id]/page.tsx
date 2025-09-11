@@ -222,7 +222,7 @@ export default function EmpresaDetailsPage() {
               <img
                 src={empresa.logo}
                 alt={`Logo de ${empresa.nombre}`}
-                className="w-16 h-16 object-cover rounded-lg border-2 border-gray-200"
+                className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
               />
             )}
             <div>

@@ -189,7 +189,7 @@ export function EmpresasTable() {
             <img
               src={logo}
               alt="Logo de la empresa"
-              className="w-10 h-10 object-cover rounded-lg border"
+              className="w-16 h-16 object-cover rounded-lg border"
             />
           ) : (
             <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">

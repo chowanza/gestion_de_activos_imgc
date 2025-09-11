@@ -26,7 +26,7 @@ export interface ComputadorFormData {
     modeloId: string;
     serial: string;
     estado: string;
-    nsap?: string;
+    codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
     ubicacionId?: string;
     host?: string;
     sisOperativo?: string;
@@ -38,6 +38,11 @@ export interface ComputadorFormData {
     macWifi?: string;
     macEthernet?: string;
     officeVersion?: string;
+    // Nuevos campos de compra
+    fechaCompra?: string;
+    numeroFactura?: string;
+    proveedor?: string;
+    monto?: number;
 }
 
 interface ComputadorFormProps {
@@ -57,7 +62,7 @@ const initialState: ComputadorFormData = {
     modeloId: '',
     serial: '',
     estado: '',
-    nsap: '',
+    codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
     host: '',
     sisOperativo: '',
     arquitectura: '',
@@ -68,7 +73,12 @@ const initialState: ComputadorFormData = {
     officeVersion: '',
     ubicacionId: '',
     macEthernet: '',
-    macWifi:''
+    macWifi: '',
+    // Nuevos campos de compra
+    fechaCompra: '',
+    numeroFactura: '',
+    proveedor: '',
+    monto: undefined
 };
 
 const ComputadorForm: React.FC<ComputadorFormProps> = ({
@@ -136,8 +146,8 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!formData.modeloId || !formData.serial || !formData.estado) {
-            showToast.warning("Modelo, Serial y Estado son obligatorios.", { position: "top-right" });
+        if (!formData.modeloId || !formData.serial || !formData.estado || !formData.codigoImgc) {
+            showToast.warning("Modelo, Serial, Estado y Código IMGC son obligatorios.", { position: "top-right" });
             return;
         }
         await onSubmit(formData); // Llama a la función del padre para manejar la lógica de API
@@ -190,8 +200,8 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="nsap">Ficha SAP (Opcional)</Label>
-                                    <Input id="nsap" value={formData.nsap || ''} onChange={handleInputChange} placeholder="N° de Ficha SAP"/>
+                                    <Label htmlFor="codigoImgc">Código IMGC <span className="text-destructive">*</span></Label>
+                                    <Input id="codigoImgc" value={formData.codigoImgc || ''} onChange={handleInputChange} placeholder="Código IMGC" required/>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="host">Host (Opcional)</Label>
@@ -274,10 +284,54 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                         <option value="" disabled>Seleccionar estado...</option>
                                         <option value="Resguardo">Resguardo</option>
                                         <option value="Asignado">Asignado</option>
+                                        <option value="Operativo">Operativo</option>
                                         <option value="De Baja">De Baja</option>
                                         <option value="En Reparación">En Reparación</option>
                                     </select>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Sección Información de Compra */}
+                        <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Información de Compra</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="fechaCompra">Fecha de Compra</Label>
+                                <Input 
+                                    id="fechaCompra" 
+                                    type="date"
+                                    value={formData.fechaCompra || ''} 
+                                    onChange={handleInputChange} 
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="numeroFactura">Número de Factura</Label>
+                                <Input 
+                                    id="numeroFactura" 
+                                    value={formData.numeroFactura || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder="Número de factura"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="proveedor">Proveedor</Label>
+                                <Input 
+                                    id="proveedor" 
+                                    value={formData.proveedor || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder="A quién fue comprado"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="monto">Monto</Label>
+                                <Input 
+                                    id="monto" 
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.monto || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder="0.00"
+                                />
                             </div>
                         </div>
                    <div className="flex justify-end gap-4 pt-6">

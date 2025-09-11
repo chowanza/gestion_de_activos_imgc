@@ -114,10 +114,16 @@ model Computador {
   // --- CAMPOS TÉCNICOS BASADOS EN DIAGNÓSTICO ---
   // Identificación del equipo
   equipo                  String?
-  nsap                    String?
+  codigoImgc              String   // Cambio de nsap a codigoImgc - OBLIGATORIO
   host                    String?
   sede                    String?
   telefono                String?
+  
+  // Información de compra
+  fechaCompra             DateTime?
+  numeroFactura           String?
+  proveedor               String?
+  monto                   Decimal?
   
   // Sistema Operativo
   sisOperativo            String?
@@ -219,7 +225,14 @@ model Dispositivo {
   ubicacion      Ubicacion?        @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   mac            String?
   ip             String?
-  nsap           String?
+  codigoImgc     String            // Cambio de nsap a codigoImgc - OBLIGATORIO
+  
+  // Información de compra
+  fechaCompra    DateTime?
+  numeroFactura  String?
+  proveedor      String?
+  monto          Decimal?
+  
   asignaciones   Asignaciones[]
 }
 

@@ -114,7 +114,7 @@ export const EmpresaDetails: React.FC<EmpresaDetailsProps> = ({
                     <img
                       src={empresaData.logo}
                       alt={`Logo de ${empresa.nombre}`}
-                      className="w-20 h-20 object-cover rounded-lg border"
+                      className="w-24 h-24 object-cover rounded-lg border"
                     />
                   )}
                   <div className="flex-1 space-y-2">
