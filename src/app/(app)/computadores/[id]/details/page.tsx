@@ -84,7 +84,14 @@ interface ComputadorDetallado {
     estado: string;
     nsap?: string | null;
     host?: string | null;
-    ubicacion?: string | null;
+    ubicacion?: { 
+        id: string; 
+        nombre: string; 
+        descripcion?: string; 
+        direccion?: string; 
+        piso?: string; 
+        sala?: string; 
+    } | null;
     sisOperativo?: string | null;
     arquitectura?: string | null;
     ram?: string | null;
@@ -228,7 +235,7 @@ const departamentoTag = (
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black to-slate-900 text-slate-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800 p-4">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <header className="flex items-center justify-between py-4 border-b border-slate-700/50 mb-6">

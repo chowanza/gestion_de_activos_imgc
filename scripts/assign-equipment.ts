@@ -1,0 +1,165 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  try {
+    console.log('🔍 Verificando datos disponibles...');
+
+    // 1. Obtener empleados
+    const empleados = await prisma.empleado.findMany({
+      include: {
+        departamento: {
+          include: {
+            empresa: true
+          }
+        }
+      }
+    });
+    console.log(`👥 Empleados disponibles: ${empleados.length}`);
+
+    // 2. Obtener computadores disponibles (sin asignar)
+    const computadoresDisponibles = await prisma.computador.findMany({
+      where: {
+        empleadoId: null,
+        departamentoId: null
+      },
+      include: {
+        modelo: {
+          include: {
+            marca: true
+          }
+        }
+      }
+    });
+    console.log(`💻 Computadores disponibles: ${computadoresDisponibles.length}`);
+
+    // 3. Obtener dispositivos disponibles (sin asignar)
+    const dispositivosDisponibles = await prisma.dispositivo.findMany({
+      where: {
+        empleadoId: null,
+        departamentoId: null
+      },
+      include: {
+        modelo: {
+          include: {
+            marca: true
+          }
+        }
+      }
+    });
+    console.log(`📱 Dispositivos disponibles: ${dispositivosDisponibles.length}`);
+
+    // 4. Crear asignaciones
+    console.log('🔗 Creando asignaciones...');
+    
+    let asignacionesCreadas = 0;
+    const totalEquipos = computadoresDisponibles.length + dispositivosDisponibles.length;
+    const totalEmpleados = empleados.length;
+    
+    console.log(`📊 Total equipos: ${totalEquipos}, Total empleados: ${totalEmpleados}`);
+
+    // Asignar computadores primero
+    for (let i = 0; i < Math.min(computadoresDisponibles.length, empleados.length); i++) {
+      const computador = computadoresDisponibles[i];
+      const empleado = empleados[i];
+      
+      await prisma.computador.update({
+        where: { id: computador.id },
+        data: {
+          empleadoId: empleado.id,
+          estado: 'Asignado'
+        }
+      });
+      
+      // Nota: Las asignaciones se registran automáticamente en la tabla de computadores
+      // La tabla de asignaciones se puede usar para historial de movimientos
+      
+      asignacionesCreadas++;
+      console.log(`  ✅ Computador ${computador.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);
+    }
+
+    // Asignar dispositivos a los empleados restantes
+    const empleadosRestantes = empleados.slice(computadoresDisponibles.length);
+    const dispositivosParaAsignar = dispositivosDisponibles.slice(0, empleadosRestantes.length);
+    
+    for (let i = 0; i < dispositivosParaAsignar.length; i++) {
+      const dispositivo = dispositivosParaAsignar[i];
+      const empleado = empleadosRestantes[i];
+      
+      await prisma.dispositivo.update({
+        where: { id: dispositivo.id },
+        data: {
+          empleadoId: empleado.id,
+          estado: 'Asignado'
+        }
+      });
+      
+      // Nota: Las asignaciones se registran automáticamente en la tabla de dispositivos
+      // La tabla de asignaciones se puede usar para historial de movimientos
+      
+      asignacionesCreadas++;
+      console.log(`  ✅ Dispositivo ${dispositivo.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);
+    }
+
+    console.log(`🎉 Total asignaciones creadas: ${asignacionesCreadas}`);
+    
+    // 5. Verificar resultado final
+    const empleadosConEquipos = await prisma.empleado.findMany({
+      where: {
+        OR: [
+          { computadores: { some: {} } },
+          { dispositivos: { some: {} } }
+        ]
+      },
+      include: {
+        departamento: {
+          include: {
+            empresa: true
+          }
+        },
+        computadores: {
+          include: {
+            modelo: {
+              include: {
+                marca: true
+              }
+            }
+          }
+        },
+        dispositivos: {
+          include: {
+            modelo: {
+              include: {
+                marca: true
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    console.log(`\n📋 Resumen de asignaciones:`);
+    empleadosConEquipos.forEach(empleado => {
+      const totalEquipos = empleado.computadores.length + empleado.dispositivos.length;
+      const empresaNombre = empleado.departamento?.empresa?.nombre || 'Sin empresa';
+      const departamentoNombre = empleado.departamento?.nombre || 'Sin departamento';
+      console.log(`  👤 ${empleado.nombre} ${empleado.apellido} (${empresaNombre} - ${departamentoNombre}): ${totalEquipos} equipos`);
+      
+      empleado.computadores.forEach(comp => {
+        console.log(`    💻 ${comp.modelo.marca.nombre} ${comp.modelo.nombre} (${comp.serial})`);
+      });
+      
+      empleado.dispositivos.forEach(disp => {
+        console.log(`    📱 ${disp.modelo.marca.nombre} ${disp.modelo.nombre} (${disp.serial})`);
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ Error durante la asignación:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main();

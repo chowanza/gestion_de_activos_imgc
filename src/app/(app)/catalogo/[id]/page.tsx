@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2, MapPin } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import Link from "next/link";
 
@@ -90,6 +90,10 @@ interface UsageStats {
     apellido: string;
     departamento: string;
     empresa: string;
+    count: number;
+  }>;
+  ubicaciones: Array<{
+    nombre: string;
     count: number;
   }>;
 }
@@ -364,6 +368,30 @@ export default function ModeloDetailsPage() {
                     </div>
                   ) : (
                     <p className="text-gray-500 text-center py-4">No hay empleados asignados</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Uso por Ubicación */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Uso por Ubicación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {stats.ubicaciones.length > 0 ? (
+                    <div className="space-y-2">
+                      {stats.ubicaciones.map((ubicacion, index) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                          <span className="font-medium">{ubicacion.nombre}</span>
+                          <Badge variant="outline">{ubicacion.count} equipos</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No hay equipos en ubicaciones específicas</p>
                   )}
                 </CardContent>
               </Card>

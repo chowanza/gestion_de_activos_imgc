@@ -24,7 +24,7 @@ export interface Asignaciones {
   date: string,
   action: string,
   item: {tipo: string, serial: string, descripcion: string},
-  asignadoA: {nombre: string},
+  asignadoA?: {nombre: string} | null,
   notes: string,
   gerente: string,
   serialC: string,
@@ -39,13 +39,12 @@ interface AsignacionesTableProps {
   data: Asignaciones[]
 }
 
-export function AsignacionesTable({}: AsignacionesTableProps) {
+export function AsignacionesTable({ data }: AsignacionesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [asignaciones, setAsignaciones] = React.useState<Asignaciones[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -170,11 +169,12 @@ const columns: ColumnDef<Asignaciones>[] = [
     },
     cell: ({ row }) => {
       const usuario = row.original.asignadoA;
-      return <div>{`${usuario.nombre}`}</div>;
+      return <div>{usuario?.nombre || 'Sin asignar'}</div>;
     },
     filterFn: (row, id, value) => {
       if (!value) return true;
       const usuario = row.original.asignadoA;
+      if (!usuario?.nombre) return false;
       const searchStr = `${usuario.nombre}`.toLowerCase();
       return searchStr.includes(value.toLowerCase());
     },
@@ -225,7 +225,7 @@ const columns: ColumnDef<Asignaciones>[] = [
 ]
 
   const table = useReactTable({
-    data: asignaciones,
+    data: data || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -243,34 +243,6 @@ const columns: ColumnDef<Asignaciones>[] = [
     },
   });
 
-    const fetchAllData = async () => {
-      try {
-        const usuariosResponse = await fetch('/api/asignaciones');
-
-  
-        if (!usuariosResponse.ok) {
-          throw new Error(`Error fetching usuarios: ${usuariosResponse.status}`);
-        }
-  
-        const usuariosData: Asignaciones[] = await usuariosResponse.json();
-        
-        setAsignaciones(usuariosData);
-
-      } catch (error: any) {
-        showToast.error("¡Error en Cargar!"+ (error.message), {
-            duration: 4000,
-            progress: false,
-            position: "top-right",
-            transition: "popUp",
-            icon: '',
-            sound: true,
-        });
-      }
-    };
-  
-    React.useEffect(() => {
-      fetchAllData();
-    }, []);
   
 
 React.useEffect(() => {

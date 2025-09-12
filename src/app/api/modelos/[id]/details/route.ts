@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
               include: {
                 empresa: true
               }
-            }
+            },
+            ubicacion: true
           }
         },
         dispositivos: {
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest) {
               include: {
                 empresa: true
               }
-            }
+            },
+            ubicacion: true
           }
         }
       }
@@ -99,6 +101,7 @@ export async function GET(request: NextRequest) {
       empresa: string; 
       count: number 
     }>();
+    const ubicacionStats = new Map<string, { nombre: string; count: number }>();
 
     // Procesar computadores
     modelo.computadores.forEach(computador => {
@@ -138,6 +141,13 @@ export async function GET(request: NextRequest) {
         const key = empleadoInfo.id;
         const current = empleadoStats.get(key) || { ...empleadoInfo, count: 0 };
         empleadoStats.set(key, { ...current, count: current.count + 1 });
+      }
+
+      // Contar por ubicación
+      if (computador.ubicacion) {
+        const ubicacionNombre = computador.ubicacion.nombre;
+        const current = ubicacionStats.get(ubicacionNombre) || { nombre: ubicacionNombre, count: 0 };
+        ubicacionStats.set(ubicacionNombre, { ...current, count: current.count + 1 });
       }
     });
 
@@ -180,6 +190,13 @@ export async function GET(request: NextRequest) {
         const current = empleadoStats.get(key) || { ...empleadoInfo, count: 0 };
         empleadoStats.set(key, { ...current, count: current.count + 1 });
       }
+
+      // Contar por ubicación
+      if (dispositivo.ubicacion) {
+        const ubicacionNombre = dispositivo.ubicacion.nombre;
+        const current = ubicacionStats.get(ubicacionNombre) || { nombre: ubicacionNombre, count: 0 };
+        ubicacionStats.set(ubicacionNombre, { ...current, count: current.count + 1 });
+      }
     });
 
     // Convertir Maps a Arrays y ordenar
@@ -193,6 +210,9 @@ export async function GET(request: NextRequest) {
     const empleados = Array.from(empleadoStats.values())
       .sort((a, b) => b.count - a.count);
 
+    const ubicaciones = Array.from(ubicacionStats.values())
+      .sort((a, b) => b.count - a.count);
+
     const stats = {
       totalComputadores,
       totalDispositivos,
@@ -200,7 +220,8 @@ export async function GET(request: NextRequest) {
       estados: estadosTotales,
       empresas,
       departamentos,
-      empleados
+      empleados,
+      ubicaciones
     };
 
     return NextResponse.json({ modelo, stats });

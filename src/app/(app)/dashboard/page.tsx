@@ -217,7 +217,7 @@ export default function InventoryDashboard() {
   console.log(dashboardData.totalUsers, dashboardData.totalDevices, dashboardData.totalComputers);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800 relative overflow-hidden">
       <div className="container mx-auto p-4 relative z-10">
         {/* Dashboard Title */}
         <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>

@@ -694,9 +694,14 @@ return (
           serial: editingDispositivo.serial,
           modeloId: editingDispositivo.modeloId,
           estado: editingDispositivo.estado,
-          ubicacion: editingDispositivo.ubicacion ?? null,
-          nsap: editingDispositivo.nsap ?? null,
+          codigoImgc: editingDispositivo.codigoImgc,
+          ubicacionId: editingDispositivo.ubicacion?.id ?? null,
           mac: editingDispositivo.mac ?? null,
+          // Nuevos campos de compra
+          fechaCompra: editingDispositivo.fechaCompra ?? null,
+          numeroFactura: editingDispositivo.numeroFactura ?? null,
+          proveedor: editingDispositivo.proveedor ?? null,
+          monto: editingDispositivo.monto ?? null,
         } : null}
         modelos={modelos} 
         // La key es importante para que React reinicie el estado del formulario al cambiar de un dispositivo a otro

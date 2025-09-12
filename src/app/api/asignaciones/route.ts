@@ -152,6 +152,44 @@ export async function POST(request: NextRequest) {
           throw new Error('Para asignar, se requiere el tipo y el ID del objetivo.');
         }
 
+        // VALIDACIÓN: Verificar que el equipo no esté ya asignado
+        const equipoActual = await tx[prismaModelName as keyof typeof tx].findUnique({
+          where: { id: itemId },
+          select: { 
+            estado: true, 
+            empleadoId: true, 
+            departamentoId: true,
+            serial: true 
+          }
+        });
+
+        if (!equipoActual) {
+          throw new Error(`No se encontró el ${itemType.toLowerCase()} con ID: ${itemId}`);
+        }
+
+        if (equipoActual.estado === 'Asignado') {
+          const asignadoA = asignarA_type === 'Usuario' ? 
+            await tx.empleado.findUnique({ 
+              where: { id: equipoActual.empleadoId! },
+              select: { nombre: true, apellido: true }
+            }) :
+            await tx.departamento.findUnique({ 
+              where: { id: equipoActual.departamentoId! },
+              select: { nombre: true }
+            });
+
+          const nombreAsignado = asignadoA ? 
+            (asignarA_type === 'Usuario' ? 
+              `${(asignadoA as any).nombre} ${(asignadoA as any).apellido}` : 
+              (asignadoA as any).nombre) : 
+            'Usuario desconocido';
+
+          throw new Error(
+            `El equipo ${equipoActual.serial} ya está asignado a ${nombreAsignado}. ` +
+            `Debe desvincularlo primero antes de asignarlo a otra persona.`
+          );
+        }
+
         // 1) Resuelve el gerente automático con el tx de la transacción
         const gerenteAuto = await getGerente(tx, {
           targetType: asignarA_type,

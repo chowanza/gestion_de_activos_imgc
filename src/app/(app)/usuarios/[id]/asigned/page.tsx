@@ -163,7 +163,7 @@ export default function UserProfile() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black to-slate-900 text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800 relative overflow-hidden">
       {/* Background particle effect */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-20" />
 
@@ -331,7 +331,7 @@ export default function UserProfile() {
                             </div>
                             <div>
                               <p className="text-xs text-slate-400 mb-1">Ubicación</p>
-                              <p className="text-sm text-slate-200">{dispositivo.ubicacion}</p>
+                              <p className="text-sm text-slate-200">{dispositivo.ubicacion?.nombre || 'Sin ubicación'}</p>
                             </div>
                           </div>
                         </div>

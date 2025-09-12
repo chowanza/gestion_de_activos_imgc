@@ -271,7 +271,7 @@ export default function UserProfile() {
                           </div>
                           <div>
                             <p className="text-xs text-slate-400 mb-1">Ubicación</p>
-                            <p className="text-sm text-slate-200">{computador.ubicacion}</p>
+                            <p className="text-sm text-slate-200">{computador.ubicacion?.nombre || 'Sin ubicación'}</p>
                           </div>
                         </div>
                       </div>
@@ -323,7 +323,7 @@ export default function UserProfile() {
                             </div>
                             <div>
                               <p className="text-xs text-slate-400 mb-1">Ubicación</p>
-                              <p className="text-sm text-slate-200">{dispositivo.ubicacion}</p>
+                              <p className="text-sm text-slate-200">{dispositivo.ubicacion?.nombre || 'Sin ubicación'}</p>
                             </div>
                           </div>
                         </div>
