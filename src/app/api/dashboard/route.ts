@@ -59,6 +59,79 @@ export async function GET() {
           : 0,
     }));
 
+    // --- 2.1. ESTADÍSTICAS POR EMPRESA ---
+    // Obtenemos todas las empresas con sus departamentos y contamos computadores y usuarios.
+    const empresasData = await prisma.empresa.findMany({
+      include: {
+        departamentos: {
+          include: {
+            _count: {
+              select: {
+                empleados: true,
+                computadores: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Mapeamos los datos de empresas con sus departamentos.
+    const empresaStats = empresasData.map((empresa) => {
+      const totalComputersEmpresa = empresa.departamentos.reduce(
+        (sum, dept) => sum + dept._count.computadores,
+        0
+      );
+      const totalUsersEmpresa = empresa.departamentos.reduce(
+        (sum, dept) => sum + dept._count.empleados,
+        0
+      );
+
+      return {
+        name: empresa.nombre,
+        computers: totalComputersEmpresa,
+        users: totalUsersEmpresa,
+        percentage:
+          totalComputers > 0
+            ? parseFloat(((totalComputersEmpresa / totalComputers) * 100).toFixed(1))
+            : 0,
+        departamentos: empresa.departamentos.map((dept) => ({
+          name: dept.nombre,
+          computers: dept._count.computadores,
+          users: dept._count.empleados,
+          percentage:
+            totalComputersEmpresa > 0
+              ? parseFloat(((dept._count.computadores / totalComputersEmpresa) * 100).toFixed(1))
+              : 0,
+        })),
+      };
+    });
+
+    // --- 2.2. ESTADÍSTICAS POR UBICACIÓN ---
+    // Obtenemos todas las ubicaciones y contamos sus computadores y dispositivos.
+    const ubicacionesData = await prisma.ubicacion.findMany({
+      include: {
+        _count: {
+          select: {
+            computadores: true,
+            dispositivos: true,
+          },
+        },
+      },
+    });
+
+    // Mapeamos los datos de ubicaciones.
+    const ubicacionStats = ubicacionesData.map((ubicacion) => ({
+      name: ubicacion.nombre,
+      computers: ubicacion._count.computadores,
+      devices: ubicacion._count.dispositivos,
+      total: ubicacion._count.computadores + ubicacion._count.dispositivos,
+      percentage:
+        (totalComputers + totalDevices) > 0
+          ? parseFloat((((ubicacion._count.computadores + ubicacion._count.dispositivos) / (totalComputers + totalDevices)) * 100).toFixed(1))
+          : 0,
+    }));
+
     // --- 3. ACTIVIDAD RECIENTE ---
     // Obtenemos las últimas 5 asignaciones/movimientos registrados.
     const recentActivityRaw = await prisma.asignaciones.findMany({
@@ -114,6 +187,8 @@ export async function GET() {
       storedComputers,
       trends,
       departmentStats,
+      empresaStats,
+      ubicacionStats,
       recentActivity,
     });
 

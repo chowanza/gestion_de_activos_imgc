@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
 
         // Extraemos los datos del cuerpo de la petición.
-        const { nombre, apellido, cargoId, ced, cedula, departamentoId, fechaNacimiento, fechaIngreso, fotoPerfil } = body;
+        const { nombre, apellido, cargoId, ced, cedula, departamentoId, email, fechaNacimiento, fechaIngreso, fotoPerfil } = body;
         
 
         // Función para procesar fechas y evitar problemas de zona horaria
@@ -97,6 +97,7 @@ export async function PUT(request: NextRequest) {
         if (ced) dataToUpdate.ced = ced;
         if (cedula) dataToUpdate.ced = cedula; // Mapear cedula a ced
         if (departamentoId) dataToUpdate.departamentoId = departamentoId;
+        if (email !== undefined) dataToUpdate.email = email;
         if (fechaNacimiento) dataToUpdate.fechaNacimiento = processDate(fechaNacimiento);
         if (fechaIngreso) dataToUpdate.fechaIngreso = processDate(fechaIngreso);
         if (fotoPerfil !== undefined) dataToUpdate.fotoPerfil = fotoPerfil;

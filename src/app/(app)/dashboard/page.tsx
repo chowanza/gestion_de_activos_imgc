@@ -12,6 +12,8 @@ import {
   Activity,
   PieChart,
   Building,
+  MapPin,
+  Building2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -279,10 +281,16 @@ export default function InventoryDashboard() {
                   Resumen
                 </TabsTrigger>
                 <TabsTrigger
-                  value="departments"
+                  value="empresas"
                   className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
                 >
-                  Departamentos
+                  Empresas
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ubicaciones"
+                  className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
+                >
+                  Ubicaciones
                 </TabsTrigger>
               </TabsList>
 
@@ -470,32 +478,98 @@ export default function InventoryDashboard() {
                   </Card>
                 </div>
               </TabsContent>
-              <TabsContent value="departments" className="mt-0">
+              <TabsContent value="empresas" className="mt-0">
                 <Card className="bg-white border-gray-200 shadow-lg">
                   <CardHeader className="border-b border-gray-200 pb-3">
                     <CardTitle className="text-gray-900 flex items-center">
-                      <Building className="mr-2 h-5 w-5 text-[#167DBA]" /> 
-                      Distribución por Departamentos
+                      <Building2 className="mr-2 h-5 w-5 text-[#167DBA]" /> 
+                      Distribución por Empresas
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {dashboardData.departmentStats.map((dept: any) => (
-                        <div key={dept.name} className="space-y-2">
+                      {dashboardData.empresaStats?.map((empresa: any) => (
+                        <div key={empresa.name} className="space-y-4">
+                          {/* Empresa principal */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-800 font-semibold text-lg">{empresa.name}</span>
+                              <span className="text-[#167DBA] font-mono text-lg">{empresa.percentage}%</span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <div className="w-full bg-gray-200 rounded-full h-3">
+                                <div 
+                                  className="bg-gradient-to-r from-[#167DBA] to-[#EA7704] h-3 rounded-full" 
+                                  style={{ width: `${empresa.percentage}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex space-x-4 text-sm text-gray-600">
+                                <span>{empresa.computers} comp.</span>
+                                <span>{empresa.users} users</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Departamentos de la empresa */}
+                          {empresa.departamentos && empresa.departamentos.length > 0 && (
+                            <div className="ml-4 space-y-2">
+                              <h4 className="text-sm font-medium text-gray-600 mb-2">Departamentos:</h4>
+                              {empresa.departamentos.map((dept: any) => (
+                                <div key={dept.name} className="space-y-1 pl-4 border-l-2 border-gray-200">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-700 text-sm">{dept.name}</span>
+                                    <span className="text-[#167DBA] font-mono text-sm">{dept.percentage}%</span>
+                                  </div>
+                                  <div className="flex items-center space-x-4">
+                                    <div className="w-full bg-gray-100 rounded-full h-2">
+                                      <div 
+                                        className="bg-gradient-to-r from-[#167DBA]/60 to-[#EA7704]/60 h-2 rounded-full" 
+                                        style={{ width: `${dept.percentage}%` }}
+                                      ></div>
+                                    </div>
+                                    <div className="flex space-x-3 text-xs text-gray-500">
+                                      <span>{dept.computers} comp.</span>
+                                      <span>{dept.users} users</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="ubicaciones" className="mt-0">
+                <Card className="bg-white border-gray-200 shadow-lg">
+                  <CardHeader className="border-b border-gray-200 pb-3">
+                    <CardTitle className="text-gray-900 flex items-center">
+                      <MapPin className="mr-2 h-5 w-5 text-[#167DBA]" /> 
+                      Distribución por Ubicaciones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                      {dashboardData.ubicacionStats?.map((ubicacion: any) => (
+                        <div key={ubicacion.name} className="space-y-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-800 font-medium">{dept.name}</span>
-                            <span className="text-[#167DBA] font-mono">{dept.percentage}%</span>
+                            <span className="text-gray-800 font-medium">{ubicacion.name}</span>
+                            <span className="text-[#167DBA] font-mono">{ubicacion.percentage}%</span>
                           </div>
                           <div className="flex items-center space-x-4">
                             <div className="w-full bg-gray-200 rounded-full h-2.5">
                               <div 
                                 className="bg-gradient-to-r from-[#167DBA] to-[#EA7704] h-2.5 rounded-full" 
-                                style={{ width: `${dept.percentage}%` }}
+                                style={{ width: `${ubicacion.percentage}%` }}
                               ></div>
                             </div>
                             <div className="flex space-x-4 text-xs text-gray-600">
-                              <span>{dept.computers} comp.</span>
-                              <span>{dept.users} users</span>
+                              <span>{ubicacion.computers} comp.</span>
+                              <span>{ubicacion.devices} disp.</span>
+                              <span className="font-medium">{ubicacion.total} total</span>
                             </div>
                           </div>
                         </div>
@@ -538,32 +612,49 @@ export default function InventoryDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Department Stats Summary */}
+              {/* Quick Stats Summary */}
               <Card className="bg-white border-gray-200 shadow-lg">
                 <CardHeader className="border-b border-gray-200 pb-3">
                   <CardTitle className="text-gray-900 flex items-center">
                     <Users className="mr-2 h-5 w-5 text-[#167DBA]" />
-                    Resumen Departamentos
+                    Resumen General
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    {dashboardData.departmentStats.slice(0, 3).map((dept: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-800">{dept.name}</h3>
-                          <p className="text-xs text-gray-600">
-                            {dept.users} usuarios • {dept.computers} computadores
-                          </p>
-                        </div>
-                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
-                          {dept.percentage}%
-                        </Badge>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-800">Empresas Activas</h3>
+                        <p className="text-xs text-gray-600">
+                          {dashboardData.empresaStats?.length || 0} empresas registradas
+                        </p>
                       </div>
-                    ))}
-                    <Button variant="link" className="text-[#167DBA] p-0 text-xs">
-                      Ver todos los departamentos →
-                    </Button>
+                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        {dashboardData.empresaStats?.length || 0}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-800">Ubicaciones</h3>
+                        <p className="text-xs text-gray-600">
+                          {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
+                        </p>
+                      </div>
+                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        {dashboardData.ubicacionStats?.length || 0}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-800">Departamentos</h3>
+                        <p className="text-xs text-gray-600">
+                          {dashboardData.departmentStats?.length || 0} departamentos
+                        </p>
+                      </div>
+                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        {dashboardData.departmentStats?.length || 0}
+                      </Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

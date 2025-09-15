@@ -16,6 +16,7 @@ import { DispositivoFormData, dispositivoSchema } from './equipos-table'; // Imp
 interface ModeloParaSelect {
   id: string;
   nombre: string;
+  tipo: string;
 }
 
 interface OptionType {
@@ -149,8 +150,31 @@ const [formData, setFormData] = useState<DispositivoFormData>({
     await onSubmit(validation.data);
   };
   
+  // Tipos de dispositivos permitidos
+  const TIPOS_DISPOSITIVOS = [
+    "Impresora",
+    "Cámara",
+    "Tablet",
+    "Smartphone",
+    "Monitor",
+    "Teclado",
+    "Mouse",
+    "Router",
+    "Switch",
+    "Proyector",
+    "Escáner",
+    "Altavoces",
+    "Micrófono",
+    "Webcam"
+  ];
+
+  // Filtrar solo modelos de dispositivos
+  const modelosDispositivos = Array.isArray(modelos) ? modelos.filter(modelo => 
+    TIPOS_DISPOSITIVOS.includes(modelo.tipo)
+  ) : [];
+
   // Mapea los modelos recibidos para el componente Select
-  const modeloOptions = Array.isArray(modelos) ? modelos.map(modelo => ({ value: modelo.id, label: modelo.nombre })) : [];
+  const modeloOptions = modelosDispositivos.map(modelo => ({ value: modelo.id, label: modelo.nombre }));
   const ubicacionOptions = ubicaciones.map(ubicacion => ({ value: ubicacion.id, label: ubicacion.nombre }));
   const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
   const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;

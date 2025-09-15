@@ -83,6 +83,7 @@ model Empleado {
   nombre                 String
   apellido               String
   ced                    String
+  email                  String?
   fechaNacimiento        String?
   fechaIngreso           String?
   fechaDesincorporacion  String?
@@ -158,6 +159,7 @@ model Computador {
   // Software
   officeVersion           String?
   sapVersion              String?
+  anydesk                 String?
   
   // Unidades ópticas
   unidadOptica            String?

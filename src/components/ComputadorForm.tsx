@@ -14,6 +14,7 @@ import { reactSelectStyles } from '@/utils/reactSelectStyles';
 interface Modelo {
     id: string;
     nombre: string;
+    tipo: string;
 }
 
 interface Ubicacion {
@@ -34,10 +35,10 @@ export interface ComputadorFormData {
     ram?: string;
     almacenamiento?: string;
     procesador?: string;
-    sapVersion?: string;
     macWifi?: string;
     macEthernet?: string;
     officeVersion?: string;
+    anydesk?: string;
     // Nuevos campos de compra
     fechaCompra?: string;
     numeroFactura?: string;
@@ -69,8 +70,8 @@ const initialState: ComputadorFormData = {
     ram: '',
     almacenamiento: '',
     procesador: '',
-    sapVersion: '',
     officeVersion: '',
+    anydesk: '',
     ubicacionId: '',
     macEthernet: '',
     macWifi: '',
@@ -153,8 +154,22 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
         await onSubmit(formData); // Llama a la función del padre para manejar la lógica de API
     };
     
+    // Tipos de computadoras permitidos
+    const TIPOS_COMPUTADORAS = [
+        "Laptop",
+        "Desktop", 
+        "Servidor",
+        "Workstation",
+        "All-in-One"
+    ];
+
+    // Filtrar solo modelos de computadoras
+    const modelosComputadoras = modelos.filter(modelo => 
+        TIPOS_COMPUTADORAS.includes(modelo.tipo)
+    );
+
     // Preparar opciones para react-select
-    const modeloOptions = modelos.map(modelo => ({ value: modelo.id, label: modelo.nombre }));
+    const modeloOptions = modelosComputadoras.map(modelo => ({ value: modelo.id, label: modelo.nombre }));
     const ubicacionOptions = ubicaciones.map(ubicacion => ({ value: ubicacion.id, label: ubicacion.nombre }));
     const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
     const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;
@@ -261,12 +276,12 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                             <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Software</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="sapVersion">Versión de SAP GUI</Label>
-                                    <Input id="sapVersion" value={formData.sapVersion || ''} onChange={handleInputChange} placeholder="Ej: 7.70"/>
-                                </div>
-                                <div className="grid gap-2">
                                     <Label htmlFor="officeVersion">Versión de Office</Label>
                                     <Input id="officeVersion" value={formData.officeVersion || ''} onChange={handleInputChange} placeholder="Ej: Microsoft 365 Apps"/>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="anydesk">AnyDesk ID</Label>
+                                    <Input id="anydesk" value={formData.anydesk || ''} onChange={handleInputChange} placeholder="Ej: 123 456 789"/>
                                 </div>
                             </div>
 

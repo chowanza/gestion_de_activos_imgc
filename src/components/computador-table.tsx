@@ -32,8 +32,8 @@ export const computadorSchema = z.object({
     ram: z.string().nullable(),
     almacenamiento: z.string().nullable(),
     procesador: z.string().nullable(),
-    sapVersion: z.string().nullable(),
     officeVersion: z.string().nullable(),
+    anydesk: z.string().nullable(),
     macWifi: z.string().nullable(),
     macEthernet: z.string().nullable(),
 })
@@ -56,7 +56,8 @@ export interface Computador {
     almacenamiento?: string;
     procesador?: string;
     sapVersion?: string;
-    officeVersion?: string;  
+    officeVersion?: string;
+    anydesk?: string;
    modelo: { id: string; nombre: string; img?: string; marca: { nombre: string } }; // Assuming 'marca' is an object in the fetched data
 }
 
@@ -315,6 +316,24 @@ const columns: ColumnDef<Computador>[] = [
             </div>
           ) : (
             <span className="text-muted-foreground italic">Sin ubicación</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "anydesk",
+    header: "AnyDesk ID",
+    cell: ({ row }) => {
+      const anydesk = row.getValue("anydesk") as string;
+      return (
+        <div className="flex items-center">
+          {anydesk ? (
+            <div className="font-mono text-sm bg-blue-50 text-blue-700 px-2 py-1 rounded">
+              {anydesk}
+            </div>
+          ) : (
+            <span className="text-muted-foreground italic">Sin ID</span>
           )}
         </div>
       );

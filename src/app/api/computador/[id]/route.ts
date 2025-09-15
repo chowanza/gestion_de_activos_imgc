@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
                     empresa: true, // Incluye la 'empresa' del departamento (si existe)
                   }
                 },
+                ubicacion: true, // Incluye la ubicación asignada (si existe)
                 historialModificaciones: {
                   orderBy: {
                       fecha: 'desc' // Ordenar por fecha, el más reciente primero
@@ -123,7 +124,7 @@ export async function PUT(request: NextRequest) {
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
     const camposAComparar: Array<keyof typeof computadorActual> = [
       'ram', 'almacenamiento', 'procesador', 'estado', 'nsap',
-      'host', 'ubicacion', 'sisOperativo', 'arquitectura', 'sapVersion', 'officeVersion'
+      'host', 'ubicacion', 'sisOperativo', 'arquitectura', 'sapVersion', 'officeVersion', 'anydesk'
     ];
 
     // --- PASO 2: COMPARAR VALORES Y PREPARAR HISTORIAL ---
@@ -163,6 +164,7 @@ export async function PUT(request: NextRequest) {
             procesador: body.procesador,
             sapVersion: body.sapVersion,
             officeVersion: body.officeVersion,
+            anydesk: body.anydesk,
             modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,
             empleado: body.empleadoId ? { connect: { id: body.empleadoId } } : { disconnect: true },
             departamento: body.departamentoId ? { connect: { id: body.departamentoId } } : undefined, // Ajusta según tu lógica si puede ser null

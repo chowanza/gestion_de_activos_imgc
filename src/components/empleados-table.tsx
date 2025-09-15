@@ -29,10 +29,11 @@ export const empleadoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
     departamentoId: z.string().min(1, "El departamento es requerido"),
     apellido: z.string().min(1, "El apellido es requerido"),
-    cargoId: z.string().min(1, "El cargo es requerido"),
-    cedula: z.string().min(1, "La cédula es requerida"),
+    cargoId: z.string().optional(),
+    cedula: z.string().optional(),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
     fechaNacimiento: z.string().optional(),
-    fechaIngreso: z.string().min(1, "La fecha de ingreso es requerida"),
+    fechaIngreso: z.string().optional(),
 })
 
 export type EmpleadoFormData = z.infer<typeof empleadoSchema>
@@ -43,6 +44,7 @@ export interface Empleado {
     nombre: string;
     apellido: string;
     cedula: string;
+    email?: string;
     fechaNacimiento?: string;
     fechaIngreso?: string;
     fechaDesincorporacion?: string;
@@ -69,7 +71,9 @@ interface EmpleadoTableProps {
 export function EmpleadoTable({}: EmpleadoTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    email: true
+  })
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
   const [empleados, setEmpleados] = React.useState<Empleado[]>([]);
@@ -176,6 +180,29 @@ const columns: ColumnDef<Empleado>[] = [
     filterFn: (row, id, value) => {
       const cedula = row.getValue(id)?.toString().toLowerCase() || '';
       return cedula.includes(value);
+    },
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => {
+      const email = row.getValue("email") as string;
+      return email ? (
+        <div className="flex items-center">
+          <a 
+            href={`mailto:${email}`}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {email}
+          </a>
+        </div>
+      ) : (
+        <span className="text-muted-foreground italic">Sin email</span>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const email = row.getValue(id)?.toString().toLowerCase() || '';
+      return email.includes(value);
     },
   },
   {

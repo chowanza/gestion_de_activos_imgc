@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Barcode,
   BarcodeIcon,
+  Building,
   Calendar,
   Calendar1Icon,
   Cpu,
@@ -14,6 +15,7 @@ import {
   Hash,
   History,
   Landmark,
+  Layers,
   MapPin,
   Monitor,
   MoreHorizontal,
@@ -45,6 +47,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { handleGenerateAndDownloadQRd } from "@/utils/qrCode"
+import { showToast } from "nextjs-toast-notify"
 
 
 interface HistorialEntry {
@@ -58,12 +61,23 @@ interface HistorialEntry {
     targetDepartamento?: { nombre: string } | null;
 }
 
+interface HistorialCombinadoEntry {
+    id: string;
+    tipo: 'asignacion' | 'modificacion';
+    fecha: string;
+    detalle: any;
+}
+
 interface DispositivoDetallado {
     id: string;
     serial: string;
     estado: string;
-    nsap?: string | null;
+    codigoImgc?: string | null;
     mac?: string | null;
+    fechaCompra?: string | null;
+    numeroFactura?: string | null;
+    proveedor?: string | null;
+    monto?: number | null;
     ubicacion?: { 
         id: string; 
         nombre: string; 
@@ -72,7 +86,7 @@ interface DispositivoDetallado {
         piso?: string; 
         sala?: string; 
     } | null;
-    historial: HistorialEntry[];  
+    historial: HistorialCombinadoEntry[];  
     modelo: { // El modelo ahora es un objeto
         id: string;
         nombre: string;
@@ -83,13 +97,18 @@ interface DispositivoDetallado {
             nombre: string;
         };
     };
-    usuario?: { // El usuario es opcional
+    empleado?: { // El empleado es opcional
         id: string;
         nombre: string;
         apellido: string;
         cargo: string;
-        departamento: {
+        departamento?: {
+          id: string;
           nombre: string;
+          empresa?: {
+            id: string;
+            nombre: string;
+          };
         }
     } | null;
     departamento?: { // El departamento es opcional
@@ -112,11 +131,14 @@ interface DispositivoDetallado {
 
 const statusConfig = {
   Resguardo: { label: "Resguardo", color: "green", bgColor: "bg-green-500/20", textColor: "text-green-400" },
-  Reparacion: { label: "En Reparacion", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
+  Reparacion: { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
   repair: { label: "En Reparación", color: "orange", bgColor: "bg-orange-500/20", textColor: "text-orange-400" },
+  "en reparacion": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
+  "en reparación": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
   Asignado: { label: "Asignado", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  Operativo: { label: "Operativo", color: "emerald", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
   Baja: { label: "De Baja", color: "red", bgColor: "bg-red-500/20", textColor: "text-red-400" },
-  Desconocido: { label: "Desconocido", color: "gray", bgColor: "bg-gray-500/20", textColor: "text-gray-400" },
+  Desconocido: { label: "Desconocido", color: "gray", bgColor: "bg-gray-500/20", textColor: "text-gray-600" },
 }
 
 export default function EquipmentDetails() {
@@ -150,12 +172,8 @@ export default function EquipmentDetails() {
     }, [id]);
 
 const departamentoTag = (
-  equipo?.estado === 'Resguardo'
-    ? 'Jefatura de IT y Comunicaciones'
-    : equipo?.departamento?.nombre
-    ? equipo?.departamento.nombre
-    : equipo?.usuario?.departamento?.nombre
-    ? equipo?.usuario?.departamento?.nombre
+  equipo?.estado === 'Asignado'
+    ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
     : '—'
 );
 
@@ -182,7 +200,10 @@ const departamentoTag = (
     const currentStatus = statusConfig[estado as keyof typeof statusConfig] || statusConfig.Desconocido;
   const specs: Record<string, string> = {
     Serial:       serial ?? "—",
-    mac: mac ?? "—",
+    MAC: mac ?? "—",
+    Modelo: equipo.modelo?.nombre ?? "—",
+    Marca: equipo.modelo?.marca?.nombre ?? "—",
+    Tipo: equipo.modelo?.tipo ?? "—",
   };
 
   const formatDate = (dateString: string) => {
@@ -193,15 +214,58 @@ const departamentoTag = (
     })
   }
 
+  // Funciones para los botones del header
+  const handleGoBack = () => {
+    router.back();
+  };
+
+  const handleEdit = () => {
+    router.push(`/dispositivos/${id}/edit`);
+  };
+
+  const handleGenerateQR = () => {
+    if (equipo?.id) {
+      handleGenerateAndDownloadQRd({ equipoId: equipo.id });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!equipo?.id) return;
+    
+    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar este dispositivo? Esta acción no se puede deshacer.');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/dispositivos/${equipo.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        showToast.success('Dispositivo eliminado correctamente');
+        router.push('/dispositivos');
+      } else {
+        showToast.error('Error al eliminar el dispositivo');
+      }
+    } catch (error) {
+      console.error('Error al eliminar dispositivo:', error);
+      showToast.error('Error al eliminar el dispositivo');
+    }
+  };
+
 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800 p-4">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <header className="flex items-center justify-between py-4 border-b border-gray-700/50 mb-6">
+        <header className="flex items-center justify-between py-4 border-b border-gray-200 mb-6">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-gray-600 hover:text-gray-800"
+              onClick={handleGoBack}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center space-x-2">
@@ -210,7 +274,7 @@ const departamentoTag = (
                 <h1 className="text-xl font-bold bg-gradient-to-r from-[#EA7704] to-[#167DBA] bg-clip-text text-transparent">
                   {equipo?.modelo.nombre}
                 </h1>
-                <p className="text-sm text-gray-400">ID: {equipo.id}</p>
+                <p className="text-sm text-gray-600">ID: {equipo.id}</p>
               </div>
             </div>
           </div>
@@ -225,21 +289,21 @@ const departamentoTag = (
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="border-gray-700 hover:bg-gray-800">
+                <Button variant="outline" size="icon" className="border-gray-300 hover:bg-gray-100">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-gray-800 border-gray-700" align="end">
-                <DropdownMenuItem className="hover:bg-gray-700">
+              <DropdownMenuContent className="bg-white border-gray-300" align="end">
+                <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
                   Editar Equipo
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-gray-700">
+                <DropdownMenuItem className="hover:bg-gray-200" onClick={handleGenerateQR}>
                   <QrCode className="h-4 w-4 mr-2" />
                   Generar QR
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-700" />
-                <DropdownMenuItem className="hover:bg-gray-700 text-red-400">
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <DropdownMenuItem className="hover:bg-gray-200 text-red-400" onClick={handleDelete}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Eliminar
                 </DropdownMenuItem>
@@ -254,7 +318,7 @@ const departamentoTag = (
           <div className="col-span-12 lg:col-span-4">
             <div className="space-y-6">
               {/* Equipment Image */}
-              <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm overflow-hidden">
+              <Card className="bg-white/90 border-gray-200 backdrop-blur-sm overflow-hidden">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img
@@ -263,33 +327,35 @@ const departamentoTag = (
                       className="w-full h-64 object-cover"
                     />
                     <div className="absolute top-4 right-4">
-                      <Badge className="bg-black/60 text-white border-gray-600">{equipo.modelo.marca.nombre}</Badge>
+                      <Badge className="bg-gray-800/80 text-white border-gray-600">{equipo.modelo.marca.nombre}</Badge>
                     </div>
                   </div>
                   <div className="p-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-400">Número de Serie</p>
-                        <p className="text-white font-mono">{equipo.serial}</p>
+                        <p className="text-gray-600">Número de Serie</p>
+                        <p className="text-gray-800 font-mono">{equipo.serial}</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
+              <Card className="bg-white/90 border-gray-200 backdrop-blur-sm overflow-hidden">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-white text-base flex items-center">
+                  <CardTitle className="text-gray-800 text-base flex items-center">
                     <Calendar1Icon className="mr-2 h-4 w-4 text-[#167DBA]" />
-                    última Asignación
+                    Última Asignación
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Fecha</span>
-                      <span className="text-sm text-white">
-                        {equipo.ultimaAsignacion?.date ? formatDate(equipo.ultimaAsignacion.date) : "—"}
+                      <span className="text-sm text-gray-600">Fecha</span>
+                      <span className="text-sm text-gray-800">
+                        {equipo.historial && equipo.historial.length > 0 
+                          ? formatDate(equipo.historial[0].fecha) 
+                          : "—"}
                       </span>
                     </div>
   
@@ -302,28 +368,28 @@ const departamentoTag = (
           {/* Right Column - Detailed Information */}
           <div className="col-span-12 lg:col-span-8">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="bg-gray-800/50 p-1 mb-6">
+              <TabsList className="bg-gray-50 p-1 mb-6">
                 <TabsTrigger
                   value="overview"
-                  className="data-[state=active]:bg-gray-700 data-[state=active]:text-[#EA7704]"
+                  className="data-[state=active]:bg-white data-[state=active]:text-[#EA7704]"
                 >
                   Resumen
                 </TabsTrigger>
                 <TabsTrigger
                   value="specifications"
-                  className="data-[state=active]:bg-gray-700 data-[state=active]:text-[#EA7704]"
+                  className="data-[state=active]:bg-white data-[state=active]:text-[#EA7704]"
                 >
                   Especificaciones
                 </TabsTrigger>
                 <TabsTrigger
                   value="users"
-                  className="data-[state=active]:bg-gray-700 data-[state=active]:text-[#EA7704]"
+                  className="data-[state=active]:bg-white data-[state=active]:text-[#EA7704]"
                 >
                   Usuarios
                 </TabsTrigger>
                 <TabsTrigger
                   value="history"
-                  className="data-[state=active]:bg-gray-700 data-[state=active]:text-[#EA7704]"
+                  className="data-[state=active]:bg-white data-[state=active]:text-[#EA7704]"
                 >
                   Historial
                 </TabsTrigger>
@@ -332,9 +398,9 @@ const departamentoTag = (
               <TabsContent value="overview" className="mt-0">
                 <div className="grid gap-6">
                   {/* General Information */}
-                  <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
-                    <CardHeader className="border-b border-gray-700/50 pb-3">
-                      <CardTitle className="text-white flex items-center">
+                  <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                    <CardHeader className="border-b border-gray-200 pb-3">
+                      <CardTitle className="text-gray-800 flex items-center">
                         <Monitor className="mr-2 h-5 w-5 text-[#EA7704]" />
                         Información General
                       </CardTitle>
@@ -342,35 +408,103 @@ const departamentoTag = (
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-1">
-                          <p className="text-xs text-gray-400 uppercase tracking-wider">Ubicación</p>
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Ubicación</p>
                           <div className="flex items-center">
-                            <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
                             <div>
-                              <p className="text-sm text-white">{equipo.ubicacion?.nombre || 'Sin ubicación'}</p>
+                              <p className="text-sm text-gray-800">{equipo.ubicacion?.nombre || 'Sin ubicación'}</p>
                               {equipo.ubicacion?.piso && (
-                                <p className="text-xs text-gray-400">Piso: {equipo.ubicacion.piso}</p>
+                                <p className="text-xs text-gray-600">Piso: {equipo.ubicacion.piso}</p>
                               )}
                               {equipo.ubicacion?.sala && (
-                                <p className="text-xs text-gray-400">Sala: {equipo.ubicacion.sala}</p>
+                                <p className="text-xs text-gray-600">Sala: {equipo.ubicacion.sala}</p>
                               )}
                             </div>
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <p className="text-xs text-gray-400 uppercase tracking-wider">Departamento</p>
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Código IMGC</p>
                           <div className="flex items-center">
-                            <Tag className="h-4 w-4 text-gray-400 mr-2" />
-                            <p className="text-sm text-white">{departamentoTag}</p>
+                            <Hash className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.codigoImgc || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Solo mostrar departamento y empresa si está asignado */}
+                        {equipo.estado === 'Asignado' && (
+                          <>
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
+                              <div className="flex items-center">
+                                <Tag className="h-4 w-4 text-gray-600 mr-2" />
+                                <p className="text-sm text-gray-800">{departamentoTag}</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-600 uppercase tracking-wider">Empresa</p>
+                              <div className="flex items-center">
+                                <Building className="h-4 w-4 text-gray-600 mr-2" />
+                                <p className="text-sm text-gray-800">
+                                  {equipo.empleado?.departamento?.empresa?.nombre || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Información de Compra */}
+                  <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                    <CardHeader className="border-b border-gray-200 pb-3">
+                      <CardTitle className="text-gray-800 flex items-center">
+                        <Calendar className="mr-2 h-5 w-5 text-[#EA7704]" />
+                        Información de Compra
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Fecha de Compra</p>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.fechaCompra ? new Date(equipo.fechaCompra).toLocaleDateString('es-ES') : "N/A"}
+                            </p>
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <p className="text-xs text-gray-400 uppercase tracking-wider">N° Ficha en SAP</p>
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Número de Factura</p>
                           <div className="flex items-center">
-                            <Hash className="h-4 w-4 text-gray-400 mr-2" />
-                            <p className="text-sm text-white">
-                              {equipo.nsap || "N/A"}
+                            <Tag className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.numeroFactura || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Proveedor</p>
+                          <div className="flex items-center">
+                            <Landmark className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.proveedor || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Monto</p>
+                          <div className="flex items-center">
+                            <Hash className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.monto ? `$${equipo.monto.toLocaleString()}` : "N/A"}
                             </p>
                           </div>
                         </div>
@@ -379,9 +513,9 @@ const departamentoTag = (
                   </Card>
 
                   {/* Quick Actions */}
-                  <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
-                    <CardHeader className="border-b border-gray-700/50 pb-3">
-                      <CardTitle className="text-white text-base">Acciones Rápidas</CardTitle>
+                  <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                    <CardHeader className="border-b border-gray-200 pb-3">
+                      <CardTitle className="text-gray-800 text-base">Acciones Rápidas</CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -394,7 +528,7 @@ const departamentoTag = (
                                   handleGenerateAndDownloadQRd({ equipoId: equipo.id });
                                 }}
                                 variant="outline"
-                                className="h-auto py-4 px-4 border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 flex flex-col items-center space-y-2"
+                                className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
                               >
                                 <QrCode className="h-6 w-6 text-[#167DBA]" />
                                 <span className="text-xs">QR Code</span>
@@ -406,28 +540,30 @@ const departamentoTag = (
                           </Tooltip>
                         </TooltipProvider>
 
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link href={`/asignaciones/new?equipoId=${equipo.id}`}
-                                className="h-auto py-4 px-4 border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 flex flex-col items-center space-y-2"
-                              >
-                                <Users className="h-6 w-6 text-[#EA7704]" />
-                                <span className="text-xs">Asignar</span>
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Asignar a usuario</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {equipo.estado !== 'Asignado' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link href={`/asignaciones/new?equipoId=${equipo.id}`}
+                                  className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
+                                >
+                                  <Users className="h-6 w-6 text-[#EA7704]" />
+                                  <span className="text-xs">Asignar</span>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Asignar a usuario</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
 
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="h-auto py-4 px-4 border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 flex flex-col items-center space-y-2"
+                                className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
                               >
                                 <History className="h-6 w-6 text-[#167DBA]" />
                                 <span className="text-xs">Historial</span>
@@ -445,9 +581,9 @@ const departamentoTag = (
               </TabsContent>
 
               <TabsContent value="specifications" className="mt-0">
-                <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
-                  <CardHeader className="border-b border-gray-700/50 pb-3">
-                    <CardTitle className="text-white flex items-center">
+                <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                  <CardHeader className="border-b border-gray-200 pb-3">
+                    <CardTitle className="text-gray-800 flex items-center">
                       <Cpu className="mr-2 h-5 w-5 text-[#EA7704]" />
                       Especificaciones Técnicas
                     </CardTitle>
@@ -455,17 +591,20 @@ const departamentoTag = (
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {Object.entries(specs).map(([key, value]) => (
-                        <div key={key} className="bg-gray-800/50 rounded-md p-4 border border-gray-700/50">
+                        <div key={key} className="bg-gray-50 rounded-md p-4 border border-gray-200">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                              <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">
                                 {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                               </p>
-                              <p className="text-sm text-white">{value}</p>
+                              <p className="text-sm text-gray-800">{value}</p>
                             </div>
                             <div className="text-[#EA7704]">
                               {key === "Serial" && <BarcodeIcon className="h-5 w-5" />}
-                              {key === "mac" && <EthernetPort className="h-5 w-5" />}
+                              {key === "MAC" && <EthernetPort className="h-5 w-5" />}
+                              {key === "Modelo" && <Monitor className="h-5 w-5" />}
+                              {key === "Marca" && <Tag className="h-5 w-5" />}
+                              {key === "Tipo" && <Layers className="h-5 w-5" />}
                             </div>
                           </div>
                         </div>
@@ -476,38 +615,39 @@ const departamentoTag = (
               </TabsContent>
 
               <TabsContent value="users" className="mt-0">
-            <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-700/50 pb-3">
-                    <CardTitle className="text-white flex items-center">
+            <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                <CardHeader className="border-b border-gray-200 pb-3">
+                    <CardTitle className="text-gray-800 flex items-center">
                         <Users className="mr-2 h-5 w-5 text-[#EA7704]" />
-                        Asignación Actual
+                        {equipo.estado === 'Asignado' ? 'Asignación Actual' : 'Estado del Equipo'}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                     {/* CASO 1: El equipo está asignado a un USUARIO */}
-                    {equipo.usuario && (
+                    {equipo.estado === 'Asignado' && equipo.empleado && (
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-12 w-12">
-                                    <AvatarImage src="/placeholder-user.jpg" alt={`${equipo.usuario.nombre} ${equipo.usuario.apellido}`} />
-                                    <AvatarFallback className="bg-gray-700 text-[#EA7704]">
-                                        {equipo.usuario.nombre[0]}{equipo.usuario.apellido[0]}
+                                    <AvatarImage src="/placeholder-user.jpg" alt={`${equipo.empleado.nombre} ${equipo.empleado.apellido}`} />
+                                    <AvatarFallback className="bg-gray-100 text-[#EA7704]">
+                                        {equipo.empleado.nombre[0]}{equipo.empleado.apellido[0]}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <h3 className="text-sm font-medium text-white">{equipo.usuario.nombre} {equipo.usuario.apellido}</h3>
-                                    <p className="text-xs text-gray-400">{equipo.usuario.cargo}</p>
+                                    <h3 className="text-sm font-medium text-gray-800">{equipo.empleado.nombre} {equipo.empleado.apellido}</h3>
+                                    <p className="text-xs text-gray-600">{equipo.empleado.cargo}</p>
                                     {/* Mostramos el depto del usuario si está disponible */}
-                                    {equipo.usuario.departamento && (
-                                        <p className="text-xs text-gray-500">Dpto: {equipo.usuario.departamento.nombre}</p>
+                                    {equipo.empleado.departamento && (
+                                        <p className="text-xs text-gray-500">Dpto: {equipo.empleado.departamento.nombre}</p>
                                     )}
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-gray-400">Asignado desde</p>
-                                {/* Suponiendo que la fecha de asignación está en 'ultimaAsignacion' */}
-                                <p className="text-sm text-white">
-                                    {equipo.ultimaAsignacion ? new Date(equipo.ultimaAsignacion.date).toLocaleDateString() : 'N/A'}
+                                <p className="text-xs text-gray-600">Asignado desde</p>
+                                <p className="text-sm text-gray-800">
+                                    {equipo.historial && equipo.historial.length > 0 
+                                      ? formatDate(equipo.historial[0].fecha) 
+                                      : 'N/A'}
                                 </p>
                                 <Badge className="mt-1 bg-green-500/20 text-green-400 border-green-500/50">
                                     Usuario
@@ -517,28 +657,30 @@ const departamentoTag = (
                     )}
 
                     {/* CASO 2: El equipo está asignado a un DEPARTAMENTO (y no a un usuario) */}
-                    {equipo.departamento && !equipo.usuario && (
+                    {equipo.estado === 'Asignado' && equipo.departamento && !equipo.empleado && (
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-12 w-12">
                                     {/* Puedes tener un placeholder para departamentos */}
                                     <AvatarImage src="/placeholder-dept.jpg" alt={equipo.departamento.nombre} />
-                                    <AvatarFallback className="bg-gray-700 text-[#EA7704]">
+                                    <AvatarFallback className="bg-gray-100 text-[#EA7704]">
                                       {equipo.departamento.nombre.slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <h3 className="text-sm font-medium text-white">{equipo.departamento.nombre}</h3>
-                                    <p className="text-xs text-gray-400">CECO: {equipo.departamento.ceco}</p>
+                                    <h3 className="text-sm font-medium text-gray-800">{equipo.departamento.nombre}</h3>
+                                    <p className="text-xs text-gray-600">CECO: {equipo.departamento.ceco}</p>
                                     {equipo.departamento.gerencia && (
                                         <p className="text-xs text-gray-500">Gerencia: {equipo.departamento.gerencia.nombre}</p>
                                     )}
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-gray-400">Asignado desde</p>
-                                <p className="text-sm text-white">
-                                    {equipo.ultimaAsignacion ? new Date(equipo.ultimaAsignacion.date).toLocaleDateString() : 'N/A'}
+                                <p className="text-xs text-gray-600">Asignado desde</p>
+                                <p className="text-sm text-gray-800">
+                                    {equipo.historial && equipo.historial.length > 0 
+                                      ? formatDate(equipo.historial[0].fecha) 
+                                      : 'N/A'}
                                 </p>
                                 <Badge className="mt-1 bg-blue-500/20 text-blue-400 border-blue-500/50">
                                     Departamento
@@ -548,9 +690,17 @@ const departamentoTag = (
                     )}
 
                     {/* CASO 3: El equipo NO ESTÁ ASIGNADO */}
-                    {!equipo.usuario && !equipo.departamento && (
-                        <div className="text-center text-gray-400">
-                            <p>Este equipo se encuentra actualmente en resguardo y no está asignado.</p>
+                    {equipo.estado !== 'Asignado' && (
+                        <div className="text-center text-gray-600 py-8">
+                            <div className="flex flex-col items-center space-y-4">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <Users className="h-8 w-8 text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-lg font-medium text-gray-800">No está asignado</p>
+                                    <p className="text-sm text-gray-600">Este equipo se encuentra en resguardo</p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </CardContent>
@@ -558,9 +708,9 @@ const departamentoTag = (
               </TabsContent>
 
               <TabsContent value="history" className="mt-0">
-                  <Card className="bg-gray-900/50 border-gray-700/50 backdrop-blur-sm">
-                      <CardHeader className="border-b border-gray-700/50 pb-3">
-                          <CardTitle className="text-white flex items-center">
+                  <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
+                      <CardHeader className="border-b border-gray-200 pb-3">
+                          <CardTitle className="text-gray-800 flex items-center">
                               <History className="mr-2 h-5 w-5 text-[#EA7704]" />
                               Historial de Movimientos
                           </CardTitle>
@@ -570,38 +720,68 @@ const departamentoTag = (
                               {equipo.historial && equipo.historial.length > 0 ? (
                                   equipo.historial.map((entry, index) => {
                                       const isLast = index === equipo.historial.length - 1;
-                                      const actionLabel = entry.type === 'Assignment' ? 'Asignado' : 'Devuelto';
-                                      const targetName = entry.targetUsuario 
-                                          ? `${entry.targetUsuario.nombre} ${entry.targetUsuario.apellido}`
-                                          : entry.targetDepartamento?.nombre || 'N/A';
+                                      
+                                      if (entry.tipo === 'asignacion') {
+                                          const detalle = entry.detalle as any;
+                                          const actionLabel = 'Asignado';
+                                          const targetName = detalle.targetEmpleado 
+                                              ? `${detalle.targetEmpleado.nombre} ${detalle.targetEmpleado.apellido}`
+                                              : detalle.targetDepartamento?.nombre || 'N/A';
 
-                                      return (
-                                          <div key={entry.id} className="flex items-start space-x-4">
-                                              <div className="flex flex-col items-center">
-                                                  <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center border border-gray-700">
-                                                      <div className="w-3 h-3 bg-[#EA7704] rounded-full"></div>
-                                                  </div>
-                                                  {!isLast && (
-                                                      <div className="w-px h-16 bg-gray-700 mt-2"></div>
-                                                  )}
-                                              </div>
-                                              <div className="flex-1 min-w-0 pt-1">
-                                                  <div className="bg-gray-800/50 rounded-md p-4 border border-gray-700/50">
-                                                      <div className="flex items-center justify-between mb-2">
-                                                          <h3 className="text-sm font-medium text-white">{actionLabel} a {entry.targetType}</h3>
-                                                          <p className="text-xs text-gray-400">{formatDate(entry.date)}</p>
+                                          return (
+                                              <div key={entry.id} className="flex items-start space-x-4">
+                                                  <div className="flex flex-col items-center">
+                                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
+                                                          <div className="w-3 h-3 bg-[#EA7704] rounded-full"></div>
                                                       </div>
-                                                      <p className="text-sm text-gray-300 mb-2">Destino: <span className="font-semibold">{targetName}</span></p>
-                                                      {entry.notes && (
-                                                          <p className="text-xs text-gray-400 border-l-2 border-gray-600 pl-2">Nota: {entry.notes}</p>
+                                                      {!isLast && (
+                                                          <div className="w-px h-16 bg-gray-300 mt-2"></div>
                                                       )}
                                                   </div>
+                                                  <div className="flex-1 min-w-0 pt-1">
+                                                      <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
+                                                          <div className="flex items-center justify-between mb-2">
+                                                              <h3 className="text-sm font-medium text-gray-800">{actionLabel} a {detalle.targetType}</h3>
+                                                              <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
+                                                          </div>
+                                                          <p className="text-sm text-gray-700 mb-2">Destino: <span className="font-semibold">{targetName}</span></p>
+                                                          {detalle.motivo && (
+                                                              <p className="text-xs text-gray-600 border-l-2 border-gray-300 pl-2">Motivo: {detalle.motivo}</p>
+                                                          )}
+                                                      </div>
+                                                  </div>
                                               </div>
-                                          </div>
-                                      );
+                                          );
+                                      } else if (entry.tipo === 'modificacion') {
+                                          const detalle = entry.detalle as any;
+                                          return (
+                                              <div key={entry.id} className="flex items-start space-x-4">
+                                                  <div className="flex flex-col items-center">
+                                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
+                                                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                                      </div>
+                                                      {!isLast && (
+                                                          <div className="w-px h-16 bg-gray-300 mt-2"></div>
+                                                      )}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0 pt-1">
+                                                      <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
+                                                          <div className="flex items-center justify-between mb-2">
+                                                              <h3 className="text-sm font-medium text-gray-800">Modificación: {detalle.campo}</h3>
+                                                              <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
+                                                          </div>
+                                                          <p className="text-sm text-gray-700 mb-2">
+                                                              <span className="font-semibold">Anterior:</span> {detalle.valorAnterior} → <span className="font-semibold">Nuevo:</span> {detalle.valorNuevo}
+                                                          </p>
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                          );
+                                      }
+                                      return null;
                                   })
                               ) : (
-                                  <p className="text-center text-gray-400">No hay historial de movimientos para este equipo.</p>
+                                  <p className="text-center text-gray-600">No hay historial de movimientos para este equipo.</p>
                               )}
                           </div>
                       </CardContent>

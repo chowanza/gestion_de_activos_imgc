@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem, 
          SidebarMenuButton, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { ChartPie, Printer, Tag, Laptop, Factory, 
-         UsersIcon, ClipboardListIcon, Globe, History, LogOut, Building2, MapPin
+         UsersIcon, ClipboardListIcon, Globe, History, LogOut, Building2, MapPin, Monitor
 } from 'lucide-react';
 import Link from 'next/link';
 import { NavMain } from './nav-main';

@@ -36,6 +36,7 @@ export interface EmpleadoFormData {
     nombre: string;
     apellido: string;
     cedula: string;
+    email?: string;
     fechaNacimiento: string;
     fechaIngreso: string;
     fotoPerfil?: string;
@@ -60,6 +61,7 @@ const initialState: EmpleadoFormData = {
     nombre: '',
     apellido: '',
     cedula: '',
+    email: '',
     fechaNacimiento: '',
     fechaIngreso: '',
     fotoPerfil: '',
@@ -249,7 +251,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         
-        if (!formData.empresaId || !formData.departamentoId || !formData.nombre || !formData.apellido || !formData.cedula || !formData.cargoId || !formData.fechaIngreso) {
+        if (!formData.empresaId || !formData.departamentoId || !formData.nombre || !formData.apellido) {
             showToast.warning("Introduzca todos los campos obligatorios.", { position: "top-right" });
             return;
         }
@@ -322,7 +324,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
 
                 {/* Fila 3: Cargo y Cédula */}
                 <div className="grid gap-2">
-                    <Label htmlFor="cargoId">Cargo <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="cargoId">Cargo</Label>
                     <CreatableSelect
                         value={cargoOptions.find(option => option.value === formData.cargoId) || null}
                         onChange={(option) => setFormData(prev => ({ ...prev, cargoId: option?.value ?? '' }))}
@@ -337,13 +339,22 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="cedula">Cédula <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="cedula">Cédula</Label>
                     <Input 
                         id="cedula" 
                         value={formData.cedula || ''} 
                         onChange={handleInputChange} 
                         placeholder="Ej: V-28031705"
-                        required
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                        id="email" 
+                        type="email"
+                        value={formData.email || ''} 
+                        onChange={handleInputChange} 
+                        placeholder="Ej: empleado@empresa.com"
                     />
                 </div>
 
@@ -358,13 +369,12 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="fechaIngreso">Fecha de Ingreso <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
                     <Input 
                         id="fechaIngreso" 
                         type="date" 
                         value={formData.fechaIngreso || ''} 
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
             </div>

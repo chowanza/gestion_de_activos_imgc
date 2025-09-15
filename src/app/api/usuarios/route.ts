@@ -94,9 +94,9 @@ export async function POST(request: NextRequest) {
     const { cargoId, departamentoId, cedula, empresaId, ...rest } = body;
 
     // Validación básica
-    if (!cargoId || !departamentoId) {
+    if (!departamentoId) {
       return NextResponse.json(
-        { message: 'El cargo y departamento son requeridos' },
+        { message: 'El departamento es requerido' },
         { status: 400 }
       );
     }
@@ -131,9 +131,9 @@ export async function POST(request: NextRequest) {
 
     const newEmpleado = await prisma.empleado.create({
       data: {
-        cargoId,
+        cargoId: cargoId || null,
         departamentoId,
-        ced: cedula, // Mapear cedula a ced
+        ced: cedula || '', // Mapear cedula a ced, usar string vacío si no se proporciona
         ...processedData,
       },
       include: {

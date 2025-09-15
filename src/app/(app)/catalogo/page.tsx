@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showToast } from "nextjs-toast-notify";
 import { 
   Plus, 
@@ -19,7 +20,9 @@ import {
   MoreHorizontal,
   X,
   Settings,
-  Eye
+  Eye,
+  Laptop,
+  Monitor
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -43,10 +46,17 @@ interface ModeloDispositivo {
   img?: string;
 }
 
-// Tipos de equipos predefinidos
-const TIPOS_EQUIPOS = [
+// Tipos de equipos específicos para computadoras
+const TIPOS_COMPUTADORAS = [
   "Laptop",
   "Desktop", 
+  "Servidor",
+  "Workstation",
+  "All-in-One"
+];
+
+// Tipos de equipos específicos para dispositivos
+const TIPOS_DISPOSITIVOS = [
   "Impresora",
   "Cámara",
   "Tablet",
@@ -56,13 +66,16 @@ const TIPOS_EQUIPOS = [
   "Mouse",
   "Router",
   "Switch",
-  "Servidor"
+  "Proyector",
+  "Escáner",
+  "Altavoces",
+  "Micrófono",
+  "Webcam"
 ];
 
 export default function CatalogoPage() {
   const router = useRouter();
   const [modelos, setModelos] = useState<ModeloDispositivo[]>([]);
-  const [tipos, setTipos] = useState<string[]>(TIPOS_EQUIPOS);
   const [marcas, setMarcas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,6 +84,7 @@ export default function CatalogoPage() {
   const [showTiposModal, setShowTiposModal] = useState(false);
   const [showMarcasModal, setShowMarcasModal] = useState(false);
   const [editingModelo, setEditingModelo] = useState<ModeloDispositivo | null>(null);
+  const [activeTab, setActiveTab] = useState("computadoras");
 
   useEffect(() => {
     fetchData();
@@ -101,6 +115,23 @@ export default function CatalogoPage() {
     }
   };
 
+  // Obtener tipos según la pestaña activa
+  const getCurrentTipos = () => {
+    return activeTab === "computadoras" ? TIPOS_COMPUTADORAS : TIPOS_DISPOSITIVOS;
+  };
+
+  // Obtener modelos filtrados según la pestaña activa
+  const getFilteredModelos = () => {
+    const currentTipos = getCurrentTipos();
+    return modelos.filter(modelo => {
+      const matchesSearch = modelo.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           modelo.marca.nombre.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTipo = !tipoFilter || modelo.tipo === tipoFilter;
+      const matchesCategory = currentTipos.includes(modelo.tipo);
+      return matchesSearch && matchesTipo && matchesCategory;
+    });
+  };
+
   const handleDeleteModelo = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este modelo?')) return;
 
@@ -122,7 +153,6 @@ export default function CatalogoPage() {
   };
 
   const handleTiposChange = (newTipos: string[]) => {
-    setTipos(newTipos);
     // Refrescar datos para mostrar cambios en cascada
     fetchData();
   };
@@ -133,12 +163,10 @@ export default function CatalogoPage() {
     fetchData();
   };
 
-  const filteredModelos = modelos.filter(modelo => {
-    const matchesSearch = modelo.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         modelo.marca.nombre.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTipo = !tipoFilter || modelo.tipo === tipoFilter;
-    return matchesSearch && matchesTipo;
-  });
+  // Resetear filtro de tipo cuando cambie la pestaña
+  useEffect(() => {
+    setTipoFilter("");
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -175,137 +203,284 @@ export default function CatalogoPage() {
         </div>
       </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar por nombre o marca..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="w-full md:w-64">
-              <select
-                value={tipoFilter}
-                onChange={(e) => setTipoFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los tipos</option>
-                {tipos.map((tipo, index) => (
-                  <option key={`tipo-${index}-${tipo}`} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Pestañas */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="computadoras" className="flex items-center gap-2">
+            <Laptop className="h-4 w-4" />
+            Computadoras
+          </TabsTrigger>
+          <TabsTrigger value="dispositivos" className="flex items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            Dispositivos
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Tabla de Modelos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Package className="h-5 w-5 mr-2" />
-            Modelos ({filteredModelos.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredModelos.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No se encontraron modelos</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-medium">Modelo</th>
-                    <th className="text-left p-3 font-medium">Marca</th>
-                    <th className="text-left p-3 font-medium">Tipo</th>
-                    <th className="text-left p-3 font-medium">Imagen</th>
-                    <th className="text-right p-3 font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredModelos.map(modelo => (
-                    <tr key={modelo.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <div className="font-medium">{modelo.nombre}</div>
-                      </td>
-                      <td className="p-3">
-                        <div className="text-gray-600">{modelo.marca.nombre}</div>
-                      </td>
-                      <td className="p-3">
-                        <Badge variant="outline">{modelo.tipo}</Badge>
-                      </td>
-                      <td className="p-3">
-                        {modelo.img ? (
-                          <img 
-                            src={modelo.img} 
-                            alt={modelo.nombre}
-                            className="w-24 h-24 object-cover rounded border"
-                          />
-                        ) : (
-                          <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center">
-                            <Package className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`/catalogo/${modelo.id}`)}
-                            title="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingModelo(modelo);
-                              setShowModeloForm(true);
-                            }}
-                            title="Editar"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteModelo(modelo.id)}
-                            className="text-red-600 hover:text-red-700"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="computadoras" className="space-y-6">
+          {/* Filtros */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Buscar computadoras por nombre o marca..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="w-full md:w-64">
+                  <select
+                    value={tipoFilter}
+                    onChange={(e) => setTipoFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Todos los tipos</option>
+                    {getCurrentTipos().map((tipo, index) => (
+                      <option key={`tipo-${index}-${tipo}`} value={tipo}>
+                        {tipo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabla de Computadoras */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Laptop className="h-5 w-5 mr-2 text-blue-600" />
+                Computadoras ({getFilteredModelos().length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {getFilteredModelos().length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Laptop className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No se encontraron computadoras</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-3 font-medium">Modelo</th>
+                        <th className="text-left p-3 font-medium">Marca</th>
+                        <th className="text-left p-3 font-medium">Tipo</th>
+                        <th className="text-left p-3 font-medium">Imagen</th>
+                        <th className="text-right p-3 font-medium">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredModelos().map(modelo => (
+                        <tr key={modelo.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3">
+                            <div className="font-medium">{modelo.nombre}</div>
+                          </td>
+                          <td className="p-3">
+                            <div className="text-gray-600">{modelo.marca.nombre}</div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {modelo.tipo}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            {modelo.img ? (
+                              <img 
+                                src={modelo.img} 
+                                alt={modelo.nombre}
+                                className="w-24 h-24 object-cover rounded border"
+                              />
+                            ) : (
+                              <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center">
+                                <Laptop className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/catalogo/${modelo.id}`)}
+                                title="Ver detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingModelo(modelo);
+                                  setShowModeloForm(true);
+                                }}
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteModelo(modelo.id)}
+                                className="text-red-600 hover:text-red-700"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dispositivos" className="space-y-6">
+          {/* Filtros */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Buscar dispositivos por nombre o marca..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="w-full md:w-64">
+                  <select
+                    value={tipoFilter}
+                    onChange={(e) => setTipoFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Todos los tipos</option>
+                    {getCurrentTipos().map((tipo, index) => (
+                      <option key={`tipo-${index}-${tipo}`} value={tipo}>
+                        {tipo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabla de Dispositivos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Monitor className="h-5 w-5 mr-2 text-green-600" />
+                Dispositivos ({getFilteredModelos().length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {getFilteredModelos().length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No se encontraron dispositivos</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-3 font-medium">Modelo</th>
+                        <th className="text-left p-3 font-medium">Marca</th>
+                        <th className="text-left p-3 font-medium">Tipo</th>
+                        <th className="text-left p-3 font-medium">Imagen</th>
+                        <th className="text-right p-3 font-medium">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredModelos().map(modelo => (
+                        <tr key={modelo.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3">
+                            <div className="font-medium">{modelo.nombre}</div>
+                          </td>
+                          <td className="p-3">
+                            <div className="text-gray-600">{modelo.marca.nombre}</div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              {modelo.tipo}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            {modelo.img ? (
+                              <img 
+                                src={modelo.img} 
+                                alt={modelo.nombre}
+                                className="w-24 h-24 object-cover rounded border"
+                              />
+                            ) : (
+                              <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center">
+                                <Monitor className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/catalogo/${modelo.id}`)}
+                                title="Ver detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingModelo(modelo);
+                                  setShowModeloForm(true);
+                                }}
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteModelo(modelo.id)}
+                                className="text-red-600 hover:text-red-700"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Formularios */}
       {showModeloForm && (
         <CatalogoForm
           modelo={editingModelo}
           marcas={marcas}
-          tipos={tipos}
+          tipos={getCurrentTipos()}
           onClose={() => {
             setShowModeloForm(false);
             setEditingModelo(null);
@@ -320,7 +495,7 @@ export default function CatalogoPage() {
 
       {showTiposModal && (
         <TiposEquiposModal
-          tipos={tipos}
+          tipos={getCurrentTipos()}
           modelos={modelos}
           onClose={() => setShowTiposModal(false)}
           onTiposChange={handleTiposChange}

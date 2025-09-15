@@ -47,7 +47,11 @@ export async function GET(request: NextRequest) {
                 },
                 empleado: {
                   include:{
-                      departamento: true // Incluye el objeto 'departamento' del empleado asignado (si existe)
+                      departamento: {
+                        include: {
+                          empresa: true
+                        }
+                      } // Incluye el objeto 'departamento' del empleado asignado (si existe)
                   }
                 },      // Incluye el objeto 'empleado' asignado (si existe)
                 departamento: {
@@ -56,6 +60,15 @@ export async function GET(request: NextRequest) {
                   }
                 },
                 ubicacion: true, // Incluye la ubicación asignada (si existe)
+                asignaciones: {
+                  include: {
+                    targetEmpleado: true,
+                    targetDepartamento: true
+                  },
+                  orderBy: {
+                    date: 'desc'
+                  }
+                },
             }
         });
 
@@ -63,39 +76,22 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'dispositivo no encontrado' }, { status: 404 });
         }
 
-        const historial = await prisma.asignaciones.findMany({
-            where: {
-                dispositivoId: id,// Importante para no mezclar con dispositivos
-            },
-            orderBy: {
-                date: 'desc' // El más reciente primero
-            },
-          include: {
-            targetEmpleado: {
-              select: { nombre: true, apellido: true }
-            },
-            targetDepartamento: {
-              select: { nombre: true }
-            }
-          }
-        });
+        // Solo historial de asignaciones para dispositivos
+        const historialDeAsignaciones = dispositivo.asignaciones.map(a => ({
+            id: `asig-${a.id}`, // Prefijo para evitar colisión de IDs
+            tipo: 'asignacion', // Tipo para identificarlo en el frontend
+            fecha: a.date,
+            detalle: a, // Mantenemos el objeto original anidado
+        }));
 
-        // --- PASO 3: Combinar los datos para enviar al frontend ---
-
-        // Tomamos el primer elemento del historial (el más reciente) para la "última asignación"
-        const ultimaAsignacion = historial.length > 0 ? {
-            id: historial[0].id,
-            type: historial[0].motivo,
-            targetType: historial[0].targetType,
-            
-            date: historial[0].date.toISOString(),
-        } : null;
+        // Ordenar el historial final
+        const historialCombinado = historialDeAsignaciones
+            .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
         // Construimos el objeto de respuesta final
         const responseData = {
-            ...dispositivo,      // Todos los datos del computador
-            historial,          // El array de historial que consultamos por separado
-            ultimaAsignacion    // El objeto simplificado del último movimiento
+            ...dispositivo,      // Todos los datos del dispositivo
+            historial: historialCombinado,          // El array de historial combinado
         };
 
         return NextResponse.json(responseData, { status: 200 });

@@ -89,7 +89,7 @@ export function DispositivoTable({}: DispositivoTableProps) {
   const [editingDispositivo, setEditingDispositivo] = React.useState<Dispositivo | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("")
   const [dispositivos, setDispositivos] = React.useState<Dispositivo[]>([]);
-  const [modelos, setModelos] = React.useState<{ id: string; nombre: string }[]>([]);
+  const [modelos, setModelos] = React.useState<{ id: string; nombre: string; tipo: string }[]>([]);
   const [isLoading, setIsLoading] = React.useState(true); 
   const isAdmin = useIsAdmin();
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
