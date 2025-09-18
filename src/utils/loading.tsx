@@ -1,5 +1,5 @@
 import React from 'react'
-import { Table, TableBody, TableCell, TableRow} from "@/components/ui/table";
+import { TableCell, TableRow} from "@/components/ui/table";
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -13,17 +13,13 @@ const TableRowSkeleton = ({ columnCount = 5 }: TableRowSkeletonProps) => {
   const safeColumnCount = Math.max(1, Math.min(columnCount, 20));
   
   return (
-    <Table>
-      <TableBody>
-        <TableRow>
-          {Array.from({ length: safeColumnCount }).map((_, index) => (
-            <TableCell key={`skeleton-cell-${index}`}>
-              <Skeleton className="h-4 w-full rounded" />
-            </TableCell>
-          ))}
-        </TableRow>
-      </TableBody>
-    </Table>
+    <TableRow>
+      {Array.from({ length: safeColumnCount }).map((_, index) => (
+        <TableCell key={`skeleton-cell-${index}`}>
+          <Skeleton className="h-4 w-full rounded" />
+        </TableCell>
+      ))}
+    </TableRow>
   );
 };
 

@@ -161,7 +161,16 @@ export async function DELETE(request: NextRequest) {
         //     await deletePreviousImage(equipoExistente.img);
         // }
 
-        // 3. Eliminar el registro de la base de datos
+        // 3. Eliminar registros relacionados primero
+        await prisma.historialModificaciones.deleteMany({
+            where: { dispositivoId: id }
+        });
+
+        await prisma.asignaciones.deleteMany({
+            where: { dispositivoId: id }
+        });
+
+        // 4. Eliminar el registro de la base de datos
         const deletedEquipo = await prisma.dispositivo.delete({
             where: { id },
         });

@@ -50,8 +50,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Procesar fechas para convertirlas al formato correcto
+    const processedData = {
+      ...body,
+      fechaCompra: body.fechaCompra ? new Date(body.fechaCompra) : null,
+    };
+    
     const newEquipo = await prisma.computador.create({
-      data: body,
+      data: processedData,
     });
     return NextResponse.json(newEquipo, { status: 201 });
   } catch (error) {

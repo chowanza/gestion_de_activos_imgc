@@ -223,7 +223,7 @@ const ModeloForm: React.FC<ModeloFormProps> = ({
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit" disabled={isCreatingMarca}>{isEditing ? "Guardar Cambios" : "Crear Modelo"}</Button>
+                        <Button type="submit" disabled={isCreatingMarca} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">{isEditing ? "Guardar Cambios" : "Crear Modelo"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

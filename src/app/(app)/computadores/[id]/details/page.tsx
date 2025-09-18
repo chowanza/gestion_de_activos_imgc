@@ -51,6 +51,8 @@ import { formatDate } from "@/utils/formatDate"
 import { handleGenerateAndDownloadQR } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
+import { IntelligentHistory } from "@/components/IntelligentHistory"
+import EquipmentStatusModal from "@/components/EquipmentStatusModal"
 
 
 // Define la interfaz para una entrada de modificación
@@ -172,6 +174,7 @@ export default function EquipmentDetails() {
   
       const [equipo, setEquipo] = useState<ComputadorDetallado| null>(null);
       const [loading, setLoading] = useState(true);
+      const [statusModalOpen, setStatusModalOpen] = useState(false);
       const isAdmin = useIsAdmin();
   
      useEffect(() => {
@@ -196,7 +199,7 @@ export default function EquipmentDetails() {
     }, [id]);
 
 const departamentoTag = (
-  equipo?.estado === 'Asignado'
+  (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
     ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
     : '—'
 );
@@ -250,6 +253,48 @@ const departamentoTag = (
 
   const handleEdit = () => {
     router.push(`/computadores/${id}/edit`);
+  };
+
+  const handleStatusChange = async (newStatus: string, assignmentData: any) => {
+    try {
+      const response = await fetch('/api/equipment/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          equipmentId: equipo?.id,
+          equipmentType: 'Computador',
+          newStatus,
+          assignmentData
+        })
+      });
+
+      if (!response.ok) throw new Error('Error actualizando estado');
+
+      const result = await response.json();
+      
+      // Actualizar el estado local del equipo
+      setEquipo(prev => prev ? {
+        ...prev,
+        estado: newStatus,
+        empleado: result.equipment.empleado,
+        departamento: result.equipment.departamento,
+        ubicacion: result.equipment.ubicacion,
+        historial: [
+          {
+            id: `asig-${result.assignment.id}`,
+            tipo: 'asignacion',
+            fecha: result.assignment.date,
+            detalle: result.assignment
+          },
+          ...prev.historial
+        ]
+      } : null);
+
+      showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      showToast.error('Error actualizando el estado del equipo');
+    }
   };
 
   const handleGenerateQR = () => {
@@ -327,6 +372,10 @@ const departamentoTag = (
               <DropdownMenuContent className="bg-white border-gray-300" align="end">
                 {isAdmin && (
                   <>
+                    <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
+                      <Wrench className="h-4 w-4 mr-2" />
+                      Gestionar Estado
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
                       <Edit className="h-4 w-4 mr-2" />
                       Editar Equipo
@@ -497,8 +546,8 @@ const departamentoTag = (
                           </div>
                         </div>
 
-                        {/* Solo mostrar departamento y empresa si está asignado */}
-                        {equipo.estado === 'Asignado' && (
+                        {/* Mostrar departamento y empresa si está asignado o en mantenimiento con empleado */}
+                        {(equipo.estado === 'Asignado' || (equipo.estado === 'Mantenimiento' && equipo.empleado)) && (
                           <>
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
@@ -797,83 +846,19 @@ const departamentoTag = (
                   <CardHeader className="border-b border-gray-200 pb-3">
                     <CardTitle className="text-gray-800 flex items-center">
                       <History className="mr-2 h-5 w-5 text-orange-500" />
-                      Historial Completo
+                      Línea de Tiempo Inteligente
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {equipo.historial && equipo.historial.length > 0 ? (
-                        equipo.historial.map((entry, index) => {
-                          const isLast = index === equipo.historial.length - 1;
-
-                          return (
-                            <div key={entry.id} className="flex items-start space-x-4">
-                              {/* Timeline decorator (punto y línea) */}
-                              <div className="flex flex-col items-center">
-                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-300">
-                                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                                </div>
-                                {!isLast && <div className="w-px h-24 bg-gray-200 mt-2"></div>}
-                              </div>
-
-                              {/* Contenido de la tarjeta */}
-                              <div className="flex-1 min-w-0 pt-1">
-                                <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
-                                  {/* RENDERIZADO CONDICIONAL BASADO EN el TIPO */}
-
-                                  {entry.tipo === 'modificacion' && (() => {
-                                    const modificacion = entry.detalle as HistorialModificacionEntry;
-                                    return (
-                                      <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                          <h3 className="text-sm font-medium text-gray-800 flex items-center">
-                                            <Wrench className="mr-2 h-4 w-4 text-amber-400" />
-                                            Modificación de Componente
-                                          </h3>
-                                          <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
-                                        </div>
-                                        <p className="text-sm text-gray-700">
-                                          Se actualizó el campo <span className="font-semibold text-amber-400">{modificacion.campo}</span>.
-                                        </p>
-                                        <p className="text-xs text-gray-600 mt-1">
-                                          Valor anterior: <span className="font-mono bg-gray-100 px-1 rounded">{modificacion.valorAnterior || 'Vacío'}</span>
-                                        </p>
-                                        <p className="text-xs text-gray-600 mt-1">
-                                          Valor nuevo: <span className="font-mono bg-gray-100 px-1 rounded">{modificacion.valorNuevo || 'Vacío'}</span>
-                                        </p>
-                                      </div>
-                                    );
-                                  })()}
-
-                                  {entry.tipo === 'asignacion' && (() => {
-                                    const asig = entry.detalle as HistorialAsignacionEntry;
-                                    const actionLabel = 'Asignado';
-                                    const targetName = asig.targetEmpleado
-                                      ? `${asig.targetEmpleado.nombre} ${asig.targetEmpleado.apellido}`
-                                      : asig.targetDepartamento?.nombre || 'N/A';
-
-                                    return (
-                                      <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                          <h3 className="text-sm font-medium text-gray-800 flex items-center">
-                                            <Info className="mr-2 h-4 w-4 text-green-400"/>
-                                            {actionLabel}
-                                            </h3>
-                                          <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
-                                        </div>
-                                        <p className="text-sm text-gray-700 mb-2">Destino: <span className="font-semibold">{targetName}</span></p>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-center text-gray-600">No hay historial de movimientos para este equipo.</p>
-                      )}
-                    </div>
+                    <IntelligentHistory 
+                      historial={equipo.historial || []} 
+                      equipoActual={{
+                        estado: equipo.estado,
+                        empleado: equipo.empleado,
+                        departamento: equipo.departamento,
+                        ubicacion: equipo.ubicacion
+                      }}
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -881,6 +866,28 @@ const departamentoTag = (
           </div>
         </div>
       </div>
+
+      {/* Modal de gestión de estado */}
+      {equipo && (
+        <EquipmentStatusModal
+          isOpen={statusModalOpen}
+          onClose={() => setStatusModalOpen(false)}
+          equipment={{
+            id: equipo.id,
+            serial: equipo.serial,
+            estado: equipo.estado,
+            tipo: 'Computador',
+            modelo: {
+              marca: { nombre: equipo.modelo.marca.nombre },
+              nombre: equipo.modelo.nombre
+            },
+            empleado: equipo.empleado,
+            departamento: equipo.departamento,
+            ubicacion: equipo.ubicacion
+          }}
+          onStatusChange={handleStatusChange}
+        />
+      )}
     </div>
   )
 }

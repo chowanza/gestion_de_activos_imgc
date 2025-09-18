@@ -47,8 +47,11 @@ export function AsignacionesTable({ data }: AsignacionesTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [isClient, setIsClient] = React.useState(false);
 
-
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
  const handleDownload = React.useCallback(async (assignmentId: string) => {
     setLoading(true);
@@ -249,7 +252,22 @@ React.useEffect(() => {
   table.getColumn("serial")?.setFilterValue(searchQuery ?? "");
 }, [table, searchQuery]);;
 
-return (
+  if (!isClient) {
+    return (
+      <Card className="border-none shadow-md">
+        <CardHeader className="bg-primary/5 rounded-t-lg">
+          <CardTitle className="text-2xl font-bold">Asignaciones</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center">
+            <div className="text-muted-foreground">Cargando...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
     <Card className="border-none shadow-md">
       <CardHeader className="bg-primary/5 rounded-t-lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

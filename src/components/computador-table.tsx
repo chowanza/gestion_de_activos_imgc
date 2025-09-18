@@ -6,7 +6,7 @@ import React from "react";
 import {z} from "zod";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon } from "lucide-react";
+import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, CheckCircle2Icon, Trash2 } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -282,6 +282,10 @@ const columns: ColumnDef<Computador>[] = [
           <WrenchIcon className="h-4 w-4 text-amber-500" />
         ) : estado === "Asignado" ? (
           <User2Icon className="h-4 w-4 text-green-500" />
+        ) : estado === "Operativo" ? (
+          <CheckCircle2Icon className="h-4 w-4 text-green-600" />
+        ) : estado === "De baja" ? (
+          <Trash2 className="h-4 w-4 text-red-500" />
         ) : (
           <XCircleIcon className="h-4 w-4 text-destructive" />
         )}
@@ -385,7 +389,7 @@ const columns: ColumnDef<Computador>[] = [
                   <DropdownMenuSeparator />
                   <AlertDialogTrigger asChild>
                     <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        Eliminar departamento
+                        Eliminar computador
                     </DropdownMenuItem>
                   </AlertDialogTrigger>
                 </>
@@ -426,14 +430,14 @@ const handleDelete = async ({id}: {id: string}) => {
         });
 
         if (!response.ok) {
-        throw new Error('Error al eliminar el depto.');
+        throw new Error('Error al eliminar el computador.');
         }
 
-        showToast.success("Departamento eliminado correctamente.");
+        showToast.success("Computador eliminado correctamente.");
         fetchAllData();
     } catch (error) {
         console.error(error);
-        showToast.error("No se pudo eliminar el depto.");
+        showToast.error("No se pudo eliminar el computador.");
     } finally {
         setIsLoading(false);
     }
@@ -598,7 +602,7 @@ return (
                     // Mostrar mensaje si no hay resultados
                     <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center">
-                        {searchQuery ? "No se encontraron departamentos con ese filtro." : "No hay departamentos registrados."}
+                        {searchQuery ? "No se encontraron computadores con ese filtro." : "No hay computadores registrados."}
                     </TableCell>
                     </TableRow>
                 )}

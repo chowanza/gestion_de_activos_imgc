@@ -48,6 +48,8 @@ import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { handleGenerateAndDownloadQRd } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
+import { IntelligentHistory } from "@/components/IntelligentHistory"
+import EquipmentStatusModal from "@/components/EquipmentStatusModal"
 
 
 interface HistorialEntry {
@@ -150,6 +152,7 @@ export default function EquipmentDetails() {
   
       const [equipo, setEquipo] = useState<DispositivoDetallado| null>(null);
       const [loading, setLoading] = useState(true);
+      const [statusModalOpen, setStatusModalOpen] = useState(false);
   
      useEffect(() => {
         if (id) {
@@ -172,7 +175,7 @@ export default function EquipmentDetails() {
     }, [id]);
 
 const departamentoTag = (
-  equipo?.estado === 'Asignado'
+  (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
     ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
     : '—'
 );
@@ -221,6 +224,51 @@ const departamentoTag = (
 
   const handleEdit = () => {
     router.push(`/dispositivos/${id}/edit`);
+  };
+
+  const handleStatusChange = async (newStatus: string, assignmentData: any) => {
+    try {
+      const response = await fetch('/api/equipment/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          equipmentId: equipo?.id,
+          equipmentType: 'Dispositivo',
+          newStatus,
+          assignmentData
+        })
+      });
+
+      if (!response.ok) throw new Error('Error actualizando estado');
+
+      const result = await response.json();
+      
+      // Actualizar el estado local del equipo
+      setEquipo(prev => prev ? {
+        ...prev,
+        estado: newStatus,
+        empleado: result.equipment.empleado,
+        departamento: result.equipment.departamento,
+        ubicacion: result.equipment.ubicacion,
+        historial: [
+          {
+            id: result.assignment.id,
+            type: 'Assignment',
+            targetType: result.assignment.targetType,
+            date: result.assignment.date,
+            actionType: result.assignment.actionType,
+            targetEmpleado: result.assignment.targetEmpleado,
+            targetDepartamento: result.assignment.targetDepartamento
+          },
+          ...prev.historial
+        ]
+      } : null);
+
+      showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      showToast.error('Error actualizando el estado del equipo');
+    }
   };
 
   const handleGenerateQR = () => {
@@ -294,6 +342,10 @@ const departamentoTag = (
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-white border-gray-300" align="end">
+                <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Gestionar Estado
+                </DropdownMenuItem>
                 <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
                   Editar Equipo
@@ -433,8 +485,8 @@ const departamentoTag = (
                           </div>
                         </div>
 
-                        {/* Solo mostrar departamento y empresa si está asignado */}
-                        {equipo.estado === 'Asignado' && (
+                        {/* Mostrar departamento y empresa si está asignado o en mantenimiento con empleado */}
+                        {(equipo.estado === 'Asignado' || (equipo.estado === 'Mantenimiento' && equipo.empleado)) && (
                           <>
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
@@ -712,78 +764,19 @@ const departamentoTag = (
                       <CardHeader className="border-b border-gray-200 pb-3">
                           <CardTitle className="text-gray-800 flex items-center">
                               <History className="mr-2 h-5 w-5 text-[#EA7704]" />
-                              Historial de Movimientos
+                              Línea de Tiempo Inteligente
                           </CardTitle>
                       </CardHeader>
                       <CardContent className="p-6">
-                          <div className="space-y-4">
-                              {equipo.historial && equipo.historial.length > 0 ? (
-                                  equipo.historial.map((entry, index) => {
-                                      const isLast = index === equipo.historial.length - 1;
-                                      
-                                      if (entry.tipo === 'asignacion') {
-                                          const detalle = entry.detalle as any;
-                                          const actionLabel = 'Asignado';
-                                          const targetName = detalle.targetEmpleado 
-                                              ? `${detalle.targetEmpleado.nombre} ${detalle.targetEmpleado.apellido}`
-                                              : detalle.targetDepartamento?.nombre || 'N/A';
-
-                                          return (
-                                              <div key={entry.id} className="flex items-start space-x-4">
-                                                  <div className="flex flex-col items-center">
-                                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
-                                                          <div className="w-3 h-3 bg-[#EA7704] rounded-full"></div>
-                                                      </div>
-                                                      {!isLast && (
-                                                          <div className="w-px h-16 bg-gray-300 mt-2"></div>
-                                                      )}
-                                                  </div>
-                                                  <div className="flex-1 min-w-0 pt-1">
-                                                      <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
-                                                          <div className="flex items-center justify-between mb-2">
-                                                              <h3 className="text-sm font-medium text-gray-800">{actionLabel} a {detalle.targetType}</h3>
-                                                              <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
-                                                          </div>
-                                                          <p className="text-sm text-gray-700 mb-2">Destino: <span className="font-semibold">{targetName}</span></p>
-                                                          {detalle.motivo && (
-                                                              <p className="text-xs text-gray-600 border-l-2 border-gray-300 pl-2">Motivo: {detalle.motivo}</p>
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                          );
-                                      } else if (entry.tipo === 'modificacion') {
-                                          const detalle = entry.detalle as any;
-                                          return (
-                                              <div key={entry.id} className="flex items-start space-x-4">
-                                                  <div className="flex flex-col items-center">
-                                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
-                                                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                                      </div>
-                                                      {!isLast && (
-                                                          <div className="w-px h-16 bg-gray-300 mt-2"></div>
-                                                      )}
-                                                  </div>
-                                                  <div className="flex-1 min-w-0 pt-1">
-                                                      <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
-                                                          <div className="flex items-center justify-between mb-2">
-                                                              <h3 className="text-sm font-medium text-gray-800">Modificación: {detalle.campo}</h3>
-                                                              <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
-                                                          </div>
-                                                          <p className="text-sm text-gray-700 mb-2">
-                                                              <span className="font-semibold">Anterior:</span> {detalle.valorAnterior} → <span className="font-semibold">Nuevo:</span> {detalle.valorNuevo}
-                                                          </p>
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                          );
-                                      }
-                                      return null;
-                                  })
-                              ) : (
-                                  <p className="text-center text-gray-600">No hay historial de movimientos para este equipo.</p>
-                              )}
-                          </div>
+                          <IntelligentHistory 
+                              historial={equipo.historial || []} 
+                              equipoActual={{
+                                  estado: equipo.estado,
+                                  empleado: equipo.empleado,
+                                  departamento: equipo.departamento,
+                                  ubicacion: equipo.ubicacion
+                              }}
+                          />
                       </CardContent>
                   </Card>
               </TabsContent>
@@ -791,6 +784,28 @@ const departamentoTag = (
           </div>
         </div>
       </div>
+
+      {/* Modal de gestión de estado */}
+      {equipo && (
+        <EquipmentStatusModal
+          isOpen={statusModalOpen}
+          onClose={() => setStatusModalOpen(false)}
+          equipment={{
+            id: equipo.id,
+            serial: equipo.serial,
+            estado: equipo.estado,
+            tipo: 'Dispositivo',
+            modelo: {
+              marca: { nombre: equipo.modelo.marca.nombre },
+              nombre: equipo.modelo.nombre
+            },
+            empleado: equipo.empleado,
+            departamento: equipo.departamento,
+            ubicacion: equipo.ubicacion
+          }}
+          onStatusChange={handleStatusChange}
+        />
+      )}
     </div>
   )
 }

@@ -181,7 +181,7 @@ export const EmpresaForm: React.FC<EmpresaFormProps> = ({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
               {isEditing ? "Actualizar Empresa" : "Crear Empresa"}
             </Button>
           </DialogFooter>

@@ -52,7 +52,11 @@ export async function GET(request: NextRequest) {
                 },
                 empleado: {
                   include:{
-                      departamento: true // Incluye el objeto 'departamento' del empleado asignado (si existe)
+                      departamento: {
+                        include: {
+                          empresa: true // Incluye la empresa del departamento del empleado
+                        }
+                      }
                   }
                 },      // Incluye el objeto 'usuario' asignado (si existe)
                 departamento: {
@@ -124,7 +128,7 @@ export async function PUT(request: NextRequest) {
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
     const camposAComparar: Array<keyof typeof computadorActual> = [
       'ram', 'almacenamiento', 'procesador', 'estado', 'nsap',
-      'host', 'ubicacion', 'sisOperativo', 'arquitectura', 'sapVersion', 'officeVersion', 'anydesk'
+      'host', 'ubicacionId', 'sisOperativo', 'arquitectura', 'sapVersion', 'officeVersion', 'anydesk'
     ];
 
     // --- PASO 2: COMPARAR VALORES Y PREPARAR HISTORIAL ---
@@ -156,7 +160,6 @@ export async function PUT(request: NextRequest) {
             estado: body.estado,
             nsap: body.nsap,
             host: body.host,
-            ubicacion: body.ubicacion,
             sisOperativo: body.sisOperativo,
             arquitectura: body.arquitectura,
             ram: body.ram,
@@ -167,7 +170,8 @@ export async function PUT(request: NextRequest) {
             anydesk: body.anydesk,
             modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,
             empleado: body.empleadoId ? { connect: { id: body.empleadoId } } : { disconnect: true },
-            departamento: body.departamentoId ? { connect: { id: body.departamentoId } } : undefined, // Ajusta según tu lógica si puede ser null
+            departamento: body.departamentoId ? { connect: { id: body.departamentoId } } : undefined,
+            ubicacion: body.ubicacionId ? { connect: { id: body.ubicacionId } } : { disconnect: true }
         },
       });
 
@@ -208,6 +212,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: 'Computador no encontrado' }, { status: 404 });
     }
 
+    // Eliminar registros relacionados primero
+    await prisma.historialModificaciones.deleteMany({
+      where: { computadorId: id }
+    });
+
+    await prisma.asignaciones.deleteMany({
+      where: { computadorId: id }
+    });
+
+    // Ahora eliminar el computador
     await prisma.computador.delete({
       where: { id },
     });

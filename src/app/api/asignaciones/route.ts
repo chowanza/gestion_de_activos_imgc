@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
         // 3) Crear asignación
         await tx.asignaciones.create({
           data: {
-            actionType: 'Asignacion',
+            actionType: 'Asignación',
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
         const ultimaAsignacion = await tx.asignaciones.findFirst({
           where: {
             OR: [{ computadorId: itemId }, { dispositivoId: itemId }],
-            actionType: 'Asignacion',
+            actionType: 'Asignación',
           },
           orderBy: { date: 'desc' },
         });
@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
 
         await tx.asignaciones.create({
           data: {
-            actionType: 'Devolucion',
+            actionType: 'Devolución',
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,

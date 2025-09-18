@@ -6,7 +6,7 @@ import React from "react";
 import {z} from "zod";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon } from "lucide-react";
+import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, Trash2 } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -297,6 +297,10 @@ const columns: ColumnDef<Dispositivo>[] = [
             <WrenchIcon className="h-4 w-4 text-amber-500" />
           ) : estado === "Asignado" ? (
             <User2Icon className="h-4 w-4 text-green-500" />
+          ) : estado === "Operativo" ? (
+            <CheckCircle2Icon className="h-4 w-4 text-green-600" />
+          ) : estado === "De baja" ? (
+            <Trash2 className="h-4 w-4 text-red-500" />
           ) : (
             <XCircleIcon className="h-4 w-4 text-destructive" />
           )}
@@ -646,7 +650,7 @@ return (
                         // Mostrar mensaje si no hay resultados
                         <TableRow>
                         <TableCell colSpan={columns.length} className="h-24 text-center">
-                            {searchQuery ? "No se encontraron departamentos con ese filtro." : "No hay departamentos registrados."}
+                            {searchQuery ? "No se encontraron equipos con ese filtro." : "No hay equipos registrados."}
                         </TableCell>
                         </TableRow>
                     )}

@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AuditLogger } from '@/lib/audit-logger';
-import { getServerUser } from '@/lib/auth-server';
+import { AuditLogger } from '@/lib/auditLogger';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-// GET /api/empresas - Obtener todas las empresas
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const empresas = await prisma.empresa.findMany({
       include: {
         departamentos: {
           include: {
-            empleados: true,
-            computadores: true,
-            dispositivos: true,
+            _count: {
+              select: {
+                empleados: true,
+                computadores: true,
+                dispositivos: true
+              }
+            }
           }
         },
         _count: {
@@ -28,30 +30,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Obtener usuario de la sesión para auditoría
-    const user = await getServerUser(request);
-    
-    // Registrar acceso a la lista de empresas
-    if (user) {
-      await AuditLogger.logView(
-        'empresas',
-        'lista',
-        `Usuario ${user.username} accedió a la lista de empresas`,
-        user.id as string
-      );
-    }
-
     return NextResponse.json(empresas);
   } catch (error) {
-    console.error('Error fetching empresas:', error);
+    console.error('Error obteniendo empresas:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { message: 'Error interno del servidor' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/empresas - Crear nueva empresa
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -59,13 +47,27 @@ export async function POST(request: NextRequest) {
     const descripcion = formData.get('descripcion') as string;
     const logoFile = formData.get('logo') as File;
 
-    if (!nombre) {
+    // Validar que el nombre no esté vacío
+    if (!nombre || nombre.trim() === '') {
       return NextResponse.json(
-        { error: 'El nombre es requerido' },
+        { message: 'El nombre de la empresa es requerido' },
         { status: 400 }
       );
     }
 
+    // Verificar que no exista una empresa con el mismo nombre
+    const empresaExistente = await prisma.empresa.findUnique({
+      where: { nombre: nombre.trim() }
+    });
+
+    if (empresaExistente) {
+      return NextResponse.json(
+        { message: 'Ya existe una empresa con ese nombre' },
+        { status: 409 }
+      );
+    }
+
+    // Manejar el archivo de logo si existe
     let logoPath = null;
     if (logoFile && logoFile.size > 0) {
       // Crear directorio si no existe
@@ -85,38 +87,28 @@ export async function POST(request: NextRequest) {
       logoPath = `/uploads/empresas/${fileName}`;
     }
 
-    const empresa = await prisma.empresa.create({
+    // Crear la empresa
+    const nuevaEmpresa = await prisma.empresa.create({
       data: {
-        nombre,
-        descripcion: descripcion || null,
-        logo: logoPath,
-      },
+        nombre: nombre.trim(),
+        descripcion: descripcion?.trim() || null,
+        logo: logoPath
+      }
     });
 
-    // Obtener usuario de la sesión para auditoría
-    const user = await getServerUser(request);
-    
     // Registrar en auditoría
     await AuditLogger.logCreate(
       'empresa',
-      empresa.id,
-      `Empresa "${empresa.nombre}" creada`,
-      user?.id as string
+      nuevaEmpresa.id,
+      `Empresa "${nuevaEmpresa.nombre}" creada`,
+      undefined // TODO: Obtener userId del token/sesión
     );
 
-    return NextResponse.json(empresa, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating empresa:', error);
-    
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Ya existe una empresa con ese nombre' },
-        { status: 409 }
-      );
-    }
-
+    return NextResponse.json(nuevaEmpresa, { status: 201 });
+  } catch (error) {
+    console.error('Error creando empresa:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { message: 'Error interno del servidor' },
       { status: 500 }
     );
   }

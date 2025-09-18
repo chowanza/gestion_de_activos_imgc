@@ -32,9 +32,12 @@ export async function GET(
         totalComputadores, // <-- NUEVO
         totalDispositivos, // <-- NUEVO
     ] = await Promise.all([
-      // Buscar computadores directamente asignados al empleado
+      // Buscar computadores asignados al empleado (solo si tienen estado "Asignado")
       prisma.computador.findMany({
-        where: { empleadoId: id },
+        where: { 
+          empleadoId: id,
+          estado: "Asignado"
+        },
         include: {
           modelo: {
             include: {
@@ -43,9 +46,12 @@ export async function GET(
           },
         },
       }),
-      // Buscar dispositivos directamente asignados al empleado
+      // Buscar dispositivos asignados al empleado (solo si tienen estado "Asignado")
       prisma.dispositivo.findMany({
-        where: { empleadoId: id },
+        where: { 
+          empleadoId: id,
+          estado: "Asignado"
+        },
         include: {
           modelo: {
             include: {
@@ -62,12 +68,13 @@ export async function GET(
           actionType: 'Asignacion',
         },
         include: {
-          lineaTelefonica: true,
+          targetEmpleado: true,
+          targetDepartamento: true,
         },
       }),
       // --- NUEVAS CONSULTAS DE CONTEO ---
-      prisma.computador.count({ where: { empleadoId: id } }),
-      prisma.dispositivo.count({ where: { empleadoId: id } }),
+      prisma.computador.count({ where: { empleadoId: id, estado: "Asignado" } }),
+      prisma.dispositivo.count({ where: { empleadoId: id, estado: "Asignado" } }),
     ]);
 
     // Paso 3: Extraer y limpiar los datos de las líneas telefónicas.

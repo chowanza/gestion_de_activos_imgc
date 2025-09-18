@@ -175,7 +175,7 @@ export function UbicacionForm({ ubicacion, onClose, onSuccess }: UbicacionFormPr
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
               {loading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
             </Button>
           </DialogFooter>

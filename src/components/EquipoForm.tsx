@@ -301,7 +301,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
               {isEditing ? 'Guardar Cambios' : 'Guardar Equipo'}
             </Button>
           </DialogFooter>

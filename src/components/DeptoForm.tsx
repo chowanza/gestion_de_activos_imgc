@@ -216,7 +216,7 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button type="submit">{isEditing ? "Guardar Cambios" : "Crear Departamento"}</Button>
+                        <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">{isEditing ? "Guardar Cambios" : "Crear Departamento"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

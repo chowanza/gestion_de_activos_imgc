@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem, 
          SidebarMenuButton, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { ChartPie, Printer, Tag, Laptop, Factory, 
-         UsersIcon, ClipboardListIcon, Globe, History, LogOut, Building2, MapPin, Monitor
+         UsersIcon, ClipboardListIcon, Globe, History, LogOut, Building2, MapPin, Monitor, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import { NavMain } from './nav-main';
@@ -29,6 +29,7 @@ const navData = {
     { title: "Dispositivos", url: "/dispositivos", icon: Printer },
     { title: "Computadoras", url: "/computadores", icon: Laptop },
     { title: "Asignaciones", url: "/asignaciones", icon: ClipboardListIcon },
+    { title: "Reportes", url: "/reportes", icon: BarChart3 },
     { title: "Historial", url: "/historial", icon: History },
   ],
 };

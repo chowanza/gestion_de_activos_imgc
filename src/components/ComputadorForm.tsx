@@ -353,7 +353,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                         <Button type="button" variant="outline" asChild>
                             <Link href="/computadores">Cancelar</Link>
                         </Button>
-                        <Button type="submit" className="cyber-button text-black font-semibold">
+                        <Button type="submit" className="cyber-button text-white font-semibold">
                             {isEditing ? 'GUARDAR CAMBIOS' : 'GUARDAR EQUIPO'}
                         </Button>
                     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AuditLogger } from '@/lib/audit-logger';
+import { AuditLogger } from '@/lib/auditLogger';
 import { getServerUser } from '@/lib/auth-server';
 import { promises as fs } from 'fs';
 import path from 'path';

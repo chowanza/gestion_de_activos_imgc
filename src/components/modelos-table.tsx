@@ -488,7 +488,7 @@ const columns: ColumnDef<Modelo>[] = [
                       // Mostrar mensaje si no hay resultados
                       <TableRow>
                       <TableCell colSpan={columns.length} className="h-24 text-center">
-                          {searchQuery ? "No se encontraron departamentos con ese filtro." : "No hay departamentos registrados."}
+                          {searchQuery ? "No se encontraron modelos con ese filtro." : "No hay modelos registrados."}
                       </TableCell>
                       </TableRow>
                   )}
