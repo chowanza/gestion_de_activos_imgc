@@ -127,8 +127,8 @@ export async function PUT(request: NextRequest) {
 
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
     const camposAComparar: Array<keyof typeof computadorActual> = [
-      'ram', 'almacenamiento', 'procesador', 'estado', 'nsap',
-      'host', 'ubicacionId', 'sisOperativo', 'arquitectura', 'sapVersion', 'officeVersion', 'anydesk'
+      'ram', 'almacenamiento', 'procesador', 'estado',
+      'host', 'ubicacionId', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk'
     ];
 
     // --- PASO 2: COMPARAR VALORES Y PREPARAR HISTORIAL ---
@@ -137,8 +137,8 @@ export async function PUT(request: NextRequest) {
         modificaciones.push({
           computadorId: id,
           campo: campo,
-          valorAnterior: computadorActual[campo] || "N/A",
-          valorNuevo: body[campo],
+          valorAnterior: String(computadorActual[campo] || "N/A"),
+          valorNuevo: String(body[campo]),
         });
       }
     }
@@ -158,14 +158,12 @@ export async function PUT(request: NextRequest) {
         data: {
             serial: body.serial,
             estado: body.estado,
-            nsap: body.nsap,
             host: body.host,
             sisOperativo: body.sisOperativo,
             arquitectura: body.arquitectura,
             ram: body.ram,
             almacenamiento: body.almacenamiento,
             procesador: body.procesador,
-            sapVersion: body.sapVersion,
             officeVersion: body.officeVersion,
             anydesk: body.anydesk,
             modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,

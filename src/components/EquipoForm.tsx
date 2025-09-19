@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Select from 'react-select';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { showToast } from "nextjs-toast-notify";
 import { DispositivoFormData, dispositivoSchema } from './equipos-table'; // Importa el tipo desde la tabla
+import { reactSelectStyles } from '@/utils/reactSelectStyles';
 
 // Tipos locales para el componente
 interface ModeloParaSelect {
@@ -38,6 +40,20 @@ interface Ubicacion {
   nombre: string;
 }
 
+interface Usuario {
+  value: string;
+  label: string;
+  cargo: string;
+  departamento: string;
+  empresa: string;
+}
+
+interface Departamento {
+  value: string;
+  label: string;
+  empresa: string;
+}
+
 const DispositivoForm: React.FC<DispositivoFormProps> = ({
   isOpen,
   onClose,
@@ -48,6 +64,16 @@ const DispositivoForm: React.FC<DispositivoFormProps> = ({
   const isEditing = !!initialData?.id;
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
+  
+  // Estados para la lógica de asignación
+  const [asignarA, setAsignarA] = useState<'Usuario' | 'Departamento'>('Usuario');
+  const [selectedTarget, setSelectedTarget] = useState<any>(null);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [motivo, setMotivo] = useState('');
+  const [notas, setNotas] = useState('');
+  const [selectedGerente, setSelectedGerente] = useState<any>(null);
+  const [selectedUbicacionAsignacion, setSelectedUbicacionAsignacion] = useState<any>(null);
 
 // En tu definición de estado inicial
 const [formData, setFormData] = useState<DispositivoFormData>({
@@ -71,40 +97,55 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   // Popula el formulario con los datos para editar o lo resetea para crear.
   // ==================================================================
   useEffect(() => {
-    const fetchUbicaciones = async () => {
+    const fetchData = async () => {
       setIsLoadingUbicaciones(true);
       try {
-        const response = await fetch('/api/ubicaciones');
-        if (!response.ok) throw new Error('Error al cargar ubicaciones');
-        const data: Ubicacion[] = await response.json();
-        setUbicaciones(data);
+        const [ubicacionesRes, usuariosRes, departamentosRes] = await Promise.all([
+          fetch('/api/ubicaciones'),
+          fetch('/api/usuarios'),
+          fetch('/api/departamentos')
+        ]);
+
+        const [ubicacionesData, usuariosData, departamentosData] = await Promise.all([
+          ubicacionesRes.json(),
+          usuariosRes.json(),
+          departamentosRes.json()
+        ]);
+
+        // Procesar ubicaciones
+        setUbicaciones(ubicacionesData);
+
+        // Procesar usuarios
+        const usuariosFormatted = usuariosData.map((user: any) => ({
+          value: user.id,
+          label: `${user.nombre} ${user.apellido}`,
+          cargo: user.cargo?.nombre || 'N/A',
+          departamento: user.departamento?.nombre || 'N/A',
+          empresa: user.departamento?.empresa?.nombre || 'N/A'
+        }));
+
+        // Procesar departamentos
+        const departamentosFormatted = departamentosData.map((dept: any) => ({
+          value: dept.id,
+          label: dept.nombre,
+          empresa: dept.empresa?.nombre || 'N/A'
+        }));
+
+        setUsuarios(usuariosFormatted);
+        setDepartamentos(departamentosFormatted);
       } catch (error) {
-        console.error('Error loading ubicaciones:', error);
+        console.error('Error loading data:', error);
+        showToast.error('Error cargando datos iniciales');
       } finally {
         setIsLoadingUbicaciones(false);
       }
     };
 
     if (isOpen) {
-      fetchUbicaciones();
+      fetchData();
       
-      if (initialData) {
-        setFormData({
-          id: initialData.id, // <-- LA LÍNEA MÁS IMPORTANTE QUE FALTA
-          modeloId: initialData.modeloId || '',
-          serial: initialData.serial || '',
-          estado: initialData.estado || '',
-          codigoImgc: initialData.codigoImgc || '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
-          mac: initialData.mac || null,
-          ubicacionId: initialData.ubicacionId || null,
-          // Nuevos campos de compra
-          fechaCompra: initialData.fechaCompra || null,
-          numeroFactura: initialData.numeroFactura || null,
-          proveedor: initialData.proveedor || null,
-          monto: initialData.monto || null,
-        });
-      } else {
-        // Resetea el formulario para creación (importante incluir el 'id' como undefined)
+      // Solo resetear el formulario si no hay datos iniciales (creación)
+      if (!initialData) {
         setFormData({
           id: undefined,
           modeloId: '',
@@ -124,7 +165,15 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   }, [initialData, isOpen]); // Depende de initialData e isOpen
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    const newValue = e.target.value;
+    const fieldId = e.target.id;
+    
+    // Debug: mostrar cambios de estado
+    if (fieldId === 'estado') {
+      console.log('Estado cambiado a:', newValue);
+    }
+    
+    setFormData(prev => ({ ...prev, [fieldId]: newValue }));
   };
 
   const handleSelectChange = (option: OptionType | null) => {
@@ -147,7 +196,22 @@ const [formData, setFormData] = useState<DispositivoFormData>({
       return;
     }
 
-    await onSubmit(validation.data);
+    // Validaciones adicionales según el estado
+    if (formData.estado === 'Asignado' && !selectedTarget) {
+      showToast.error('Debe seleccionar un usuario o departamento para asignar');
+      return;
+    }
+
+    if (formData.estado === 'Mantenimiento' && !motivo.trim()) {
+      showToast.error('Debe especificar el motivo del mantenimiento');
+      return;
+    }
+
+    try {
+      await onSubmit(validation.data);
+    } catch (error) {
+      console.error('Error en el formulario:', error);
+    }
   };
   
   // Tipos de dispositivos permitidos
@@ -224,10 +288,112 @@ const [formData, setFormData] = useState<DispositivoFormData>({
               <option value="Resguardo">Resguardo</option>
               <option value="Asignado">Asignado</option>
               <option value="Operativo">Operativo</option>
+              <option value="Mantenimiento">Mantenimiento</option>
               <option value="En reparación">En reparación</option>
               <option value="De baja">De baja</option>
             </select>
           </div>
+
+          {/* Debug: Mostrar el estado actual */}
+          <div className="text-xs text-gray-500 p-2 bg-yellow-100 border rounded">
+            Estado actual: "{formData.estado || 'vacío'}" | ¿Es Asignado?: {formData.estado === 'Asignado' ? 'SÍ' : 'NO'}
+          </div>
+
+          {/* Campos de Asignación - Solo se muestran si el estado es "Asignado" */}
+          {formData.estado === 'Asignado' && (
+            <div className="grid gap-4 p-4 border rounded-lg bg-gray-50">
+              <h4 className="text-sm font-medium text-gray-700">Información de Asignación</h4>
+              
+              {/* Selector de tipo de asignación */}
+              <div className="grid gap-2">
+                <Label>Asignar a:</Label>
+                <RadioGroup value={asignarA} onValueChange={(value) => setAsignarA(value as 'Usuario' | 'Departamento')}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Usuario" id="usuario" />
+                    <Label htmlFor="usuario">Usuario</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Departamento" id="departamento" />
+                    <Label htmlFor="departamento">Departamento</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Selector de usuario o departamento */}
+              <div className="grid gap-2">
+                <Label>{asignarA === 'Usuario' ? 'Usuario' : 'Departamento'}</Label>
+                <Select
+                  options={asignarA === 'Usuario' ? usuarios : departamentos}
+                  value={selectedTarget}
+                  onChange={setSelectedTarget}
+                  placeholder={`Seleccionar ${asignarA.toLowerCase()}`}
+                  isSearchable
+                  styles={reactSelectStyles}
+                  formatOptionLabel={(option: any) => (
+                    <div className="flex flex-col">
+                      <span className="font-medium">{option.label}</span>
+                      <span className="text-sm text-gray-500">
+                        {asignarA === 'Usuario' ? `${option.cargo} - ${option.departamento}` : option.empresa}
+                      </span>
+                    </div>
+                  )}
+                />
+              </div>
+
+              {/* Gerente responsable */}
+              <div className="grid gap-2">
+                <Label>Gerente Responsable</Label>
+                <Select
+                  options={usuarios}
+                  value={selectedGerente}
+                  onChange={setSelectedGerente}
+                  placeholder="Seleccionar gerente"
+                  isSearchable
+                  isClearable
+                  styles={reactSelectStyles}
+                />
+              </div>
+
+              {/* Ubicación de Asignación */}
+              <div className="grid gap-2">
+                <Label>Ubicación de Asignación</Label>
+                <Select
+                  options={ubicacionOptions}
+                  value={selectedUbicacionAsignacion}
+                  onChange={setSelectedUbicacionAsignacion}
+                  placeholder="Seleccionar ubicación específica"
+                  isSearchable
+                  isClearable
+                  styles={reactSelectStyles}
+                />
+              </div>
+
+              {/* Notas */}
+              <div className="grid gap-2">
+                <Label htmlFor="notas">Notas</Label>
+                <Input 
+                  id="notas" 
+                  value={notas} 
+                  onChange={(e) => setNotas(e.target.value)}
+                  placeholder="Notas adicionales"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Campo de motivo para mantenimiento */}
+          {formData.estado === 'Mantenimiento' && (
+            <div className="grid gap-2">
+              <Label htmlFor="motivo">Motivo del Mantenimiento <span className="text-destructive">*</span></Label>
+              <Input 
+                id="motivo" 
+                value={motivo} 
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Especificar motivo del mantenimiento"
+                required
+              />
+            </div>
+          )}
 
           {/* Campos Opcionales */}
           <div className="grid gap-2">

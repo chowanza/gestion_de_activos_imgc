@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
             nombre: true,
             apellido: true
           }
-        }
+        },
+        ubicacion: true
       },
       orderBy: {
         date: 'desc'
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
         gerente: asignacion.gerenteEmpleado 
           ? `${asignacion.gerenteEmpleado.nombre} ${asignacion.gerenteEmpleado.apellido}`
           : asignacion.gerente,
-        localidad: asignacion.localidad,
+        localidad: asignacion.ubicacion?.nombre || null,
         item: itemInfo,
         itemType: itemType,
         createdAt: asignacion.createdAt,

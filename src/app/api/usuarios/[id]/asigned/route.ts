@@ -60,29 +60,16 @@ export async function GET(
           },
         },
       }),
-      // Buscar en el historial de asignaciones las líneas telefónicas asignadas a este empleado
-      prisma.asignaciones.findMany({
-        where: {
-          targetEmpleadoId: id,
-          itemType: 'LineaTelefonica',
-          actionType: 'Asignacion',
-        },
-        include: {
-          targetEmpleado: true,
-          targetDepartamento: true,
-        },
-      }),
+      // Nota: Las líneas telefónicas fueron removidas del esquema
+      Promise.resolve([]),
       // --- NUEVAS CONSULTAS DE CONTEO ---
       prisma.computador.count({ where: { empleadoId: id, estado: "Asignado" } }),
       prisma.dispositivo.count({ where: { empleadoId: id, estado: "Asignado" } }),
     ]);
 
-    // Paso 3: Extraer y limpiar los datos de las líneas telefónicas.
-    const lineasTelefonicas = lineasAsignadas
-      .map(asignacion => asignacion.lineaTelefonica)
-      .filter(linea => linea !== null);
-      
-    const totalLineas = lineasTelefonicas.length;
+    // Paso 3: Las líneas telefónicas fueron removidas del esquema
+    const lineasTelefonicas: any[] = [];
+    const totalLineas = 0;
 
     // Paso 4: Construir el objeto de respuesta final, incluyendo las estadísticas.
     const responseData = {

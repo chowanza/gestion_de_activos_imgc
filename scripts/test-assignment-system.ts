@@ -24,7 +24,11 @@ async function testAssignmentSystem() {
         },
         asignaciones: {
           orderBy: { date: 'desc' },
-          take: 5
+          take: 5,
+          include: {
+            targetEmpleado: { select: { nombre: true, apellido: true } },
+            targetDepartamento: { select: { nombre: true } }
+          }
         }
       }
     });
@@ -103,7 +107,9 @@ async function testAssignmentSystem() {
       },
       include: {
         computador: { select: { serial: true } },
-        dispositivo: { select: { serial: true } }
+        dispositivo: { select: { serial: true } },
+        targetEmpleado: { select: { nombre: true, apellido: true } },
+        targetDepartamento: { select: { nombre: true } }
       },
       take: 5
     });

@@ -107,7 +107,6 @@ export async function PUT(
       where: {
         nombre: {
           equals: nombre.trim(),
-          mode: 'insensitive'
         },
         id: {
           not: id

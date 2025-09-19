@@ -16,6 +16,7 @@ export async function GET() {
       totalComputers,
       assignedComputers,
       storedComputers,
+      storedDevices, // Dispositivos en resguardo
     ] = await Promise.all([
       prisma.empleado.count(),
       prisma.dispositivo.count(),
@@ -32,7 +33,17 @@ export async function GET() {
           estado: "Resguardo",
         },
       }),
+      // Dispositivos en resguardo
+      prisma.dispositivo.count({
+        where: {
+          estado: "Resguardo",
+        },
+      }),
     ]);
+
+    // Calcular equipos totales y equipos en resguardo
+    const totalEquipos = totalComputers + totalDevices;
+    const equiposEnResguardo = storedComputers + storedDevices;
 
     // --- 2. ESTADÍSTICAS POR DEPARTAMENTO ---
     // Obtenemos todos los departamentos y contamos sus computadores y usuarios asociados.
@@ -71,6 +82,15 @@ export async function GET() {
                 computadores: true,
               },
             },
+            empleados: {
+              include: {
+                _count: {
+                  select: {
+                    computadores: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -78,10 +98,23 @@ export async function GET() {
 
     // Mapeamos los datos de empresas con sus departamentos.
     const empresaStats = empresasData.map((empresa) => {
-      const totalComputersEmpresa = empresa.departamentos.reduce(
+      // Computadores asignados directamente a departamentos
+      const computersByDept = empresa.departamentos.reduce(
         (sum, dept) => sum + dept._count.computadores,
         0
       );
+      
+      // Computadores asignados directamente a empleados de la empresa
+      const computersByEmployees = empresa.departamentos.reduce(
+        (sum, dept) => sum + dept.empleados.reduce(
+          (empSum, emp) => empSum + emp._count.computadores,
+          0
+        ),
+        0
+      );
+      
+      const totalComputersEmpresa = computersByDept + computersByEmployees;
+      
       const totalUsersEmpresa = empresa.departamentos.reduce(
         (sum, dept) => sum + dept._count.empleados,
         0
@@ -95,15 +128,23 @@ export async function GET() {
           totalComputers > 0
             ? parseFloat(((totalComputersEmpresa / totalComputers) * 100).toFixed(1))
             : 0,
-        departamentos: empresa.departamentos.map((dept) => ({
-          name: dept.nombre,
-          computers: dept._count.computadores,
-          users: dept._count.empleados,
-          percentage:
-            totalComputersEmpresa > 0
-              ? parseFloat(((dept._count.computadores / totalComputersEmpresa) * 100).toFixed(1))
-              : 0,
-        })),
+        departamentos: empresa.departamentos.map((dept) => {
+          // Computadores del departamento + computadores de empleados del departamento
+          const deptComputers = dept._count.computadores + dept.empleados.reduce(
+            (sum, emp) => sum + emp._count.computadores,
+            0
+          );
+          
+          return {
+            name: dept.nombre,
+            computers: deptComputers,
+            users: dept._count.empleados,
+            percentage:
+              totalComputersEmpresa > 0
+                ? parseFloat(((deptComputers / totalComputersEmpresa) * 100).toFixed(1))
+                : 0,
+          };
+        }),
       };
     });
 
@@ -132,7 +173,42 @@ export async function GET() {
           : 0,
     }));
 
-    // --- 3. ACTIVIDAD RECIENTE ---
+    // --- 3. ESTADÍSTICAS POR ESTADO ---
+    // Obtenemos la distribución de estados para computadores y dispositivos
+    const [computadorEstados, dispositivoEstados] = await Promise.all([
+      prisma.computador.groupBy({
+        by: ['estado'],
+        _count: {
+          estado: true,
+        },
+      }),
+      prisma.dispositivo.groupBy({
+        by: ['estado'],
+        _count: {
+          estado: true,
+        },
+      }),
+    ]);
+
+    // Mapeamos los datos de estados para computadores
+    const computadorEstadoStats = computadorEstados.map((item) => ({
+      estado: item.estado,
+      count: item._count.estado,
+      percentage: totalComputers > 0 
+        ? parseFloat(((item._count.estado / totalComputers) * 100).toFixed(1))
+        : 0,
+    }));
+
+    // Mapeamos los datos de estados para dispositivos
+    const dispositivoEstadoStats = dispositivoEstados.map((item) => ({
+      estado: item.estado,
+      count: item._count.estado,
+      percentage: totalDevices > 0 
+        ? parseFloat(((item._count.estado / totalDevices) * 100).toFixed(1))
+        : 0,
+    }));
+
+    // --- 4. ACTIVIDAD RECIENTE ---
     // Obtenemos las últimas 5 asignaciones/movimientos registrados.
     const recentActivityRaw = await prisma.asignaciones.findMany({
       take: 5,
@@ -175,6 +251,8 @@ export async function GET() {
       computers: 7.8,
       assigned: 11.4,
       stored: -2.5,
+      equipos: 8.5, // Tendencia para equipos totales
+      resguardo: -1.2, // Tendencia para equipos en resguardo
     };
 
     // --- 5. RESPUESTA FINAL ---
@@ -185,10 +263,14 @@ export async function GET() {
       totalComputers,
       assignedComputers,
       storedComputers,
+      totalEquipos, // Nuevo campo
+      equiposEnResguardo, // Nuevo campo
       trends,
       departmentStats,
       empresaStats,
       ubicacionStats,
+      computadorEstadoStats,
+      dispositivoEstadoStats,
       recentActivity,
     });
 

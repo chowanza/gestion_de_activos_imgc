@@ -77,7 +77,7 @@ async function fixEquipmentCompanyLogic() {
       });
 
       if (asignaciones.length === 0) {
-        console.log(`   📦 Nunca fue asignado - En resguardo (ubicación: ${computador.ubicacion?.nombre || 'No especificada'})`);
+        console.log(`   📦 Nunca fue asignado - En resguardo (ubicación ID: ${computador.ubicacionId || 'No especificada'})`);
         continue;
       }
 
@@ -165,7 +165,7 @@ async function fixEquipmentCompanyLogic() {
       equiposSinEmpresa.forEach((equipo, index) => {
         console.log(`${index + 1}. ${equipo.modelo.marca.nombre} ${equipo.modelo.nombre} (${equipo.serial})`);
         console.log(`   Estado: ${equipo.estado}`);
-        console.log(`   Ubicación: ${equipo.ubicacion?.nombre || 'No especificada'}`);
+        console.log(`   Ubicación ID: ${equipo.ubicacionId || 'No especificada'}`);
       });
     }
 

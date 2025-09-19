@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const user = await getServerUser(request);
     console.log("Cuerpo parseado:", body);
+    console.log("Usuario autenticado:", user ? user.username : "No autenticado");
 
     const { nombre, empresaId, empresaNombre, gerenteId } = body;
 

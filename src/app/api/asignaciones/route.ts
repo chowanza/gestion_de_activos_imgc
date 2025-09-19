@@ -17,7 +17,7 @@ const asignacionSchema = z.object({
   serialC: z.string().optional(),
   modeloC: z.string().optional(),
   motivo: z.string().optional(),
-  localidad: z.string().optional(),
+  ubicacionId: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         },
         targetEmpleado: true,      // Incluye el objeto Empleado si existe
         targetDepartamento: true, // Incluye el objeto Departamento si existe
+        ubicacion: true,          // Incluye el objeto Ubicacion si existe
       },
     });
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
         serialC: a.serialC,
         modeloC: a.modeloC,
         motivo: a.motivo,
-        localidad: a.localidad,
+        localidad: a.ubicacion?.nombre || null,
       };
     });
 
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       serialC,
       modeloC,
       motivo,
-      localidad,
+      ubicacionId,
     } = validation.data;
 
     // Mapea si lo necesitas (hoy no lo estás usando)
@@ -153,15 +154,28 @@ export async function POST(request: NextRequest) {
         }
 
         // VALIDACIÓN: Verificar que el equipo no esté ya asignado
-        const equipoActual = await tx[prismaModelName as keyof typeof tx].findUnique({
-          where: { id: itemId },
-          select: { 
-            estado: true, 
-            empleadoId: true, 
-            departamentoId: true,
-            serial: true 
-          }
-        });
+        let equipoActual;
+        if (itemType === 'Computador') {
+          equipoActual = await prisma.computador.findUnique({
+            where: { id: itemId },
+            select: { 
+              estado: true, 
+              empleadoId: true, 
+              departamentoId: true,
+              serial: true 
+            }
+          });
+        } else if (itemType === 'Dispositivo') {
+          equipoActual = await prisma.dispositivo.findUnique({
+            where: { id: itemId },
+            select: { 
+              estado: true, 
+              empleadoId: true, 
+              departamentoId: true,
+              serial: true 
+            }
+          });
+        }
 
         if (!equipoActual) {
           throw new Error(`No se encontró el ${itemType.toLowerCase()} con ID: ${itemId}`);
@@ -234,7 +248,7 @@ export async function POST(request: NextRequest) {
             serialC: itemType === 'Computador' ? serialC : null,
             modeloC: itemType === 'Computador' ? modeloC : null,
             motivo: motivo || null,
-            localidad: localidad || null,
+            ubicacionId: ubicacionId || null,
           },
         });
 

@@ -586,7 +586,8 @@ async function main() {
             estado: equipo.estado,
             modeloId: equipo.modeloId,
             empleadoId: equipo.empleadoId,
-            departamentoId: equipo.departamentoId
+            departamentoId: equipo.departamentoId,
+            codigoImgc: `IMG-${equipo.serial}`
           }
         });
       } else {
@@ -596,7 +597,8 @@ async function main() {
             estado: equipo.estado,
             modeloId: equipo.modeloId,
             empleadoId: equipo.empleadoId,
-            departamentoId: equipo.departamentoId
+            departamentoId: equipo.departamentoId,
+            codigoImgc: `IMG-${equipo.serial}`
           }
         });
       }

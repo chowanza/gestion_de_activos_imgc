@@ -73,14 +73,14 @@ export const exportToPDF = async (data: ExportData) => {
   
   // Configuración del documento - Título centrado
   doc.setFontSize(20);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   const titleText = 'Reporte de Movimientos de Equipos';
   const titleWidth = doc.getTextWidth(titleText);
   doc.text(titleText, (pageWidth - titleWidth) / 2, 25);
   
   // Información del reporte - Centrada
   doc.setFontSize(12);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   const periodText = `Período: ${data.filters.startDate} - ${data.filters.endDate}`;
   const periodWidth = doc.getTextWidth(periodText);
   doc.text(periodText, (pageWidth - periodWidth) / 2, 35);
@@ -95,14 +95,14 @@ export const exportToPDF = async (data: ExportData) => {
   
   // Estadísticas generales - Centrada
   doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   const statsTitle = 'Estadísticas Generales';
   const statsTitleWidth = doc.getTextWidth(statsTitle);
   doc.text(statsTitle, (pageWidth - statsTitleWidth) / 2, 70);
   
   // Estadísticas en dos columnas centradas
   doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   const leftColumnX = pageWidth / 2 - 60;
   const rightColumnX = pageWidth / 2 + 20;
   
@@ -163,7 +163,7 @@ export const exportToPDF = async (data: ExportData) => {
   const footerY = Math.max(finalY + 20, pageHeight - 30);
   
   doc.setFontSize(8);
-  doc.setFont(undefined, 'italic');
+  doc.setFont('helvetica', 'italic');
   const footerText = `Sistema de Gestión de Activos IMGC - Página 1`;
   const footerWidth = doc.getTextWidth(footerText);
   doc.text(footerText, (pageWidth - footerWidth) / 2, footerY);

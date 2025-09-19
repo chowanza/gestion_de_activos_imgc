@@ -95,7 +95,8 @@ export async function GET(request: NextRequest) {
               include: { empresa: true }
             }
           }
-        }
+        },
+        ubicacion: true
       },
       orderBy: {
         date: 'desc'
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
         accion: movement.actionType,
         motivo: movement.motivo,
         notas: movement.notes,
-        localidad: movement.localidad,
+        localidad: movement.ubicacion?.nombre || null,
         gerente: movement.gerenteEmpleado ? 
           `${movement.gerenteEmpleado.nombre} ${movement.gerenteEmpleado.apellido}` : 
           movement.gerente,

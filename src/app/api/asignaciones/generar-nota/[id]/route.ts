@@ -51,7 +51,6 @@ export async function GET(
             departamento: true,
           },
         },
-        lineaTelefonica:true,
         targetEmpleado: {
           include: {
             departamento: {
@@ -67,6 +66,7 @@ export async function GET(
             empresa: true,
           },
         },
+        ubicacion: true,
       },
       }) // Asegúrate de que el ID sea un entero si tu campo `id` es `Int`
 
@@ -100,7 +100,7 @@ export async function GET(
       worksheet.getCell('B8').value = ''; // legajo removido
       worksheet.getCell('B9').value = asignacion.targetEmpleado?.departamento?.empresa?.nombre || '';
       worksheet.getCell('B10').value = asignacion.targetEmpleado?.departamento?.nombre || '';
-      worksheet.getCell('B11').value = asignacion.localidad;
+      worksheet.getCell('B11').value = asignacion.ubicacion?.nombre || '';
       worksheet.getCell('B12').value = asignacion.gerente;
       worksheet.getCell('B13').value = ''; // ceco removido
       worksheet.getCell('B15').value = asignacion.motivo;
@@ -114,7 +114,7 @@ export async function GET(
       worksheet.getCell('B6').value = asignacion.targetDepartamento?.empresa?.nombre;
       worksheet.getCell('B13').value = ''; // ceco removido
       worksheet.getCell('B9').value = ''; // sociedad removida
-      worksheet.getCell('B11').value = asignacion.localidad;
+      worksheet.getCell('B11').value = asignacion.ubicacion?.nombre || '';
       worksheet.getCell('B12').value = asignacion.gerente;
     }
 
@@ -122,7 +122,7 @@ export async function GET(
     if (asignacion.itemType === 'Computador') {
         worksheet.getCell('E4').value = `${asignacion.computador?.modelo.marca.nombre} ${asignacion.computador?.modelo.nombre}`; // Marca
         worksheet.getCell('E5').value = asignacion.computador?.serial; // Tipo de equipo (Computador o Dispositivo)
-        worksheet.getCell('B16').value = asignacion.computador?.nsap || '';
+        worksheet.getCell('B16').value = '';
         worksheet.getCell('B14').value = asignacion.computador?.modelo.tipo || ''; // NSAP (si aplica)
         worksheet.getCell('E6').value = asignacion.computador?.procesador || 'N/A';
         worksheet.getCell('E7').value = asignacion.computador?.ram || 'N/A';
@@ -130,11 +130,11 @@ export async function GET(
         worksheet.getCell('E9').value = asignacion.serialC || 'N/A';
         worksheet.getCell('E10').value = asignacion.modeloC || 'N/A';
         worksheet.getCell('E13').value = asignacion.computador?.sisOperativo || 'N/A';
-        worksheet.getCell('E15').value = asignacion.computador?.sapVersion || 'N/A';
+        worksheet.getCell('E15').value = 'N/A';
         worksheet.getCell('E14').value = asignacion.computador?.officeVersion || 'N/A';
         worksheet.getCell('B24').value = asignacion.notes || 'Sin notas.';
     } else if (asignacion.itemType === 'Dispositivo') {
-      worksheet.getCell('B16').value = asignacion.dispositivo?.nsap || '';
+      worksheet.getCell('B16').value = '';
       worksheet.getCell('B14').value = asignacion.dispositivo?.modelo.tipo || '';
       worksheet.getCell('E4').value = `${asignacion.dispositivo?.modelo.marca.nombre} ${asignacion.dispositivo?.modelo.nombre}`; // Marca
       worksheet.getCell('E5').value = asignacion.dispositivo?.serial;
@@ -143,7 +143,7 @@ export async function GET(
       worksheet.getCell('E8').value = '';
       worksheet.getCell('B24').value = asignacion.notes || 'Sin notas.';
     } else if (asignacion.itemType === 'LineaTelefonica') {
-      worksheet.getCell('B24').value = `${asignacion.lineaTelefonica?.proveedor} ${asignacion.lineaTelefonica?.numero}`;
+      worksheet.getCell('B24').value = 'N/A';
       worksheet.getCell('B14').value = 'Linea Telefonica';
     }
 

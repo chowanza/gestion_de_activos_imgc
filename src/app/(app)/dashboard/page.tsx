@@ -23,7 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useQuery } from "@tanstack/react-query"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
-import Link from "next/link"
+import { EstadoDonutChart } from "@/components/EstadoDonutChart"
 
 const fetchDashboardData = async () => {
   // La URL debe coincidir con la ruta de tu API.
@@ -198,6 +198,23 @@ export default function InventoryDashboard() {
     }
   }
 
+   // Estados para filtros
+   const [selectedEmpresa, setSelectedEmpresa] = useState<string>("");
+   const [selectedUbicacion, setSelectedUbicacion] = useState<string>("");
+
+   // Funciones para filtrar datos
+   const getFilteredEmpresaStats = () => {
+     if (!dashboardData?.empresaStats) return [];
+     if (!selectedEmpresa) return dashboardData.empresaStats;
+      return dashboardData.empresaStats.filter((empresa: any) => empresa.name === selectedEmpresa);
+   };
+
+   const getFilteredUbicacionStats = () => {
+     if (!dashboardData?.ubicacionStats) return [];
+     if (!selectedUbicacion) return dashboardData.ubicacionStats;
+      return dashboardData.ubicacionStats.filter((ubicacion: any) => ubicacion.name === selectedUbicacion);
+   };
+
    const {
     data: dashboardData, // Los datos de la API estarán aquí
     isLoading, // Será `true` mientras se obtienen los datos
@@ -235,20 +252,20 @@ export default function InventoryDashboard() {
             description="Empleados registrados"
           /> 
           <StatCard
-            title="Dispositivos Totales"
-            value={dashboardData.totalDevices}
-            trend={dashboardData.trends.devices}
+            title="Equipos Totales"
+            value={dashboardData.totalEquipos}
+            trend={dashboardData.trends.equipos}
             icon={Monitor}
             color="blue"
-            description="Todos los dispositivos"
+            description="Todos los equipos"
           />
           <StatCard
-            title="Computadores Totales"
-            value={dashboardData.totalComputers}
-            trend={dashboardData.trends.computers}
-            icon={Cpu}
-            color="purple"
-            description="Total de computadores"
+            title="Equipos en Resguardo"
+            value={dashboardData.equiposEnResguardo}
+            trend={dashboardData.trends.resguardo}
+            icon={Shield}
+            color="amber"
+            description="Equipos resguardados"
           />
           <StatCard
             title="Computadores Asignados"
@@ -259,12 +276,12 @@ export default function InventoryDashboard() {
             description="En uso activo"
           />
           <StatCard
-            title="Computadores en Resguardo"
-            value={dashboardData.storedComputers}
-            trend={dashboardData.trends.stored}
-            icon={Shield}
-            color="amber"
-            description="Resguardados"
+            title="Computadores Totales"
+            value={dashboardData.totalComputers}
+            trend={dashboardData.trends.computers}
+            icon={Cpu}
+            color="purple"
+            description="Total de computadores"
           />
         </div>
 
@@ -296,135 +313,19 @@ export default function InventoryDashboard() {
 
               <TabsContent value="overview" className="mt-0">
                 <div className="grid gap-6">
-                  {/* Assignment Overview */}
-                  <Card className="bg-white border-gray-200 shadow-lg">
-                    <CardHeader className="border-b border-gray-200 pb-3">
-                      <CardTitle className="text-gray-900 flex items-center">
-                        <PieChart className="mr-2 h-5 w-5 text-[#167DBA]" />
-                        Estado de Computadores
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600">Asignados</span>
-                              <span className="text-sm text-green-600">
-                                {dashboardData.assignedComputers} (
-                                {Math.round((dashboardData.assignedComputers / dashboardData.totalComputers) * 100)}%)
-                              </span>
-                            </div>
-                            <Progress
-                              value={(dashboardData.assignedComputers / dashboardData.totalComputers) * 100}
-                              className="h-3 bg-gray-200"
-                            >
-                              <div
-                                className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
-                                style={{
-                                  width: `${(dashboardData.assignedComputers / dashboardData.totalComputers) * 100}%`,
-                                }}
-                              />
-                            </Progress>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600">En Resguardo</span>
-                              <span className="text-sm text-amber-600">
-                                {dashboardData.storedComputers} (
-                                {Math.round((dashboardData.storedComputers / dashboardData.totalComputers) * 100)}%)
-                              </span>
-                            </div>
-                            <Progress
-                              value={(dashboardData.storedComputers / dashboardData.totalComputers) * 100}
-                              className="h-3 bg-gray-200"
-                            >
-                              <div
-                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
-                                style={{
-                                  width: `${(dashboardData.storedComputers / dashboardData.totalComputers) * 100}%`,
-                                }}
-                              />
-                            </Progress>
-                          </div>
-                          
-                          {/* Quick Actions - Moved here */}
-                          <div className="pt-4">
-                            <h3 className="text-sm font-semibold text-[#167DBA] mb-3">Acciones Rápidas</h3>
-                            {isAdmin && (
-                                <div className="grid grid-cols-2 gap-2">
-                                <Link
-                                  href="/dispositivos"
-                                  className="h-auto py-2 px-2 border-gray-200 bg-gray-50 hover:bg-gray-100 flex flex-col items-center space-y-1 rounded-md"
-                                >
-                                  <Monitor className="h-4 w-4 text-[#167DBA]" />
-                                  <span className="text-xs text-gray-700">Nuevo Dispositivo</span>
-                                </Link>
-
-                                <Link
-                                  href="/usuarios"
-                                  className="h-auto py-2 px-2 border-gray-200 bg-gray-50 hover:bg-gray-100 flex flex-col items-center space-y-1 rounded-md"
-                                >
-                                  <Users className="h-4 w-4 text-[#167DBA]" />
-                                  <span className="text-xs text-gray-700">Nuevo Usuario</span>
-                                </Link>
-
-                                <Link
-                                  href="/asignaciones/new"
-                                  className="h-auto py-2 px-2 border-gray-200 bg-gray-50 hover:bg-gray-100 flex flex-col items-center space-y-1 rounded-md"
-                                >
-                                  <UserCheck className="h-4 w-4 text-[#167DBA]" />
-                                  <span className="text-xs text-gray-700">Asignar</span>
-                                </Link>
-
-                                <Link
-                                  href="/computadores"
-                                  className="h-auto py-2 px-2 border-gray-200 bg-gray-50 hover:bg-gray-100 flex flex-col items-center space-y-1 rounded-md"
-                                >
-                                  <Cpu className="h-4 w-4 text-[#167DBA]" />
-                                  <span className="text-xs text-gray-700">Nuevo Computador</span>
-                                </Link>
-                              </div>
-                            )}
-                           
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-center">
-                          <div className="relative w-48 h-48">
-                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="40" stroke="rgb(51 65 85)" strokeWidth="8" fill="none" />
-                              <circle
-                                cx="50"
-                                cy="50"
-                                r="40"
-                                stroke="url(#gradient1)"
-                                strokeWidth="8"
-                                fill="none"
-                                strokeDasharray={`${(dashboardData.assignedComputers / dashboardData.totalComputers) * 251.2} 251.2`}
-                                strokeLinecap="round"
-                              />
-                              <defs>
-                                <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="rgb(34 197 94)" />
-                                  <stop offset="100%" stopColor="rgb(16 185 129)" />
-                                </linearGradient>
-                              </defs>
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="text-center">
-                                <div className="text-2xl font-bold text-gray-900">
-                                  {Math.round((dashboardData.assignedComputers / dashboardData.totalComputers) * 100)}%
-                                </div>
-                                <div className="text-xs text-gray-600">Asignados</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* Estado de Equipos */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <EstadoDonutChart
+                      data={dashboardData.computadorEstadoStats || []}
+                      title="Computadores"
+                      total={dashboardData.totalComputers}
+                    />
+                    <EstadoDonutChart
+                      data={dashboardData.dispositivoEstadoStats || []}
+                      title="Dispositivos"
+                      total={dashboardData.totalDevices}
+                    />
+                  </div>
                   
                   {/* Recent Activity - Horizontal layout */}
                   <Card className="bg-white border-gray-200 shadow-lg">
@@ -481,14 +382,38 @@ export default function InventoryDashboard() {
               <TabsContent value="empresas" className="mt-0">
                 <Card className="bg-white border-gray-200 shadow-lg">
                   <CardHeader className="border-b border-gray-200 pb-3">
-                    <CardTitle className="text-gray-900 flex items-center">
-                      <Building2 className="mr-2 h-5 w-5 text-[#167DBA]" /> 
-                      Distribución por Empresas
+                    <CardTitle className="text-gray-900 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Building2 className="mr-2 h-5 w-5 text-[#167DBA]" /> 
+                        Distribución por Empresas
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={selectedEmpresa}
+                          onChange={(e) => setSelectedEmpresa(e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#167DBA] focus:border-transparent"
+                        >
+                          <option value="">Todas las empresas</option>
+                          {dashboardData?.empresaStats?.map((empresa: any) => (
+                            <option key={empresa.name} value={empresa.name}>
+                              {empresa.name}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedEmpresa && (
+                          <button
+                            onClick={() => setSelectedEmpresa("")}
+                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-600"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {dashboardData.empresaStats?.map((empresa: any) => (
+                      {getFilteredEmpresaStats().map((empresa: any) => (
                         <div key={empresa.name} className="space-y-4">
                           {/* Empresa principal */}
                           <div className="space-y-2">
@@ -538,6 +463,18 @@ export default function InventoryDashboard() {
                           )}
                         </div>
                       ))}
+                      {getFilteredEmpresaStats().length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-medium">No hay datos disponibles</p>
+                          <p className="text-sm">
+                            {selectedEmpresa 
+                              ? `No se encontraron datos para "${selectedEmpresa}"`
+                              : "No hay empresas registradas"
+                            }
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -546,14 +483,38 @@ export default function InventoryDashboard() {
               <TabsContent value="ubicaciones" className="mt-0">
                 <Card className="bg-white border-gray-200 shadow-lg">
                   <CardHeader className="border-b border-gray-200 pb-3">
-                    <CardTitle className="text-gray-900 flex items-center">
-                      <MapPin className="mr-2 h-5 w-5 text-[#167DBA]" /> 
-                      Distribución por Ubicaciones
+                    <CardTitle className="text-gray-900 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <MapPin className="mr-2 h-5 w-5 text-[#167DBA]" /> 
+                        Distribución por Ubicaciones
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={selectedUbicacion}
+                          onChange={(e) => setSelectedUbicacion(e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#167DBA] focus:border-transparent"
+                        >
+                          <option value="">Todas las ubicaciones</option>
+                          {dashboardData?.ubicacionStats?.map((ubicacion: any) => (
+                            <option key={ubicacion.name} value={ubicacion.name}>
+                              {ubicacion.name}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedUbicacion && (
+                          <button
+                            onClick={() => setSelectedUbicacion("")}
+                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-600"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {dashboardData.ubicacionStats?.map((ubicacion: any) => (
+                      {getFilteredUbicacionStats().map((ubicacion: any) => (
                         <div key={ubicacion.name} className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-gray-800 font-medium">{ubicacion.name}</span>
@@ -574,6 +535,18 @@ export default function InventoryDashboard() {
                           </div>
                         </div>
                       ))}
+                      {getFilteredUbicacionStats().length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-medium">No hay datos disponibles</p>
+                          <p className="text-sm">
+                            {selectedUbicacion 
+                              ? `No se encontraron datos para "${selectedUbicacion}"`
+                              : "No hay ubicaciones registradas"
+                            }
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

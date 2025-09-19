@@ -37,6 +37,7 @@ model Ubicacion {
   sala         String?
   computadores Computador[]
   dispositivos Dispositivo[]
+  asignaciones Asignaciones[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -112,13 +113,10 @@ model Computador {
   ubicacionId             String?
   ubicacion               Ubicacion?                @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   
-  // --- CAMPOS TÉCNICOS BASADOS EN DIAGNÓSTICO ---
+  // --- CAMPOS TÉCNICOS UTILIZADOS ---
   // Identificación del equipo
-  equipo                  String?
-  codigoImgc              String   // Cambio de nsap a codigoImgc - OBLIGATORIO
+  codigoImgc              String   // OBLIGATORIO
   host                    String?
-  sede                    String?
-  telefono                String?
   
   // Información de compra
   fechaCompra             DateTime?
@@ -135,22 +133,9 @@ model Computador {
   
   // Hardware - Memoria RAM
   ram                     String?
-  ramTipo                 String?
-  ramVelocidad            String?
-  ramConfiguracion        String?
   
   // Hardware - Almacenamiento
   almacenamiento          String?
-  almacenamientoTipo      String?
-  almacenamientoMarca     String?
-  almacenamientoModelo    String?
-  
-  // Hardware - Placa Base
-  placaBase               String?
-  
-  // Hardware - Gráficos
-  grafica                 String?
-  monitor                 String?
   
   // Hardware - Red
   macWifi                 String?
@@ -158,21 +143,7 @@ model Computador {
   
   // Software
   officeVersion           String?
-  sapVersion              String?
   anydesk                 String?
-  
-  // Unidades ópticas
-  unidadOptica            String?
-  
-  // Campos adicionales del diagnóstico
-  certificaciones         String?
-  regModel                String?
-  regTypeNo               String?
-  inputData               String?
-  ndAgrement              String?
-  dpn                     String?
-  ex                      String?
-  st                      String?
   
   // Relaciones
   asignaciones            Asignaciones[]
@@ -255,7 +226,6 @@ model Asignaciones {
   actionType String
   motivo     String?
   gerente    String?
-  localidad  String?
   serialC    String?
   modeloC    String?
   createdAt  DateTime @default(now())
@@ -279,4 +249,7 @@ model Asignaciones {
 
   gerenteId         String?
   gerenteEmpleado   Empleado?        @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  ubicacionId String?
+  ubicacion   Ubicacion? @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 }

@@ -78,8 +78,8 @@ async function checkDellAssignments() {
         console.log(`   ID: ${ultimaAsignacion.targetEmpleado.id}`);
         console.log(`   Cédula: ${ultimaAsignacion.targetEmpleado.ced}`);
         console.log(`   Email: ${ultimaAsignacion.targetEmpleado.email || 'N/A'}`);
-        console.log(`   Departamento: ${ultimaAsignacion.targetEmpleado.departamento?.nombre || 'N/A'}`);
-        console.log(`   Empresa: ${ultimaAsignacion.targetEmpleado.departamento?.empresa?.nombre || 'N/A'}`);
+        console.log(`   Departamento ID: ${ultimaAsignacion.targetEmpleado.departamentoId || 'N/A'}`);
+        console.log(`   Cargo ID: ${ultimaAsignacion.targetEmpleado.cargoId || 'N/A'}`);
       }
     }
 

@@ -115,7 +115,7 @@ export default function EquipmentStatusModal({
   const [motivo, setMotivo] = useState('');
   const [notas, setNotas] = useState('');
   const [selectedGerente, setSelectedGerente] = useState<any>(null);
-  const [localidad, setLocalidad] = useState('');
+  const [selectedUbicacionAsignacion, setSelectedUbicacionAsignacion] = useState<any>(null);
 
   // Estados para datos
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -196,6 +196,9 @@ export default function EquipmentStatusModal({
     }
   };
 
+  // Definir opciones para los selectores
+  const ubicacionOptions = ubicaciones;
+
   const handleSubmit = async () => {
     if (newStatus === equipment.estado) {
       showToast.warning('El estado no ha cambiado');
@@ -225,12 +228,11 @@ export default function EquipmentStatusModal({
         actionType: getActionType(newStatus),
         motivo: motivo || null,
         notas: notas || null,
-        localidad: localidad || null,
+        ubicacionId: selectedUbicacionAsignacion?.value || null,
         gerenteId: selectedGerente?.value || null,
         targetType: newStatus === 'Asignado' ? asignarA : null,
         targetEmpleadoId: newStatus === 'Asignado' && asignarA === 'Usuario' ? selectedTarget?.value : null,
         targetDepartamentoId: newStatus === 'Asignado' && asignarA === 'Departamento' ? selectedTarget?.value : null,
-        ubicacionId: selectedUbicacion?.value || null,
         serialC: equipment.serial,
         modeloC: `${equipment.modelo.marca.nombre} ${equipment.modelo.nombre}`
       };
@@ -262,7 +264,7 @@ export default function EquipmentStatusModal({
     setMotivo('');
     setNotas('');
     setSelectedGerente(null);
-    setLocalidad('');
+    setSelectedUbicacionAsignacion(null);
   };
 
   const handleClose = () => {
@@ -345,7 +347,7 @@ export default function EquipmentStatusModal({
               <CardContent className="space-y-4">
                 <div>
                   <Label>Asignar a</Label>
-                  <RadioGroup value={asignarA} onValueChange={setAsignarA}>
+                  <RadioGroup value={asignarA} onValueChange={(value) => setAsignarA(value as "Departamento" | "Usuario")}>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Usuario" id="usuario" />
                       <Label htmlFor="usuario">Usuario</Label>
@@ -434,12 +436,15 @@ export default function EquipmentStatusModal({
                 </div>
 
                 <div>
-                  <Label htmlFor="localidad">Localidad</Label>
-                  <Input
-                    id="localidad"
-                    value={localidad}
-                    onChange={(e) => setLocalidad(e.target.value)}
-                    placeholder="Ciudad, estado, etc."
+                  <Label>Ubicación de Asignación</Label>
+                  <ReactSelect
+                    options={ubicacionOptions}
+                    value={selectedUbicacionAsignacion}
+                    onChange={setSelectedUbicacionAsignacion}
+                    placeholder="Seleccionar ubicación específica"
+                    isSearchable
+                    isClearable
+                    styles={reactSelectStyles}
                   />
                 </div>
               </CardContent>
@@ -454,7 +459,7 @@ export default function EquipmentStatusModal({
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="gerente">Gerente responsable</Label>
-                <Select
+                <ReactSelect
                   value={selectedGerente}
                   onChange={setSelectedGerente}
                   options={gerentes}

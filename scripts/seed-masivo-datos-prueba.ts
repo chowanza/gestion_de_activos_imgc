@@ -196,7 +196,7 @@ async function main() {
     console.log('💼 Creando cargos...');
     const cargosCreados = [];
     for (const departamento of departamentosCreados) {
-      const cargosDelDept = cargosData[departamento.nombre] || [];
+      const cargosDelDept = cargosData[departamento.nombre as keyof typeof cargosData] || [];
       for (const nombreCargo of cargosDelDept) {
         // Verificar si ya existe
         const cargoExistente = await prisma.cargo.findFirst({
@@ -284,9 +284,6 @@ async function main() {
           ubicacionId: ubicacion.id,
           codigoImgc: generarCodigoIMGC(),
           host: `host-${Math.floor(Math.random() * 1000)}`,
-          equipo: `PC-${Math.floor(Math.random() * 1000)}`,
-          sede: ['Sede Central', 'Sede Norte', 'Sede Sur', 'Sede Este'][Math.floor(Math.random() * 4)],
-          telefono: `+58-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
           sisOperativo: ['Windows 10', 'Windows 11', 'Ubuntu 20.04', 'macOS Monterey'][Math.floor(Math.random() * 4)],
           arquitectura: ['32', '64'][Math.floor(Math.random() * 2)],
           ram: `${[4, 8, 16, 32][Math.floor(Math.random() * 4)]} GB`,

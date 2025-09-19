@@ -543,15 +543,24 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
         });
 
         if (!response.ok) {
-        throw new Error('Error al eliminar el depto.');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al eliminar el departamento');
         }
 
-        showToast.success("Departamento eliminado correctamente.");
+        const result = await response.json();
+        
+        showToast.success("✅ Departamento eliminado exitosamente", {
+            duration: 4000,
+            position: "top-right"
+        });
         fetchAllData();
         notifyDepartamentoChange(); // Notificar cambios
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        showToast.error("No se pudo eliminar el depto.");
+        showToast.error(`❌ ${error.message || "No se pudo eliminar el departamento"}`, {
+            duration: 5000,
+            position: "top-right"
+        });
     } finally {
         setLoading(false);
     }

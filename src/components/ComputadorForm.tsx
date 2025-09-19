@@ -22,6 +22,20 @@ interface Ubicacion {
     nombre: string;
 }
 
+interface Usuario {
+    value: string;
+    label: string;
+    cargo: string;
+    departamento: string;
+    empresa: string;
+}
+
+interface Departamento {
+    value: string;
+    label: string;
+    empresa: string;
+}
+
 export interface ComputadorFormData {
     id?: string;
     modeloId: string;
@@ -93,39 +107,68 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
     const [isLoadingModelos, setIsLoadingModelos] = useState(false);
     const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
+    
+    // Estados para la lógica de asignación
+    const [asignarA, setAsignarA] = useState<'Usuario' | 'Departamento'>('Usuario');
+    const [selectedTarget, setSelectedTarget] = useState<any>(null);
+    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+    const [motivo, setMotivo] = useState('');
+    const [notas, setNotas] = useState('');
+    const [selectedGerente, setSelectedGerente] = useState<any>(null);
+    const [selectedUbicacionAsignacion, setSelectedUbicacionAsignacion] = useState<any>(null);
 
     // --- useEffect CORREGIDO para manejar el estado del formulario ---
         useEffect(() => {
-            const fetchModelos = async () => {
+            const fetchData = async () => {
                 setIsLoadingModelos(true);
-                try {
-                    const response = await fetch('/api/modelos');
-                    if (!response.ok) throw new Error('Error al cargar modelos');
-                    const data: Modelo[] = await response.json();
-                    setModelos(data);
-                } catch (error) {
-                    showToast.error("¡Error en Cargar Modelos!", { position: "top-right" });
-                } finally {
-                    setIsLoadingModelos(false);
-                }
-            };
-
-            const fetchUbicaciones = async () => {
                 setIsLoadingUbicaciones(true);
                 try {
-                    const response = await fetch('/api/ubicaciones');
-                    if (!response.ok) throw new Error('Error al cargar ubicaciones');
-                    const data: Ubicacion[] = await response.json();
-                    setUbicaciones(data);
+                    const [modelosRes, ubicacionesRes, usuariosRes, departamentosRes] = await Promise.all([
+                        fetch('/api/modelos'),
+                        fetch('/api/ubicaciones'),
+                        fetch('/api/usuarios'),
+                        fetch('/api/departamentos')
+                    ]);
+
+                    const [modelosData, ubicacionesData, usuariosData, departamentosData] = await Promise.all([
+                        modelosRes.json(),
+                        ubicacionesRes.json(),
+                        usuariosRes.json(),
+                        departamentosRes.json()
+                    ]);
+
+                    // Procesar modelos y ubicaciones
+                    setModelos(modelosData);
+                    setUbicaciones(ubicacionesData);
+
+                    // Procesar usuarios
+                    const usuariosFormatted = usuariosData.map((user: any) => ({
+                        value: user.id,
+                        label: `${user.nombre} ${user.apellido}`,
+                        cargo: user.cargo?.nombre || 'N/A',
+                        departamento: user.departamento?.nombre || 'N/A',
+                        empresa: user.departamento?.empresa?.nombre || 'N/A'
+                    }));
+
+                    // Procesar departamentos
+                    const departamentosFormatted = departamentosData.map((dept: any) => ({
+                        value: dept.id,
+                        label: dept.nombre,
+                        empresa: dept.empresa?.nombre || 'N/A'
+                    }));
+
+                    setUsuarios(usuariosFormatted);
+                    setDepartamentos(departamentosFormatted);
                 } catch (error) {
-                    showToast.error("¡Error en Cargar Ubicaciones!", { position: "top-right" });
+                    showToast.error("¡Error en Cargar Datos!", { position: "top-right" });
                 } finally {
+                    setIsLoadingModelos(false);
                     setIsLoadingUbicaciones(false);
                 }
             };
 
-            fetchModelos();
-            fetchUbicaciones();
+            fetchData();
     
            if (initialData) {
             setFormData(initialData);
@@ -134,7 +177,15 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
     // --- Handlers para los cambios en los inputs ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+        const newValue = e.target.value;
+        const fieldId = e.target.id;
+        
+        // Debug: mostrar cambios de estado
+        if (fieldId === 'estado') {
+            console.log('Estado cambiado a:', newValue);
+        }
+        
+        setFormData(prev => ({ ...prev, [fieldId]: newValue }));
     };
 
     const handleSelectChange = (option: OptionType | null) => {
@@ -151,6 +202,18 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
             showToast.warning("Modelo, Serial, Estado y Código IMGC son obligatorios.", { position: "top-right" });
             return;
         }
+
+        // Validaciones adicionales según el estado
+        if (formData.estado === 'Asignado' && !selectedTarget) {
+            showToast.error('Debe seleccionar un usuario o departamento para asignar');
+            return;
+        }
+
+        if (formData.estado === 'Mantenimiento' && !motivo.trim()) {
+            showToast.error('Debe especificar el motivo del mantenimiento');
+            return;
+        }
+
         await onSubmit(formData); // Llama a la función del padre para manejar la lógica de API
     };
     
@@ -300,11 +363,113 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                         <option value="Resguardo">Resguardo</option>
                                         <option value="Asignado">Asignado</option>
                                         <option value="Operativo">Operativo</option>
-                                        <option value="De Baja">De Baja</option>
+                                        <option value="Mantenimiento">Mantenimiento</option>
                                         <option value="En Reparación">En Reparación</option>
+                                        <option value="De Baja">De Baja</option>
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Debug: Mostrar el estado actual */}
+                            <div className="text-xs text-gray-500 p-2 bg-yellow-100 border rounded mt-2">
+                                Estado actual: "{formData.estado || 'vacío'}" | ¿Es Asignado?: {formData.estado === 'Asignado' ? 'SÍ' : 'NO'}
+                            </div>
+
+                            {/* Campos de Asignación - Solo se muestran si el estado es "Asignado" */}
+                            {formData.estado === 'Asignado' && (
+                                <div className="grid gap-4 p-4 border rounded-lg bg-gray-50 mt-4">
+                                    <h4 className="text-sm font-medium text-gray-700">Información de Asignación</h4>
+                                    
+                                    {/* Selector de tipo de asignación */}
+                                    <div className="grid gap-2">
+                                        <Label>Asignar a:</Label>
+                                        <RadioGroup value={asignarA} onValueChange={(value) => setAsignarA(value as 'Usuario' | 'Departamento')}>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="Usuario" id="usuario" />
+                                                <Label htmlFor="usuario">Usuario</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="Departamento" id="departamento" />
+                                                <Label htmlFor="departamento">Departamento</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+
+                                    {/* Selector de usuario o departamento */}
+                                    <div className="grid gap-2">
+                                        <Label>{asignarA === 'Usuario' ? 'Usuario' : 'Departamento'}</Label>
+                                        <Select
+                                            options={asignarA === 'Usuario' ? usuarios : departamentos}
+                                            value={selectedTarget}
+                                            onChange={setSelectedTarget}
+                                            placeholder={`Seleccionar ${asignarA.toLowerCase()}`}
+                                            isSearchable
+                                            styles={reactSelectStyles}
+                                            formatOptionLabel={(option: any) => (
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{option.label}</span>
+                                                    <span className="text-sm text-gray-500">
+                                                        {asignarA === 'Usuario' ? `${option.cargo} - ${option.departamento}` : option.empresa}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        />
+                                    </div>
+
+                                    {/* Gerente responsable */}
+                                    <div className="grid gap-2">
+                                        <Label>Gerente Responsable</Label>
+                                        <Select
+                                            options={usuarios}
+                                            value={selectedGerente}
+                                            onChange={setSelectedGerente}
+                                            placeholder="Seleccionar gerente"
+                                            isSearchable
+                                            isClearable
+                                            styles={reactSelectStyles}
+                                        />
+                                    </div>
+
+                                    {/* Ubicación de Asignación */}
+                                    <div className="grid gap-2">
+                                        <Label>Ubicación de Asignación</Label>
+                                        <Select
+                                            options={ubicacionOptions}
+                                            value={selectedUbicacionAsignacion}
+                                            onChange={setSelectedUbicacionAsignacion}
+                                            placeholder="Seleccionar ubicación específica"
+                                            isSearchable
+                                            isClearable
+                                            styles={reactSelectStyles}
+                                        />
+                                    </div>
+
+                                    {/* Notas */}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="notas">Notas</Label>
+                                        <Input 
+                                            id="notas" 
+                                            value={notas} 
+                                            onChange={(e) => setNotas(e.target.value)}
+                                            placeholder="Notas adicionales"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Campo de motivo para mantenimiento */}
+                            {formData.estado === 'Mantenimiento' && (
+                                <div className="grid gap-2 mt-4">
+                                    <Label htmlFor="motivo">Motivo del Mantenimiento <span className="text-destructive">*</span></Label>
+                                    <Input 
+                                        id="motivo" 
+                                        value={motivo} 
+                                        onChange={(e) => setMotivo(e.target.value)}
+                                        placeholder="Especificar motivo del mantenimiento"
+                                        required
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Sección Información de Compra */}

@@ -29,6 +29,7 @@ async function debugAsignacionesAPI() {
         },
         targetEmpleado: true,
         targetDepartamento: true,
+        ubicacion: true,
       },
     });
 
@@ -107,7 +108,7 @@ async function debugAsignacionesAPI() {
         serialC: a.serialC,
         modeloC: a.modeloC,
         motivo: a.motivo,
-        localidad: a.localidad,
+        localidad: a.ubicacion?.nombre || null,
       };
     });
 

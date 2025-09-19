@@ -25,6 +25,7 @@ import {
   Trash2,
   Users,
   Wifi,
+  Wrench,
   Zap,
 } from "lucide-react"
 
@@ -119,7 +120,11 @@ interface DispositivoDetallado {
         ceco?: string | null;
         gerencia: {
           nombre: string;
-        }
+        };
+        empresa?: {
+          id: string;
+          nombre: string;
+        };
     } | null;
     ultimaAsignacion?: { // La última asignación también es opcional
         id: number;
@@ -253,9 +258,10 @@ const departamentoTag = (
         historial: [
           {
             id: result.assignment.id,
-            type: 'Assignment',
+            tipo: 'asignacion',
+            fecha: result.assignment.date,
+            detalle: `Cambio de estado a ${newStatus}`,
             targetType: result.assignment.targetType,
-            date: result.assignment.date,
             actionType: result.assignment.actionType,
             targetEmpleado: result.assignment.targetEmpleado,
             targetDepartamento: result.assignment.targetDepartamento
@@ -564,71 +570,6 @@ const departamentoTag = (
                     </CardContent>
                   </Card>
 
-                  {/* Quick Actions */}
-                  <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
-                    <CardHeader className="border-b border-gray-200 pb-3">
-                      <CardTitle className="text-gray-800 text-base">Acciones Rápidas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => {
-                                  handleGenerateAndDownloadQRd({ equipoId: equipo.id });
-                                }}
-                                variant="outline"
-                                className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
-                              >
-                                <QrCode className="h-6 w-6 text-[#167DBA]" />
-                                <span className="text-xs">QR Code</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Generar código QR</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-
-                        {equipo.estado !== 'Asignado' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Link href={`/asignaciones/new?equipoId=${equipo.id}`}
-                                  className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
-                                >
-                                  <Users className="h-6 w-6 text-[#EA7704]" />
-                                  <span className="text-xs">Asignar</span>
-                                </Link>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Asignar a usuario</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="h-auto py-4 px-4 border-gray-300 bg-gray-50 hover:bg-gray-200/50 flex flex-col items-center space-y-2"
-                              >
-                                <History className="h-6 w-6 text-[#167DBA]" />
-                                <span className="text-xs">Historial</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ver historial completo</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               </TabsContent>
 
@@ -799,9 +740,24 @@ const departamentoTag = (
               marca: { nombre: equipo.modelo.marca.nombre },
               nombre: equipo.modelo.nombre
             },
-            empleado: equipo.empleado,
-            departamento: equipo.departamento,
-            ubicacion: equipo.ubicacion
+            empleado: equipo.empleado ? {
+              id: equipo.empleado.id,
+              nombre: equipo.empleado.nombre,
+              apellido: equipo.empleado.apellido,
+              departamento: {
+                nombre: equipo.empleado.departamento?.nombre || '',
+                empresa: { nombre: equipo.empleado.departamento?.empresa?.nombre || '' }
+              }
+            } : undefined,
+            departamento: equipo.departamento ? {
+              id: equipo.departamento.id,
+              nombre: equipo.departamento.nombre,
+              empresa: { nombre: equipo.departamento.empresa?.nombre || '' }
+            } : undefined,
+            ubicacion: equipo.ubicacion ? {
+              id: equipo.ubicacion.id,
+              nombre: equipo.ubicacion.nombre
+            } : undefined
           }}
           onStatusChange={handleStatusChange}
         />

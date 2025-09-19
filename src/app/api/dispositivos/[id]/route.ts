@@ -162,10 +162,6 @@ export async function DELETE(request: NextRequest) {
         // }
 
         // 3. Eliminar registros relacionados primero
-        await prisma.historialModificaciones.deleteMany({
-            where: { dispositivoId: id }
-        });
-
         await prisma.asignaciones.deleteMany({
             where: { dispositivoId: id }
         });

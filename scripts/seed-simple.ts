@@ -63,16 +63,31 @@ async function main() {
       const cargos = ['Gerente', 'Analista', 'Asistente'];
       
       for (let i = 0; i < 3; i++) {
+        // Buscar o crear cargo
+        let cargo = await prisma.cargo.findFirst({
+          where: {
+            nombre: cargos[i],
+            departamentoId: departamento.id
+          }
+        });
+        
+        if (!cargo) {
+          cargo = await prisma.cargo.create({
+            data: {
+              nombre: cargos[i],
+              departamentoId: departamento.id
+            }
+          });
+        }
+        
         const empleado = await prisma.empleado.create({
           data: {
             nombre: nombres[i],
             apellido: apellidos[i],
             ced: `${Math.floor(Math.random() * 90000000) + 10000000}`,
             email: `${nombres[i].toLowerCase()}.${apellidos[i].toLowerCase()}@empresa.com`,
-            telefono: `555-${Math.floor(Math.random() * 9000) + 1000}`,
-            cargo: cargos[i],
+            cargoId: cargo.id,
             departamentoId: departamento.id,
-            empresaId: departamento.empresaId,
           },
         });
         empleadosCreados.push(empleado);
@@ -177,11 +192,12 @@ async function main() {
       
       await prisma.asignaciones.create({
         data: {
-          activoId: computador.id,
-          tipoActivo: 'Computador',
+          computadorId: computador.id,
+          itemType: 'Computador',
           targetEmpleadoId: empleado.id,
-          fechaAsignacion: new Date(),
-          estado: 'Activa',
+          targetType: 'Empleado',
+          actionType: 'Asignacion',
+          date: new Date(),
         },
       });
       console.log(`  ✅ Computador ${computador.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);
@@ -194,11 +210,12 @@ async function main() {
       
       await prisma.asignaciones.create({
         data: {
-          activoId: dispositivo.id,
-          tipoActivo: 'Dispositivo',
+          dispositivoId: dispositivo.id,
+          itemType: 'Dispositivo',
           targetEmpleadoId: empleado.id,
-          fechaAsignacion: new Date(),
-          estado: 'Activa',
+          targetType: 'Empleado',
+          actionType: 'Asignacion',
+          date: new Date(),
         },
       });
       console.log(`  ✅ Dispositivo ${dispositivo.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);

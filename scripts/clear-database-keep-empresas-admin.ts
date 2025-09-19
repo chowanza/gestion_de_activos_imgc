@@ -29,9 +29,6 @@ async function main() {
     const dispositivosDeleted = await prisma.dispositivo.deleteMany();
     console.log(`   ✅ ${dispositivosDeleted.count} dispositivos eliminados`);
 
-    console.log('🗑️  Eliminando líneas telefónicas...');
-    const lineasDeleted = await prisma.lineaTelefonica.deleteMany();
-    console.log(`   ✅ ${lineasDeleted.count} líneas telefónicas eliminadas`);
 
     console.log('🗑️  Eliminando empleados...');
     const empleadosDeleted = await prisma.empleado.deleteMany();

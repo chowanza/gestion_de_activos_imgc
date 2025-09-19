@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
       where: {
         nombre: {
           equals: nombre.trim(),
-          mode: 'insensitive'
         }
       }
     });

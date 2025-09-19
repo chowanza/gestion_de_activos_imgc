@@ -161,7 +161,11 @@ async function importEmpleados() {
         const departamento = await findOrCreateDepartamento(empleadoData.Departamento, empresa.id);
 
         // Buscar o crear cargo
-        const cargo = await findOrCreateCargo(empleadoData.Cargo, departamento.id);
+        const cargo = await findOrCreateCargo(empleadoData.Cargo || 'Sin cargo', departamento.id);
+        if (!cargo) {
+          console.log(`⚠️  No se pudo crear el cargo para ${empleadoData.Nombre} ${empleadoData.Apellido}`);
+          continue;
+        }
 
         // Verificar si el empleado ya existe (por email o nombre completo)
         const existingEmpleado = await prisma.empleado.findFirst({
@@ -190,7 +194,7 @@ async function importEmpleados() {
             apellido: empleadoData.Apellido.trim(),
             email: empleadoData.Email?.trim() || null,
             ced: empleadoData.Cedula?.trim() || '',
-            cargoId: cargo?.id || null,
+            cargoId: cargo.id,
             departamentoId: departamento.id,
             fechaNacimiento: formatDate(empleadoData['Fecha de Nacimiento']),
             fechaIngreso: formatDate(empleadoData['Fecha de Ingreso']),

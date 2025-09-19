@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { showToast } from "nextjs-toast-notify";
 import { 
   ArrowLeft, 
@@ -20,9 +22,12 @@ import {
   MapPin,
   User,
   ExternalLink,
-  Eye
+  Eye,
+  Plus,
+  Search
 } from "lucide-react";
 import Link from "next/link";
+import DepartamentoForm from "@/components/DeptoForm";
 
 interface EmpresaDetails {
   id: string;
@@ -116,6 +121,9 @@ export default function EmpresaDetailsPage() {
   const [empresa, setEmpresa] = useState<EmpresaDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'computadores' | 'dispositivos'>('todos');
+  const [filtroNombre, setFiltroNombre] = useState('');
+  const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
 
   useEffect(() => {
     const fetchEmpresa = async () => {
@@ -171,11 +179,126 @@ export default function EmpresaDetailsPage() {
   };
 
   const getTotalComputadores = () => {
-    return empresa?.departamentos.reduce((total, depto) => total + depto._count.computadores, 0) || 0;
+    if (!empresa?.departamentos) return 0;
+    
+    let total = 0;
+    empresa.departamentos.forEach(depto => {
+      // Computadores asignados directamente al departamento
+      total += depto._count.computadores;
+      
+      // Computadores asignados a empleados del departamento
+      depto.empleados?.forEach(empleado => {
+        total += empleado.computadores?.length || 0;
+      });
+    });
+    
+    return total;
   };
 
   const getTotalDispositivos = () => {
-    return empresa?.departamentos.reduce((total, depto) => total + depto._count.dispositivos, 0) || 0;
+    if (!empresa?.departamentos) return 0;
+    
+    let total = 0;
+    empresa.departamentos.forEach(depto => {
+      // Dispositivos asignados directamente al departamento
+      total += depto._count.dispositivos;
+      
+      // Dispositivos asignados a empleados del departamento
+      depto.empleados?.forEach(empleado => {
+        total += empleado.dispositivos?.length || 0;
+      });
+    });
+    
+    return total;
+  };
+
+  // Función para obtener computadores de un departamento (incluyendo empleados)
+  const getComputadoresDepartamento = (departamento: any) => {
+    let total = departamento._count.computadores;
+    departamento.empleados?.forEach((empleado: any) => {
+      total += empleado.computadores?.length || 0;
+    });
+    return total;
+  };
+
+  // Función para obtener dispositivos de un departamento (incluyendo empleados)
+  const getDispositivosDepartamento = (departamento: any) => {
+    let total = departamento._count.dispositivos;
+    departamento.empleados?.forEach((empleado: any) => {
+      total += empleado.dispositivos?.length || 0;
+    });
+    return total;
+  };
+
+  // Función para filtrar departamentos según el filtro activo y nombre
+  const getDepartamentosFiltrados = () => {
+    if (!empresa?.departamentos) return [];
+    
+    let departamentosFiltrados = empresa.departamentos;
+    
+    // Aplicar filtro por tipo de equipo
+    switch (filtroActivo) {
+      case 'computadores':
+        departamentosFiltrados = departamentosFiltrados.filter(depto => getComputadoresDepartamento(depto) > 0);
+        break;
+      case 'dispositivos':
+        departamentosFiltrados = departamentosFiltrados.filter(depto => getDispositivosDepartamento(depto) > 0);
+        break;
+    }
+    
+    // Aplicar filtro por nombre
+    if (filtroNombre.trim()) {
+      departamentosFiltrados = departamentosFiltrados.filter(depto => 
+        depto.nombre.toLowerCase().includes(filtroNombre.toLowerCase().trim())
+      );
+    }
+    
+    return departamentosFiltrados;
+  };
+
+  // Función para obtener el título del filtro
+  const getTituloFiltro = () => {
+    const departamentosFiltrados = getDepartamentosFiltrados();
+    switch (filtroActivo) {
+      case 'computadores':
+        return `Departamentos con Computadores (${departamentosFiltrados.length})`;
+      case 'dispositivos':
+        return `Departamentos con Dispositivos (${departamentosFiltrados.length})`;
+      default:
+        return `Departamentos (${empresa?.departamentos?.length || 0})`;
+    }
+  };
+
+  // Función para manejar la creación de departamentos
+  const handleCreateDepartamento = async (formData: FormData) => {
+    try {
+      // Convertir FormData a JSON
+      const data = {
+        nombre: formData.get('nombre'),
+        empresaId: formData.get('empresaId'),
+        empresaNombre: formData.get('empresaNombre'),
+        gerenteId: formData.get('gerenteId')
+      };
+
+      const response = await fetch("/api/departamentos", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status.toString()}`);
+      }
+
+      // Recargar los datos de la empresa
+      window.location.reload();
+      showToast.success("Departamento creado exitosamente", { position: "top-right" });
+    } catch (error: any) {
+      showToast.error(`Error al crear departamento: ${error.message}`, { position: "top-right" });
+    }
   };
 
   if (loading) {
@@ -214,8 +337,7 @@ export default function EmpresaDetailsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center space-x-4">
             {empresa.logo && (
@@ -271,35 +393,113 @@ export default function EmpresaDetailsPage() {
               <p className="text-sm text-gray-600">Departamentos</p>
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
-                <Monitor className="h-6 w-6 text-purple-600" />
-              </div>
-              <p className="text-2xl font-bold">{getTotalComputadores()}</p>
-              <p className="text-sm text-gray-600">Computadores</p>
+              <button
+                onClick={() => setFiltroActivo(filtroActivo === 'computadores' ? 'todos' : 'computadores')}
+                className={`w-full p-2 rounded-lg transition-colors ${
+                  filtroActivo === 'computadores' 
+                    ? 'bg-purple-200 border-2 border-purple-400' 
+                    : 'hover:bg-purple-50'
+                }`}
+              >
+                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
+                  <Monitor className="h-6 w-6 text-purple-600" />
+                </div>
+                <p className="text-2xl font-bold">{getTotalComputadores()}</p>
+                <p className="text-sm text-gray-600">Computadores</p>
+                {filtroActivo === 'computadores' && (
+                  <p className="text-xs text-purple-600 mt-1">Filtrado activo</p>
+                )}
+              </button>
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2">
-                <Smartphone className="h-6 w-6 text-orange-600" />
-              </div>
-              <p className="text-2xl font-bold">{getTotalDispositivos()}</p>
-              <p className="text-sm text-gray-600">Dispositivos</p>
+              <button
+                onClick={() => setFiltroActivo(filtroActivo === 'dispositivos' ? 'todos' : 'dispositivos')}
+                className={`w-full p-2 rounded-lg transition-colors ${
+                  filtroActivo === 'dispositivos' 
+                    ? 'bg-orange-200 border-2 border-orange-400' 
+                    : 'hover:bg-orange-50'
+                }`}
+              >
+                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2">
+                  <Smartphone className="h-6 w-6 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold">{getTotalDispositivos()}</p>
+                <p className="text-sm text-gray-600">Dispositivos</p>
+                {filtroActivo === 'dispositivos' && (
+                  <p className="text-xs text-orange-600 mt-1">Filtrado activo</p>
+                )}
+              </button>
             </div>
           </div>
         </CardContent>
       </Card>
 
+
       {/* Departamentos */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building2 className="h-5 w-5 mr-2" />
-            Departamentos ({empresa.departamentos?.length || 0})
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Building2 className="h-5 w-5 mr-2" />
+              {getTituloFiltro()}
+            </div>
+            <div className="flex items-center space-x-2">
+              {filtroActivo !== 'todos' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltroActivo('todos')}
+                  className="text-xs"
+                >
+                  Limpiar Filtro
+                </Button>
+              )}
+              <Link href="/departamentos">
+                <Button variant="outline" size="sm" className="text-xs">
+                  <Building2 className="h-4 w-4 mr-1" />
+                  Gestionar Departamentos
+                </Button>
+              </Link>
+              <Dialog open={mostrarModalCrear} onOpenChange={setMostrarModalCrear}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="text-xs">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Crear Departamento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Crear Nuevo Departamento</DialogTitle>
+                  </DialogHeader>
+                  <DepartamentoForm 
+                    isOpen={mostrarModalCrear}
+                    onClose={() => setMostrarModalCrear(false)}
+                    onSubmit={handleCreateDepartamento}
+                    empresas={[{ id: empresa.id, nombre: empresa.nombre }]}
+                    empleados={[]}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {empresa.departamentos && empresa.departamentos.length > 0 ? (
+          {/* Campo de búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar departamentos..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          
+          {getDepartamentosFiltrados().length > 0 ? (
             <div className="space-y-4">
-              {empresa.departamentos.map((departamento) => (
+              {getDepartamentosFiltrados().map((departamento) => (
                 <div key={departamento.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -315,6 +515,16 @@ export default function EmpresaDetailsPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant="secondary">{departamento._count.empleados} empleados</Badge>
+                      {getComputadoresDepartamento(departamento) > 0 && (
+                        <Badge variant="outline" className="text-purple-600 border-purple-300">
+                          {getComputadoresDepartamento(departamento)} PC
+                        </Badge>
+                      )}
+                      {getDispositivosDepartamento(departamento) > 0 && (
+                        <Badge variant="outline" className="text-orange-600 border-orange-300">
+                          {getDispositivosDepartamento(departamento)} Disp
+                        </Badge>
+                      )}
                       <Link href={`/departamentos/${departamento.id}`}>
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-1" />
@@ -366,7 +576,22 @@ export default function EmpresaDetailsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No hay departamentos en esta empresa</p>
+            <div className="text-center py-8">
+              <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500 text-lg font-medium">
+                {filtroNombre.trim() && filtroActivo === 'todos'
+                  ? `No se encontraron departamentos que coincidan con "${filtroNombre}"`
+                  : filtroActivo === 'computadores' 
+                  ? 'No hay departamentos con computadores asignados'
+                  : filtroActivo === 'dispositivos'
+                  ? 'No hay departamentos con dispositivos asignados'
+                  : 'No hay departamentos en esta empresa'
+                }
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                {(filtroActivo !== 'todos' || filtroNombre.trim()) && 'Intenta cambiar los filtros para ver más departamentos'}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

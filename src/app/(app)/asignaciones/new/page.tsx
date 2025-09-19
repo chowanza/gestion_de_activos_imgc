@@ -59,26 +59,38 @@ export default function AsignacionesPage() {
     const [notas, setNotas] = useState('');
     const [selectedGerente, setSelectedGerente] = useState<Target | null>(null);
     const [motivo, setMotivo] = useState('');
-    const [localidad, setLocalidad] = useState('');
+    const [selectedUbicacionAsignacion, setSelectedUbicacionAsignacion] = useState<Target | null>(null);
     const [modeloC, setModeloC] = useState('');
     const [serialC, setSerialC] = useState('');
     const [listaGerentes, setListaGerentes] = useState<Target[]>([]);
+    const [ubicaciones, setUbicaciones] = useState<Target[]>([]);
   
     // --- LÓGICA DE CARGA DE DATOS (REFACTORIZADA) ---
     
 
     useEffect(() => {
-    const fetchGerentes = async () => {
+    const fetchData = async () => {
         try {
-        const res = await fetch('/api/gerentes');
-        if (!res.ok) throw new Error('Error al cargar gerentes');
-        const data = await res.json();
-        setListaGerentes(data);
+        const [gerentesRes, ubicacionesRes] = await Promise.all([
+            fetch('/api/gerentes'),
+            fetch('/api/ubicaciones')
+        ]);
+        
+        if (!gerentesRes.ok) throw new Error('Error al cargar gerentes');
+        if (!ubicacionesRes.ok) throw new Error('Error al cargar ubicaciones');
+        
+        const [gerentesData, ubicacionesData] = await Promise.all([
+            gerentesRes.json(),
+            ubicacionesRes.json()
+        ]);
+        
+        setListaGerentes(gerentesData);
+        setUbicaciones(ubicacionesData);
         } catch (e) {
         console.error(e);
         }
     };
-    fetchGerentes();
+    fetchData();
     }, []);
 
     // 1. Cargar datos iniciales que son estáticos o para la pestaña "Desvincular"
@@ -202,7 +214,7 @@ export default function AsignacionesPage() {
             motivo: motivo,
             serialC: serialC,
             modeloC: modeloC,
-            localidad: localidad,
+            ubicacionId: selectedUbicacionAsignacion?.value || null,
         };
 
         try {
@@ -415,20 +427,15 @@ export default function AsignacionesPage() {
 
                     
                     <div className="space-y-2">
-                        <Label htmlFor="localidad">Localidad<span className="text-destructive">*</span></Label>
-                            <select
-                                id="localidad"
-                                className="w-full h-10 border rounded-md px-2 bg-[hsl(var(--background))] border-[hsl(var(--input))] focus:ring-1 focus:ring-[hsl(var(--ring))] focus:outline-none"
-                                value={localidad || ''}
-                                onChange={(e) => setLocalidad(e.target.value)}
-                                required
-                            >
-                                <option value="" disabled>Seleccionar localidad...</option>
-                                <option value="MCP">Macapaima</option>
-                                <option value="PZO">Puerto Ordaz</option>
-                                <option value="CCS">Caracas</option>
-                                <option value="ESP">La Esperanza</option>
-                            </select>
+                        <Label>Ubicación de Asignación<span className="text-destructive">*</span></Label>
+                        <Select
+                            options={ubicaciones}
+                            value={selectedUbicacionAsignacion}
+                            onChange={setSelectedUbicacionAsignacion}
+                            placeholder="Seleccionar ubicación..."
+                            isSearchable
+                            styles={reactSelectStyles}
+                        />
                     </div>
                     
                     <div className="space-y-2">

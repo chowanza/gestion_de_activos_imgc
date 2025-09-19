@@ -13,28 +13,45 @@ async function createEmpleados() {
       return;
     }
 
+    // Obtener el primer departamento
+    const departamento = await prisma.departamento.findFirst();
+    if (!departamento) {
+      console.log('❌ No hay departamentos en la base de datos');
+      return;
+    }
+
+    // Obtener el primer cargo
+    const cargo = await prisma.cargo.findFirst();
+    if (!cargo) {
+      console.log('❌ No hay cargos en la base de datos');
+      return;
+    }
+
     // Crear algunos empleados
     const empleados = [
       {
         nombre: 'Jorge',
         apellido: 'Rodriguez',
+        ced: '12345678',
         email: 'jorge.rodriguez@empresa.com',
-        telefono: '555-0001',
-        empresaId: empresa.id,
+        departamentoId: departamento.id,
+        cargoId: cargo.id,
       },
       {
         nombre: 'María',
         apellido: 'González',
+        ced: '87654321',
         email: 'maria.gonzalez@empresa.com',
-        telefono: '555-0002',
-        empresaId: empresa.id,
+        departamentoId: departamento.id,
+        cargoId: cargo.id,
       },
       {
         nombre: 'Carlos',
         apellido: 'López',
+        ced: '11223344',
         email: 'carlos.lopez@empresa.com',
-        telefono: '555-0003',
-        empresaId: empresa.id,
+        departamentoId: departamento.id,
+        cargoId: cargo.id,
       },
     ];
 

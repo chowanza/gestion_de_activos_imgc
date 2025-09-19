@@ -265,7 +265,7 @@ async function main() {
     const cargosIronCreados = [];
     
     for (const departamento of departamentosIronCreados) {
-      const cargosDelDept = cargosIronData[departamento.nombre] || [];
+      const cargosDelDept = cargosIronData[departamento.nombre as keyof typeof cargosIronData] || [];
       for (const nombreCargo of cargosDelDept) {
         const cargoExistente = await prisma.cargo.findFirst({
           where: { 
@@ -336,11 +336,11 @@ async function main() {
       const estado = ['Resguardo', 'Asignado', 'Operativo', 'En Reparación', 'De Baja'][Math.floor(Math.random() * 5)];
       
       // Especificaciones técnicas según el tipo
-      const especs = especificacionesIron[modelo.tipo] || especificacionesIron['Servidor'];
-      const procesador = especs.procesadores ? especs.procesadores[Math.floor(Math.random() * especs.procesadores.length)] : 'Intel Core i7-10700K';
-      const ram = especs.ram ? especs.ram[Math.floor(Math.random() * especs.ram.length)] : '16 GB';
-      const almacenamiento = especs.almacenamiento ? especs.almacenamiento[Math.floor(Math.random() * especs.almacenamiento.length)] : '512 GB SSD';
-      const sisOperativo = especs.sisOperativo ? especs.sisOperativo[Math.floor(Math.random() * especs.sisOperativo.length)] : 'Windows 10 Pro';
+      const especs = especificacionesIron[modelo.tipo as keyof typeof especificacionesIron] || especificacionesIron['Servidor'];
+      const procesador = 'procesadores' in especs ? especs.procesadores[Math.floor(Math.random() * especs.procesadores.length)] : 'Intel Core i7-10700K';
+      const ram = 'ram' in especs ? especs.ram[Math.floor(Math.random() * especs.ram.length)] : '16 GB';
+      const almacenamiento = 'almacenamiento' in especs ? especs.almacenamiento[Math.floor(Math.random() * especs.almacenamiento.length)] : '512 GB SSD';
+      const sisOperativo = 'sisOperativo' in especs ? especs.sisOperativo[Math.floor(Math.random() * especs.sisOperativo.length)] : 'Windows 10 Pro';
 
       const computador = await prisma.computador.create({
         data: {
@@ -357,7 +357,6 @@ async function main() {
           ram,
           almacenamiento,
           procesador,
-          sapVersion: `SAP ${Math.floor(Math.random() * 3) + 1}.0`,
           officeVersion: 'Microsoft Office 2019 Professional',
           macWifi: `00:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}`,
           macEthernet: `00:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}:${Math.floor(Math.random() * 100)}`,

@@ -26,7 +26,7 @@ export const dispositivoSchema = z.object({
   serial: z.string().min(1, "El serial es requerido"),
   modeloId: z.string().min(1, "El Modelo es Requerido"),
   estado: z.string().min(1, "El estado es requerido"),
-  codigoImgc: z.string().min(1, "El Código IMGC es requerido"),  // Cambio de nsap a codigoImgc - OBLIGATORIO
+  codigoImgc: z.string().min(1, "El Código IMGC es requerido"), // codigoImgc - OBLIGATORIO
   ubicacionId: z.string().nullable(),
   mac: z.string().nullable(),
   // Nuevos campos de compra

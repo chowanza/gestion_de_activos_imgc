@@ -72,7 +72,24 @@ async function main() {
       for (let i = 0; i < cantidadEmpleados; i++) {
         const nombre = nombres[Math.floor(Math.random() * nombres.length)];
         const apellido = apellidos[Math.floor(Math.random() * apellidos.length)];
-        const cargo = cargos[Math.floor(Math.random() * cargos.length)];
+        const nombreCargo = cargos[Math.floor(Math.random() * cargos.length)];
+        
+        // Buscar o crear cargo
+        let cargo = await prisma.cargo.findFirst({
+          where: {
+            nombre: nombreCargo,
+            departamentoId: departamento.id
+          }
+        });
+        
+        if (!cargo) {
+          cargo = await prisma.cargo.create({
+            data: {
+              nombre: nombreCargo,
+              departamentoId: departamento.id
+            }
+          });
+        }
         
         const empleado = await prisma.empleado.create({
           data: {
@@ -80,10 +97,8 @@ async function main() {
             apellido,
             ced: `${Math.floor(Math.random() * 90000000) + 10000000}`, // Cédula aleatoria
             email: `${nombre.toLowerCase()}.${apellido.toLowerCase()}@${departamento.empresa.nombre.toLowerCase().replace(/\s+/g, '')}.com`,
-            telefono: `555-${Math.floor(Math.random() * 9000) + 1000}`,
-            cargo,
+            cargoId: cargo.id,
             departamentoId: departamento.id,
-            empresaId: departamento.empresaId,
           },
         });
         empleadosCreados.push(empleado);
@@ -208,11 +223,12 @@ async function main() {
       
       await prisma.asignaciones.create({
         data: {
-          activoId: computador.id,
-          tipoActivo: 'Computador',
+          computadorId: computador.id,
+          itemType: 'Computador',
           targetEmpleadoId: empleado.id,
-          fechaAsignacion: new Date(),
-          estado: 'Activa',
+          targetType: 'Empleado',
+          actionType: 'Asignacion',
+          date: new Date(),
         },
       });
       console.log(`  ✅ Computador ${computador.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);
@@ -225,11 +241,12 @@ async function main() {
       
       await prisma.asignaciones.create({
         data: {
-          activoId: dispositivo.id,
-          tipoActivo: 'Dispositivo',
+          dispositivoId: dispositivo.id,
+          itemType: 'Dispositivo',
           targetEmpleadoId: empleado.id,
-          fechaAsignacion: new Date(),
-          estado: 'Activa',
+          targetType: 'Empleado',
+          actionType: 'Asignacion',
+          date: new Date(),
         },
       });
       console.log(`  ✅ Dispositivo ${dispositivo.serial} asignado a ${empleado.nombre} ${empleado.apellido}`);

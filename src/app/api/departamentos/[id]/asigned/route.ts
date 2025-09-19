@@ -42,28 +42,8 @@ export async function GET(
     }
 
     // --- PASO 2: OBTENER LAS LÍNEAS TELEFÓNICAS ASIGNADAS ---
-    // Necesitamos los IDs de los empleados de este departamento para la consulta
-    const idsDeEmpleadosDelDepto = departamento.empleados.map(e => e.id);
-
-    const lineasAsignadas = await prisma.asignaciones.findMany({
-      where: {
-        itemType: 'LineaTelefonica',
-        actionType: 'Asignacion',
-        // Condición: La línea está asignada AL DEPARTAMENTO O A UNO DE SUS USUARIOS
-        OR: [
-          { targetDepartamentoId: id },
-          { targetEmpleadoId: { in: idsDeEmpleadosDelDepto } },
-        ],
-      },
-      include: {
-        lineaTelefonica: true,
-      },
-    });
-    
-    // Extraemos solo los objetos de LineaTelefonica
-    const lineasTelefonicas = lineasAsignadas
-        .map(a => a.lineaTelefonica)
-        .filter((l): l is NonNullable<typeof l> => l !== null);
+    // Nota: Las líneas telefónicas fueron removidas del esquema
+    const lineasTelefonicas: any[] = [];
 
 
     // --- PASO 3: COMBINAR Y CONTAR TODOS LOS ACTIVOS ---

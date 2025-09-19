@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
           actionType: assignmentData.actionType,
           motivo: assignmentData.motivo,
           notes: assignmentData.notas,
-          localidad: assignmentData.localidad,
+          ubicacionId: assignmentData.ubicacionId,
           gerenteId: assignmentData.gerenteId,
           targetType: assignmentData.targetType || 'Sistema',
           targetEmpleadoId: assignmentData.targetEmpleadoId,
