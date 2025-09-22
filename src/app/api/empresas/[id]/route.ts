@@ -159,10 +159,45 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const formData = await request.formData();
-    const nombre = formData.get('nombre') as string;
-    const descripcion = formData.get('descripcion') as string;
-    const logoFile = formData.get('logo') as File;
+    
+    // Detectar si es FormData o JSON
+    const contentType = request.headers.get('content-type') || '';
+    let nombre: string;
+    let descripcion: string;
+    let logo: string | undefined;
+    
+    if (contentType.includes('application/json')) {
+      // Manejar JSON (para el formulario de edición)
+      const body = await request.json();
+      nombre = body.nombre;
+      descripcion = body.descripcion;
+      logo = body.logo;
+    } else {
+      // Manejar FormData (para el formulario original)
+      const formData = await request.formData();
+      nombre = formData.get('nombre') as string;
+      descripcion = formData.get('descripcion') as string;
+      const logoFile = formData.get('logo') as File;
+      
+      // Si hay un archivo de logo, manejarlo
+      if (logoFile && logoFile.size > 0) {
+        // Crear directorio si no existe
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'empresas');
+        await fs.mkdir(uploadDir, { recursive: true });
+
+        // Generar nombre único para el archivo
+        const fileExtension = path.extname(logoFile.name);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        // Guardar archivo
+        const bytes = await logoFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        await fs.writeFile(filePath, buffer);
+
+        logo = `/uploads/empresas/${fileName}`;
+      }
+    }
 
     if (!nombre) {
       return NextResponse.json(
@@ -184,25 +219,16 @@ export async function PUT(
     }
 
     let logoPath = existingEmpresa.logo;
-    if (logoFile && logoFile.size > 0) {
-      // Crear directorio si no existe
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'empresas');
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      // Generar nombre único para el archivo
-      const fileExtension = path.extname(logoFile.name);
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
-
-      // Guardar archivo
-      const bytes = await logoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      await fs.writeFile(filePath, buffer);
-
-      logoPath = `/uploads/empresas/${fileName}`;
-
-      // Eliminar archivo anterior si existe
-      if (existingEmpresa.logo) {
+    
+    // Si se proporciona un nuevo logo (URL o archivo)
+    if (logo) {
+      logoPath = logo;
+      
+      // Si es un archivo subido (FormData), ya se manejó arriba
+      // Si es una URL (JSON), usar directamente
+      
+      // Eliminar archivo anterior si existe y el nuevo no es una URL externa
+      if (existingEmpresa.logo && !logo.startsWith('http')) {
         const oldFilePath = path.join(process.cwd(), 'public', existingEmpresa.logo);
         try {
           await fs.unlink(oldFilePath);

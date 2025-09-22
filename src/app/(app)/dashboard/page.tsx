@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
   Users,
   Monitor,
@@ -19,11 +19,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useQuery } from "@tanstack/react-query"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
 import { EstadoDonutChart } from "@/components/EstadoDonutChart"
+import { BarChart } from "@/components/BarChart"
+import { BarChartVertical } from "@/components/BarChartVertical"
 
 const fetchDashboardData = async () => {
   // La URL debe coincidir con la ruta de tu API.
@@ -201,19 +204,8 @@ export default function InventoryDashboard() {
    // Estados para filtros
    const [selectedEmpresa, setSelectedEmpresa] = useState<string>("");
    const [selectedUbicacion, setSelectedUbicacion] = useState<string>("");
-
-   // Funciones para filtrar datos
-   const getFilteredEmpresaStats = () => {
-     if (!dashboardData?.empresaStats) return [];
-     if (!selectedEmpresa) return dashboardData.empresaStats;
-      return dashboardData.empresaStats.filter((empresa: any) => empresa.name === selectedEmpresa);
-   };
-
-   const getFilteredUbicacionStats = () => {
-     if (!dashboardData?.ubicacionStats) return [];
-     if (!selectedUbicacion) return dashboardData.ubicacionStats;
-      return dashboardData.ubicacionStats.filter((ubicacion: any) => ubicacion.name === selectedUbicacion);
-   };
+   const [selectedEmpresaForDetails, setSelectedEmpresaForDetails] = useState<string>("");
+   const [equipmentTypeFilter, setEquipmentTypeFilter] = useState<string>("todos");
 
    const {
     data: dashboardData, // Los datos de la API estarán aquí
@@ -225,6 +217,100 @@ export default function InventoryDashboard() {
     queryFn: fetchDashboardData, // Función que se ejecutará para obtener los datos
     refetchInterval: 300000, // Opcional: Vuelve a cargar los datos cada 5 minutos
   });
+
+   // Funciones para filtrar datos - sin useMemo para evitar bucles infinitos
+   const getFilteredEmpresaStats = () => {
+     if (!dashboardData?.empresaStats) return [];
+     if (!selectedEmpresa) return dashboardData.empresaStats;
+     return dashboardData.empresaStats.filter((empresa: any) => empresa.name === selectedEmpresa);
+   };
+
+   const getFilteredUbicacionStats = () => {
+     if (!dashboardData?.ubicacionStats) return [];
+     if (!selectedUbicacion) return dashboardData.ubicacionStats;
+     return dashboardData.ubicacionStats.filter((ubicacion: any) => ubicacion.name === selectedUbicacion);
+   };
+
+   // Funciones para filtrar por tipo de equipo - sin useMemo
+   const getFilteredEmpresaStatsByEquipment = () => {
+     if (!dashboardData?.empresaStats) return [];
+     
+     return dashboardData.empresaStats.map((empresa: any) => {
+       let displayValue: number;
+       let totalForPercentage: number;
+       
+       if (equipmentTypeFilter === 'computadores') {
+         displayValue = empresa.computers;
+         totalForPercentage = dashboardData.totalComputers;
+       } else if (equipmentTypeFilter === 'dispositivos') {
+         displayValue = empresa.devices;
+         totalForPercentage = dashboardData.totalDevices;
+       } else {
+         displayValue = empresa.total;
+         totalForPercentage = dashboardData.totalComputers + dashboardData.totalDevices;
+       }
+       
+       const percentage = totalForPercentage > 0 
+         ? parseFloat(((displayValue / totalForPercentage) * 100).toFixed(1))
+         : 0;
+       
+       return {
+         ...empresa,
+         displayValue,
+         percentage,
+         departamentos: empresa.departamentos?.map((dept: any) => {
+           let deptDisplayValue: number;
+           if (equipmentTypeFilter === 'computadores') {
+             deptDisplayValue = dept.computers;
+           } else if (equipmentTypeFilter === 'dispositivos') {
+             deptDisplayValue = dept.devices;
+           } else {
+             deptDisplayValue = dept.total;
+           }
+           
+           const deptPercentage = displayValue > 0 
+             ? parseFloat(((deptDisplayValue / displayValue) * 100).toFixed(1))
+             : 0;
+           
+           return {
+             ...dept,
+             displayValue: deptDisplayValue,
+             percentage: deptPercentage,
+           };
+         }) || [],
+       };
+     });
+   };
+
+   const getFilteredUbicacionStatsByEquipment = () => {
+     if (!dashboardData?.ubicacionStats) return [];
+     
+     return dashboardData.ubicacionStats.map((ubicacion: any) => {
+       let displayValue: number;
+       let totalForPercentage: number;
+       
+       if (equipmentTypeFilter === 'computadores') {
+         displayValue = ubicacion.computers;
+         totalForPercentage = dashboardData.totalComputers;
+       } else if (equipmentTypeFilter === 'dispositivos') {
+         displayValue = ubicacion.devices;
+         totalForPercentage = dashboardData.totalDevices;
+       } else {
+         displayValue = ubicacion.total;
+         totalForPercentage = dashboardData.totalComputers + dashboardData.totalDevices;
+       }
+       
+       const percentage = totalForPercentage > 0 
+         ? parseFloat(((displayValue / totalForPercentage) * 100).toFixed(1))
+         : 0;
+       
+       return {
+         ...ubicacion,
+         displayValue,
+         percentage,
+       };
+     });
+   };
 
    if (isLoading) {
     return <LoadingSkeleton />;
@@ -242,15 +328,7 @@ export default function InventoryDashboard() {
         <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>
         
         {/* Main Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <StatCard
-            title="Total Empleados"
-            value={dashboardData.totalUsers}
-            trend={dashboardData.trends.users}
-            icon={Users}
-            color="orange"
-            description="Empleados registrados"
-          /> 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Equipos Totales"
             value={dashboardData.totalEquipos}
@@ -258,6 +336,14 @@ export default function InventoryDashboard() {
             icon={Monitor}
             color="blue"
             description="Todos los equipos"
+          />
+          <StatCard
+            title="Equipos Asignados"
+            value={dashboardData.assignedComputers}
+            trend={dashboardData.trends.asignados}
+            icon={UserCheck}
+            color="green"
+            description="En uso activo"
           />
           <StatCard
             title="Equipos en Resguardo"
@@ -268,27 +354,19 @@ export default function InventoryDashboard() {
             description="Equipos resguardados"
           />
           <StatCard
-            title="Computadores Asignados"
-            value={dashboardData.assignedComputers}
-            trend={dashboardData.trends.assigned}
-            icon={UserCheck}
-            color="green"
-            description="En uso activo"
-          />
-          <StatCard
-            title="Computadores Totales"
-            value={dashboardData.totalComputers}
-            trend={dashboardData.trends.computers}
-            icon={Cpu}
+            title="Equipos Operativos"
+            value={dashboardData.equiposOperativos}
+            trend={dashboardData.trends.operativos}
+            icon={Activity}
             color="purple"
-            description="Total de computadores"
+            description="Equipos en operación"
           />
         </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-12 gap-6">
-          {/* Left Column - Charts and Analytics */}
-          <div className="col-span-12 lg:col-span-8">
+          {/* Main Column - Charts and Analytics */}
+          <div className="col-span-12">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="bg-gray-100 p-1 mb-6">
                 <TabsTrigger
@@ -327,8 +405,10 @@ export default function InventoryDashboard() {
                     />
                   </div>
                   
-                  {/* Recent Activity - Horizontal layout */}
-                  <Card className="bg-white border-gray-200 shadow-lg">
+                  {/* Bottom Section - Activity, Time and Summary */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Recent Activity */}
+                    <Card className="bg-white border-gray-200 shadow-lg lg:col-span-2">
                     <CardHeader className="border-b border-gray-200 pb-3">
                       <CardTitle className="text-gray-900 text-base flex items-center justify-between">
                         <div className="flex items-center">
@@ -341,8 +421,8 @@ export default function InventoryDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {dashboardData.recentActivity.slice(0, 3).map((activity: {
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {dashboardData.recentActivity.slice(0, 4).map((activity: {
                           id: string | number
                           type: string
                           action: string
@@ -377,208 +457,286 @@ export default function InventoryDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              </TabsContent>
-              <TabsContent value="empresas" className="mt-0">
-                <Card className="bg-white border-gray-200 shadow-lg">
-                  <CardHeader className="border-b border-gray-200 pb-3">
-                    <CardTitle className="text-gray-900 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Building2 className="mr-2 h-5 w-5 text-[#167DBA]" /> 
-                        Distribución por Empresas
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={selectedEmpresa}
-                          onChange={(e) => setSelectedEmpresa(e.target.value)}
-                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#167DBA] focus:border-transparent"
-                        >
-                          <option value="">Todas las empresas</option>
-                          {dashboardData?.empresaStats?.map((empresa: any) => (
-                            <option key={empresa.name} value={empresa.name}>
-                              {empresa.name}
-                            </option>
-                          ))}
-                        </select>
-                        {selectedEmpresa && (
-                          <button
-                            onClick={() => setSelectedEmpresa("")}
-                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-600"
-                          >
-                            Limpiar
-                          </button>
-                        )}
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {getFilteredEmpresaStats().map((empresa: any) => (
-                        <div key={empresa.name} className="space-y-4">
-                          {/* Empresa principal */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-800 font-semibold text-lg">{empresa.name}</span>
-                              <span className="text-[#167DBA] font-mono text-lg">{empresa.percentage}%</span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-full bg-gray-200 rounded-full h-3">
-                                <div 
-                                  className="bg-gradient-to-r from-[#167DBA] to-[#EA7704] h-3 rounded-full" 
-                                  style={{ width: `${empresa.percentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="flex space-x-4 text-sm text-gray-600">
-                                <span>{empresa.computers} comp.</span>
-                                <span>{empresa.users} users</span>
-                              </div>
+
+                    {/* System Time and Summary */}
+                    <div className="space-y-4">
+                      {/* System Time */}
+                      <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
+                        <CardContent className="p-0">
+                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 border-b border-gray-200">
+                            <div className="text-center">
+                              <div className="text-xs text-gray-500 mb-1 font-mono">TIEMPO DEL SISTEMA</div>
+                              <div className="text-lg font-mono text-[#167DBA] mb-1">{formatTime(currentTime)}</div>
+                              <div className="text-xs text-gray-600">{formatDate(currentTime)}</div>
                             </div>
                           </div>
-                          
-                          {/* Departamentos de la empresa */}
-                          {empresa.departamentos && empresa.departamentos.length > 0 && (
-                            <div className="ml-4 space-y-2">
-                              <h4 className="text-sm font-medium text-gray-600 mb-2">Departamentos:</h4>
-                              {empresa.departamentos.map((dept: any) => (
-                                <div key={dept.name} className="space-y-1 pl-4 border-l-2 border-gray-200">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-700 text-sm">{dept.name}</span>
-                                    <span className="text-[#167DBA] font-mono text-sm">{dept.percentage}%</span>
-                                  </div>
-                                  <div className="flex items-center space-x-4">
-                                    <div className="w-full bg-gray-100 rounded-full h-2">
-                                      <div 
-                                        className="bg-gradient-to-r from-[#167DBA]/60 to-[#EA7704]/60 h-2 rounded-full" 
-                                        style={{ width: `${dept.percentage}%` }}
-                                      ></div>
-                                    </div>
-                                    <div className="flex space-x-3 text-xs text-gray-500">
-                                      <span>{dept.computers} comp.</span>
-                                      <span>{dept.users} users</span>
+                          <div className="p-3">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">Última Actualización</div>
+                                <div className="text-xs font-mono text-gray-800">Hace 2 min</div>
+                </div>
+                              <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">Estado</div>
+                      <div className="flex items-center">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
+                                  <div className="text-xs font-mono text-gray-800">Online</div>
+                                </div>
+                              </div>
+                      </div>
+                      </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Quick Stats Summary */}
+                      <Card className="bg-white border-gray-200 shadow-lg">
+                        <CardHeader className="border-b border-gray-200 pb-2">
+                          <CardTitle className="text-gray-900 flex items-center text-sm">
+                            <Users className="mr-2 h-4 w-4 text-[#167DBA]" />
+                            Resumen General
+                    </CardTitle>
+                  </CardHeader>
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xs font-medium text-gray-800">Empresas Activas</h3>
+                                <p className="text-xs text-gray-600">
+                                  {dashboardData.empresaStats?.length || 0} empresas registradas
+                                </p>
+                              </div>
+                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                                {dashboardData.empresaStats?.length || 0}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xs font-medium text-gray-800">Ubicaciones</h3>
+                                <p className="text-xs text-gray-600">
+                                  {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
+                                </p>
+                              </div>
+                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                                {dashboardData.ubicacionStats?.length || 0}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xs font-medium text-gray-800">Departamentos</h3>
+                                <p className="text-xs text-gray-600">
+                                  {dashboardData.departmentStats?.length || 0} departamentos
+                                </p>
+                              </div>
+                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                                {dashboardData.departmentStats?.length || 0}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                                     </div>
                                   </div>
                                 </div>
-                              ))}
+              </TabsContent>
+              <TabsContent value="empresas" className="mt-0">
+                <div className="grid gap-6">
+                  {/* Filtros */}
+                  <Card className="bg-white border-gray-200 shadow-lg">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <Label className="text-sm font-medium text-gray-700">Filtrar por tipo de equipo:</Label>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant={equipmentTypeFilter === "todos" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("todos")}
+                              className="text-xs"
+                            >
+                              Todos
+                            </Button>
+                            <Button
+                              variant={equipmentTypeFilter === "computadores" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("computadores")}
+                              className="text-xs"
+                            >
+                              Computadores
+                            </Button>
+                            <Button
+                              variant={equipmentTypeFilter === "dispositivos" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("dispositivos")}
+                              className="text-xs"
+                            >
+                              Dispositivos
+                            </Button>
                             </div>
-                          )}
                         </div>
-                      ))}
-                      {getFilteredEmpresaStats().length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-lg font-medium">No hay datos disponibles</p>
-                          <p className="text-sm">
-                            {selectedEmpresa 
-                              ? `No se encontraron datos para "${selectedEmpresa}"`
-                              : "No hay empresas registradas"
-                            }
-                          </p>
+                        <div className="text-sm text-gray-500">
+                          Mostrando: {equipmentTypeFilter === "todos" ? "Todos los equipos" : 
+                                     equipmentTypeFilter === "computadores" ? "Solo computadores" : 
+                                     "Solo dispositivos"}
                         </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
+
+                  <BarChartVertical
+                    data={getFilteredEmpresaStatsByEquipment().map((empresa: any, index: number) => ({
+                      name: empresa.name,
+                      value: empresa.displayValue,
+                      percentage: empresa.percentage,
+                      departments: empresa.departamentos || [],
+                      color: undefined // Se generará automáticamente
+                    }))}
+                    title={`Distribución de ${equipmentTypeFilter === "todos" ? "Equipos" : 
+                                           equipmentTypeFilter === "computadores" ? "Computadores" : 
+                                           "Dispositivos"} por Empresa`}
+                    subtitle={`${equipmentTypeFilter === "todos" ? "Computadores y dispositivos" : 
+                             equipmentTypeFilter === "computadores" ? "Solo computadores" : 
+                             "Solo dispositivos"} por empresa`}
+                    showPercentage={true}
+                    onBarClick={(barData) => {
+                      setSelectedEmpresaForDetails(barData.name);
+                    }}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="ubicaciones" className="mt-0">
+                <div className="grid gap-6">
+                  {/* Filtros */}
+                  <Card className="bg-white border-gray-200 shadow-lg">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <Label className="text-sm font-medium text-gray-700">Filtrar por tipo de equipo:</Label>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant={equipmentTypeFilter === "todos" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("todos")}
+                              className="text-xs"
+                            >
+                              Todos
+                            </Button>
+                            <Button
+                              variant={equipmentTypeFilter === "computadores" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("computadores")}
+                              className="text-xs"
+                            >
+                              Computadores
+                            </Button>
+                            <Button
+                              variant={equipmentTypeFilter === "dispositivos" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setEquipmentTypeFilter("dispositivos")}
+                              className="text-xs"
+                            >
+                              Dispositivos
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Mostrando: {equipmentTypeFilter === "todos" ? "Todos los equipos" : 
+                                     equipmentTypeFilter === "computadores" ? "Solo computadores" : 
+                                     "Solo dispositivos"}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <BarChart
+                    data={getFilteredUbicacionStatsByEquipment().map((ubicacion: any) => ({
+                      name: ubicacion.name,
+                      value: ubicacion.displayValue,
+                      percentage: ubicacion.percentage,
+                      color: '#10b981'
+                    }))}
+                    title={`Distribución de ${equipmentTypeFilter === "todos" ? "Equipos" : 
+                                           equipmentTypeFilter === "computadores" ? "Computadores" : 
+                                           "Dispositivos"} por Ubicación`}
+                    subtitle={`${equipmentTypeFilter === "todos" ? "Computadores y dispositivos" : 
+                             equipmentTypeFilter === "computadores" ? "Solo computadores" : 
+                             "Solo dispositivos"} por ubicación física`}
+                    showPercentage={true}
+                  />
+                  
+                  {/* Información adicional de ubicaciones */}
                 <Card className="bg-white border-gray-200 shadow-lg">
                   <CardHeader className="border-b border-gray-200 pb-3">
-                    <CardTitle className="text-gray-900 flex items-center justify-between">
-                      <div className="flex items-center">
+                      <CardTitle className="text-gray-900 flex items-center">
                         <MapPin className="mr-2 h-5 w-5 text-[#167DBA]" /> 
-                        Distribución por Ubicaciones
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={selectedUbicacion}
-                          onChange={(e) => setSelectedUbicacion(e.target.value)}
-                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#167DBA] focus:border-transparent"
-                        >
-                          <option value="">Todas las ubicaciones</option>
-                          {dashboardData?.ubicacionStats?.map((ubicacion: any) => (
-                            <option key={ubicacion.name} value={ubicacion.name}>
-                              {ubicacion.name}
-                            </option>
-                          ))}
-                        </select>
-                        {selectedUbicacion && (
-                          <button
-                            onClick={() => setSelectedUbicacion("")}
-                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-600"
-                          >
-                            Limpiar
-                          </button>
-                        )}
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {getFilteredUbicacionStats().map((ubicacion: any) => (
-                        <div key={ubicacion.name} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-gray-800 font-medium">{ubicacion.name}</span>
-                            <span className="text-[#167DBA] font-mono">{ubicacion.percentage}%</span>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                              <div 
-                                className="bg-gradient-to-r from-[#167DBA] to-[#EA7704] h-2.5 rounded-full" 
-                                style={{ width: `${ubicacion.percentage}%` }}
-                              ></div>
+                        Detalles por Ubicación
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                        {getFilteredUbicacionStatsByEquipment().map((ubicacion: any) => (
+                          <div key={ubicacion.name} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-gray-800">{ubicacion.name}</h4>
+                              <span className="text-sm text-gray-600">{ubicacion.percentage}%</span>
                             </div>
-                            <div className="flex space-x-4 text-xs text-gray-600">
-                              <span>{ubicacion.computers} comp.</span>
-                              <span>{ubicacion.devices} disp.</span>
-                              <span className="font-medium">{ubicacion.total} total</span>
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                <span className="text-gray-600">{ubicacion.computers} computadores</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="text-gray-600">{ubicacion.devices} dispositivos</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                <span className="text-gray-600">
+                                  {equipmentTypeFilter === "todos" ? `${ubicacion.total} total` :
+                                   equipmentTypeFilter === "computadores" ? `${ubicacion.computers} computadores` :
+                                   `${ubicacion.devices} dispositivos`}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                      {getFilteredUbicacionStats().length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-lg font-medium">No hay datos disponibles</p>
-                          <p className="text-sm">
-                            {selectedUbicacion 
-                              ? `No se encontraron datos para "${selectedUbicacion}"`
-                              : "No hay ubicaciones registradas"
-                            }
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
+
             </Tabs>
           </div>
+          </div>
 
-          {/* Right Column - Time and Additional Info */}
+        {/* Cards debajo del gráfico cuando hay empresa seleccionada */}
+        {selectedEmpresaForDetails && (
+          <div className="grid grid-cols-12 gap-6 mt-6">
           <div className="col-span-12 lg:col-span-4">
-            <div className="space-y-6">
+              <div className="space-y-4">
               {/* System Time */}
               <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-b border-gray-200">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 border-b border-gray-200">
                     <div className="text-center">
                       <div className="text-xs text-gray-500 mb-1 font-mono">TIEMPO DEL SISTEMA</div>
-                      <div className="text-2xl font-mono text-[#167DBA] mb-1">{formatTime(currentTime)}</div>
-                      <div className="text-sm text-gray-600">{formatDate(currentTime)}</div>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-gray-50 rounded-md p-3 border border-gray-200">
-                        <div className="text-xs text-gray-500 mb-1">Última Actualización</div>
-                        <div className="text-sm font-mono text-gray-800">Hace 2 min</div>
+                        <div className="text-lg font-mono text-[#167DBA] mb-1">{formatTime(currentTime)}</div>
+                        <div className="text-xs text-gray-600">{formatDate(currentTime)}</div>
                       </div>
-                      <div className="bg-gray-50 rounded-md p-3 border border-gray-200">
+                    </div>
+                    <div className="p-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
+                        <div className="text-xs text-gray-500 mb-1">Última Actualización</div>
+                          <div className="text-xs font-mono text-gray-800">Hace 2 min</div>
+                      </div>
+                        <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="text-xs text-gray-500 mb-1">Estado</div>
                         <div className="flex items-center">
-                          <div className="h-2 w-2 rounded-full bg-green-500 mr-1 animate-pulse"></div>
-                          <div className="text-sm font-mono text-gray-800">Online</div>
-                        </div>
+                            <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
+                            <div className="text-xs font-mono text-gray-800">Online</div>
+                          </div>
                       </div>
                     </div>
                   </div>
@@ -587,44 +745,44 @@ export default function InventoryDashboard() {
 
               {/* Quick Stats Summary */}
               <Card className="bg-white border-gray-200 shadow-lg">
-                <CardHeader className="border-b border-gray-200 pb-3">
-                  <CardTitle className="text-gray-900 flex items-center">
-                    <Users className="mr-2 h-5 w-5 text-[#167DBA]" />
+                  <CardHeader className="border-b border-gray-200 pb-2">
+                    <CardTitle className="text-gray-900 flex items-center text-sm">
+                      <Users className="mr-2 h-4 w-4 text-[#167DBA]" />
                     Resumen General
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
+                  <CardContent className="p-3">
+                    <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-800">Empresas Activas</h3>
+                          <h3 className="text-xs font-medium text-gray-800">Empresas Activas</h3>
                         <p className="text-xs text-gray-600">
                           {dashboardData.empresaStats?.length || 0} empresas registradas
                         </p>
                       </div>
-                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
                         {dashboardData.empresaStats?.length || 0}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-800">Ubicaciones</h3>
+                          <h3 className="text-xs font-medium text-gray-800">Ubicaciones</h3>
                         <p className="text-xs text-gray-600">
                           {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
                         </p>
                       </div>
-                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
                         {dashboardData.ubicacionStats?.length || 0}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-800">Departamentos</h3>
+                          <h3 className="text-xs font-medium text-gray-800">Departamentos</h3>
                         <p className="text-xs text-gray-600">
                           {dashboardData.departmentStats?.length || 0} departamentos
                         </p>
                       </div>
-                      <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50">
+                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
                         {dashboardData.departmentStats?.length || 0}
                       </Badge>
                     </div>
@@ -634,6 +792,7 @@ export default function InventoryDashboard() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

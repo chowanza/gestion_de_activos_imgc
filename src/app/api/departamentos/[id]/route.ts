@@ -42,12 +42,36 @@ export async function GET(
             },
             computadores: {
               select: {
-                id: true
+                id: true,
+                serial: true,
+                estado: true,
+                modelo: {
+                  select: {
+                    nombre: true,
+                    marca: {
+                      select: {
+                        nombre: true
+                      }
+                    }
+                  }
+                }
               }
             },
             dispositivos: {
               select: {
-                id: true
+                id: true,
+                serial: true,
+                estado: true,
+                modelo: {
+                  select: {
+                    nombre: true,
+                    marca: {
+                      select: {
+                        nombre: true
+                      }
+                    }
+                  }
+                }
               }
             }
           },

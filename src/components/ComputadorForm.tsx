@@ -360,12 +360,11 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                         onChange={handleInputChange}
                                     >
                                         <option value="" disabled>Seleccionar estado...</option>
-                                        <option value="Resguardo">Resguardo</option>
-                                        <option value="Asignado">Asignado</option>
-                                        <option value="Operativo">Operativo</option>
-                                        <option value="Mantenimiento">Mantenimiento</option>
-                                        <option value="En Reparación">En Reparación</option>
-                                        <option value="De Baja">De Baja</option>
+                                        <option value="En resguardo">En resguardo (Guardado, no operativo)</option>
+                                        <option value="Operativo">Operativo (Disponible para uso)</option>
+                                        <option value="Asignado">Asignado (Vinculado a empleado)</option>
+                                        <option value="Mantenimiento">Mantenimiento (En reparación)</option>
+                                        <option value="De baja">De baja (Dañado, en sistema)</option>
                                     </select>
                                 </div>
                             </div>

@@ -21,22 +21,36 @@ export async function GET() {
       prisma.empleado.count(),
       prisma.dispositivo.count(),
       prisma.computador.count(),
-      // Un computador está "Asignado" si tiene un usuario vinculado y su estado es "Activo".
+      // Un computador está "Asignado" si su estado es "Asignado"
       prisma.computador.count({
         where: {
-          estado: "Asignado", // Puedes ajustar este valor si usas otro (ej: "En Uso")
+          estado: "Asignado",
         },
       }),
-      // Un computador está "En Resguardo" si su estado es "Almacenado".
+      // Equipos en resguardo (guardados pero no operativos)
       prisma.computador.count({
         where: {
-          estado: "Resguardo",
+          estado: "En resguardo",
         },
       }),
       // Dispositivos en resguardo
       prisma.dispositivo.count({
         where: {
-          estado: "Resguardo",
+          estado: "En resguardo",
+        },
+      }),
+    ]);
+
+    // Calcular equipos operativos (disponibles para uso)
+    const equiposOperativos = await Promise.all([
+      prisma.computador.count({
+        where: {
+          estado: "Operativo",
+        },
+      }),
+      prisma.dispositivo.count({
+        where: {
+          estado: "Operativo",
         },
       }),
     ]);
@@ -44,6 +58,7 @@ export async function GET() {
     // Calcular equipos totales y equipos en resguardo
     const totalEquipos = totalComputers + totalDevices;
     const equiposEnResguardo = storedComputers + storedDevices;
+    const totalEquiposOperativos = equiposOperativos[0] + equiposOperativos[1];
 
     // --- 2. ESTADÍSTICAS POR DEPARTAMENTO ---
     // Obtenemos todos los departamentos y contamos sus computadores y usuarios asociados.
@@ -80,6 +95,7 @@ export async function GET() {
               select: {
                 empleados: true,
                 computadores: true,
+                dispositivos: true,
               },
             },
             empleados: {
@@ -87,6 +103,7 @@ export async function GET() {
                 _count: {
                   select: {
                     computadores: true,
+                    dispositivos: true,
                   },
                 },
               },
@@ -113,7 +130,23 @@ export async function GET() {
         0
       );
       
+      // Dispositivos asignados directamente a departamentos
+      const devicesByDept = empresa.departamentos.reduce(
+        (sum, dept) => sum + dept._count.dispositivos,
+        0
+      );
+      
+      // Dispositivos asignados directamente a empleados de la empresa
+      const devicesByEmployees = empresa.departamentos.reduce(
+        (sum, dept) => sum + dept.empleados.reduce(
+          (empSum, emp) => empSum + emp._count.dispositivos,
+          0
+        ),
+        0
+      );
+      
       const totalComputersEmpresa = computersByDept + computersByEmployees;
+      const totalDevicesEmpresa = devicesByDept + devicesByEmployees;
       
       const totalUsersEmpresa = empresa.departamentos.reduce(
         (sum, dept) => sum + dept._count.empleados,
@@ -123,11 +156,9 @@ export async function GET() {
       return {
         name: empresa.nombre,
         computers: totalComputersEmpresa,
+        devices: totalDevicesEmpresa,
+        total: totalComputersEmpresa + totalDevicesEmpresa,
         users: totalUsersEmpresa,
-        percentage:
-          totalComputers > 0
-            ? parseFloat(((totalComputersEmpresa / totalComputers) * 100).toFixed(1))
-            : 0,
         departamentos: empresa.departamentos.map((dept) => {
           // Computadores del departamento + computadores de empleados del departamento
           const deptComputers = dept._count.computadores + dept.empleados.reduce(
@@ -135,14 +166,18 @@ export async function GET() {
             0
           );
           
+          // Dispositivos del departamento + dispositivos de empleados del departamento
+          const deptDevices = dept._count.dispositivos + dept.empleados.reduce(
+            (sum, emp) => sum + emp._count.dispositivos,
+            0
+          );
+          
           return {
             name: dept.nombre,
             computers: deptComputers,
+            devices: deptDevices,
+            total: deptComputers + deptDevices,
             users: dept._count.empleados,
-            percentage:
-              totalComputersEmpresa > 0
-                ? parseFloat(((deptComputers / totalComputersEmpresa) * 100).toFixed(1))
-                : 0,
           };
         }),
       };
@@ -167,10 +202,39 @@ export async function GET() {
       computers: ubicacion._count.computadores,
       devices: ubicacion._count.dispositivos,
       total: ubicacion._count.computadores + ubicacion._count.dispositivos,
-      percentage:
-        (totalComputers + totalDevices) > 0
-          ? parseFloat((((ubicacion._count.computadores + ubicacion._count.dispositivos) / (totalComputers + totalDevices)) * 100).toFixed(1))
-          : 0,
+    }));
+
+    // --- 2.3. ESTADÍSTICAS POR EMPLEADO ---
+    // Obtenemos todos los empleados con sus equipos asignados
+    const empleadosData = await prisma.empleado.findMany({
+      include: {
+        _count: {
+          select: {
+            computadores: true,
+            dispositivos: true,
+          },
+        },
+        departamento: {
+          select: {
+            nombre: true,
+            empresa: {
+              select: {
+                nombre: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Mapeamos los datos de empleados
+    const empleadoStats = empleadosData.map((empleado) => ({
+      name: `${empleado.nombre} ${empleado.apellido}`,
+      computers: empleado._count.computadores,
+      devices: empleado._count.dispositivos,
+      total: empleado._count.computadores + empleado._count.dispositivos,
+      departamento: empleado.departamento?.nombre || 'Sin departamento',
+      empresa: empleado.departamento?.empresa?.nombre || 'Sin empresa',
     }));
 
     // --- 3. ESTADÍSTICAS POR ESTADO ---
@@ -190,23 +254,34 @@ export async function GET() {
       }),
     ]);
 
-    // Mapeamos los datos de estados para computadores
-    const computadorEstadoStats = computadorEstados.map((item) => ({
-      estado: item.estado,
-      count: item._count.estado,
-      percentage: totalComputers > 0 
-        ? parseFloat(((item._count.estado / totalComputers) * 100).toFixed(1))
-        : 0,
-    }));
+    // Estados definidos en el sistema
+    const estadosDefinidos = ["En resguardo", "Operativo", "Asignado", "Mantenimiento", "De baja"];
 
-    // Mapeamos los datos de estados para dispositivos
-    const dispositivoEstadoStats = dispositivoEstados.map((item) => ({
-      estado: item.estado,
-      count: item._count.estado,
-      percentage: totalDevices > 0 
-        ? parseFloat(((item._count.estado / totalDevices) * 100).toFixed(1))
-        : 0,
-    }));
+    // Mapeamos los datos de estados para computadores, incluyendo estados con 0
+    const computadorEstadoStats = estadosDefinidos.map((estado) => {
+      const estadoData = computadorEstados.find(item => item.estado === estado);
+      const count = estadoData ? estadoData._count.estado : 0;
+      return {
+        estado,
+        count,
+        percentage: totalComputers > 0 
+          ? parseFloat(((count / totalComputers) * 100).toFixed(1))
+          : 0,
+      };
+    });
+
+    // Mapeamos los datos de estados para dispositivos, incluyendo estados con 0
+    const dispositivoEstadoStats = estadosDefinidos.map((estado) => {
+      const estadoData = dispositivoEstados.find(item => item.estado === estado);
+      const count = estadoData ? estadoData._count.estado : 0;
+      return {
+        estado,
+        count,
+        percentage: totalDevices > 0 
+          ? parseFloat(((count / totalDevices) * 100).toFixed(1))
+          : 0,
+      };
+    });
 
     // --- 4. ACTIVIDAD RECIENTE ---
     // Obtenemos las últimas 5 asignaciones/movimientos registrados.
@@ -246,13 +321,10 @@ export async function GET() {
     // Calcular tendencias reales requiere comparar con datos de un período anterior (ej. últimos 30 días).
     // Por ahora, devolvemos un objeto estático para que el frontend no falle.
     const trends = {
-      users: 5.2,
-      devices: 3.1,
-      computers: 7.8,
-      assigned: 11.4,
-      stored: -2.5,
       equipos: 8.5, // Tendencia para equipos totales
+      asignados: 11.4, // Tendencia para equipos asignados
       resguardo: -1.2, // Tendencia para equipos en resguardo
+      operativos: 6.8, // Tendencia para equipos operativos
     };
 
     // --- 5. RESPUESTA FINAL ---
@@ -263,12 +335,14 @@ export async function GET() {
       totalComputers,
       assignedComputers,
       storedComputers,
-      totalEquipos, // Nuevo campo
-      equiposEnResguardo, // Nuevo campo
+      totalEquipos, // Equipos totales
+      equiposEnResguardo, // Equipos en resguardo
+      equiposOperativos: totalEquiposOperativos, // Equipos operativos
       trends,
       departmentStats,
       empresaStats,
       ubicacionStats,
+      empleadoStats,
       computadorEstadoStats,
       dispositivoEstadoStats,
       recentActivity,

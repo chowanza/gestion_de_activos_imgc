@@ -236,7 +236,7 @@ const columns: ColumnDef<Computador>[] = [
   accessorKey: "estado",
   header: ({ column }) => {
     const isFilterActive = !!column.getFilterValue();
-    const estadosUnicos = ["Resguardo", "En reparación", "Asignado", "Otro"]; // Ajusta según tus estados
+    const estadosUnicos = ["En resguardo", "Operativo", "Asignado", "Mantenimiento", "De baja"];
     
     return (
       <div className="flex items-center">
@@ -276,14 +276,14 @@ const columns: ColumnDef<Computador>[] = [
     const estado = row.getValue("estado") as string;
     return (
       <div className="flex items-center gap-2">
-        {estado === "Resguardo" ? (
-          <ArchiveRestore className="h-4 w-4 text-blue-300" />
-        ) : estado === "En reparación" ? (
-          <WrenchIcon className="h-4 w-4 text-amber-500" />
-        ) : estado === "Asignado" ? (
-          <User2Icon className="h-4 w-4 text-green-500" />
+        {estado === "En resguardo" ? (
+          <ArchiveRestore className="h-4 w-4 text-orange-500" />
         ) : estado === "Operativo" ? (
           <CheckCircle2Icon className="h-4 w-4 text-green-600" />
+        ) : estado === "Asignado" ? (
+          <User2Icon className="h-4 w-4 text-blue-500" />
+        ) : estado === "Mantenimiento" ? (
+          <WrenchIcon className="h-4 w-4 text-yellow-500" />
         ) : estado === "De baja" ? (
           <Trash2 className="h-4 w-4 text-red-500" />
         ) : (

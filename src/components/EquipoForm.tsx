@@ -285,12 +285,11 @@ const [formData, setFormData] = useState<DispositivoFormData>({
               onChange={handleInputChange}
             >
               <option value="">Seleccionar estado</option>
-              <option value="Resguardo">Resguardo</option>
-              <option value="Asignado">Asignado</option>
-              <option value="Operativo">Operativo</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-              <option value="En reparación">En reparación</option>
-              <option value="De baja">De baja</option>
+              <option value="En resguardo">En resguardo (Guardado, no operativo)</option>
+              <option value="Operativo">Operativo (Disponible para uso)</option>
+              <option value="Asignado">Asignado (Vinculado a empleado)</option>
+              <option value="Mantenimiento">Mantenimiento (En reparación)</option>
+              <option value="De baja">De baja (Dañado, en sistema)</option>
             </select>
           </div>
 

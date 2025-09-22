@@ -18,16 +18,17 @@ import {
   Briefcase, 
   Monitor, 
   Smartphone,
-  Calendar,
   MapPin,
   User,
   ExternalLink,
   Eye,
   Plus,
-  Search
+  Search,
+  Edit
 } from "lucide-react";
 import Link from "next/link";
 import DepartamentoForm from "@/components/DeptoForm";
+import { EmpresaForm } from "@/components/EmpresaForm";
 
 interface EmpresaDetails {
   id: string;
@@ -124,6 +125,7 @@ export default function EmpresaDetailsPage() {
   const [filtroActivo, setFiltroActivo] = useState<'todos' | 'computadores' | 'dispositivos'>('todos');
   const [filtroNombre, setFiltroNombre] = useState('');
   const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchEmpresa = async () => {
@@ -153,13 +155,6 @@ export default function EmpresaDetailsPage() {
     }
   }, [id]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const getEstadoColor = (estado: string) => {
     switch (estado.toLowerCase()) {
@@ -301,6 +296,45 @@ export default function EmpresaDetailsPage() {
     }
   };
 
+  const handleEditEmpresa = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateEmpresa = async (data: { nombre: string; descripcion?: string; logo?: File | null }) => {
+    try {
+      const formData = new FormData();
+      formData.append('nombre', data.nombre);
+      if (data.descripcion) {
+        formData.append('descripcion', data.descripcion);
+      }
+      if (data.logo) {
+        formData.append('logo', data.logo);
+      }
+
+      const response = await fetch(`/api/empresas/${empresa?.id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar la empresa');
+      }
+
+      setIsEditModalOpen(false);
+      showToast.success("Empresa actualizada exitosamente", { position: "top-right" });
+      
+      // Recargar los datos de la empresa
+      const updatedResponse = await fetch(`/api/empresas/${id}`);
+      if (updatedResponse.ok) {
+        const updatedData = await updatedResponse.json();
+        setEmpresa(updatedData);
+      }
+    } catch (error: any) {
+      showToast.error(`Error al actualizar: ${error.message}`, { position: "top-right" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -352,6 +386,16 @@ export default function EmpresaDetailsPage() {
               <p className="text-gray-600">Detalles de la empresa</p>
             </div>
           </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleEditEmpresa}
+            className="flex items-center space-x-2"
+          >
+            <Edit className="h-4 w-4" />
+            <span>Editar</span>
+          </Button>
         </div>
       </div>
 
@@ -596,27 +640,19 @@ export default function EmpresaDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Información de Auditoría */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
-            Información de Auditoría
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Fecha de creación</label>
-              <p className="text-sm">{formatDate(empresa.createdAt)}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Última actualización</label>
-              <p className="text-sm">{formatDate(empresa.updatedAt)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* Edit Modal */}
+      <EmpresaForm
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleUpdateEmpresa}
+        isEditing={true}
+        initialData={empresa ? {
+          nombre: empresa.nombre,
+          descripcion: empresa.descripcion || '',
+          logo: empresa.logo || null
+        } : null}
+      />
     </div>
   );
 }

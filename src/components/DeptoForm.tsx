@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FormEvent } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -66,33 +66,39 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
     const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
     const [isCreatingEmpresa, setIsCreatingEmpresa] = useState(false);
 
+    // Estabilizar las referencias de los arrays para evitar re-renders infinitos
+    const stableEmpresas = useMemo(() => empresas, [empresas.length, empresas.map(e => e.id).join(',')]);
+    const stableEmpleados = useMemo(() => empleados, [empleados.length, empleados.map(e => e.id).join(',')]);
 
     const isEditing = !!initialData  // Es edición si initialData tiene un ID
 
     useEffect(() => {
-        setAllEmpresas(empresas);
-        setAllEmpleados(empleados);
-    }, [empresas, empleados]);
+        setAllEmpresas(stableEmpresas);
+        setAllEmpleados(stableEmpleados);
+    }, [stableEmpresas, stableEmpleados]);
 
     useEffect(() => {
         if (isOpen) {
             if (isEditing && initialData) {
                 setNombre(initialData.nombre || '');
 
-                // Preseleccionar la empresa
-                if (initialData.empresaId) {
+                // Preseleccionar la empresa - esperar a que allEmpresas esté cargado
+                if (initialData.empresaId && allEmpresas.length > 0) {
                     const empresaActual = allEmpresas.find(e => e.id === initialData.empresaId);
                     if (empresaActual) {
                         setSelectedEmpresa({ value: empresaActual.id, label: empresaActual.nombre });
                     } else {
                         setSelectedEmpresa(null);
                     }
+                } else if (initialData.empresaId && allEmpresas.length === 0) {
+                    // Si aún no se han cargado las empresas, mantener null temporalmente
+                    setSelectedEmpresa(null);
                 } else {
                     setSelectedEmpresa(null);
                 }
 
-                // Preseleccionar el gerente
-                if (initialData.gerenteId) {
+                // Preseleccionar el gerente - esperar a que allEmpleados esté cargado
+                if (initialData.gerenteId && allEmpleados.length > 0) {
                     const gerenteActual = allEmpleados.find(e => e.id === initialData.gerenteId);
                     if (gerenteActual) {
                         setSelectedGerente({ 
@@ -102,6 +108,9 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                     } else {
                         setSelectedGerente(null);
                     }
+                } else if (initialData.gerenteId && allEmpleados.length === 0) {
+                    // Si aún no se han cargado los empleados, mantener null temporalmente
+                    setSelectedGerente(null);
                 } else {
                     setSelectedGerente(null);
                 }
@@ -114,6 +123,30 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
             }
         }
     }, [isOpen, initialData, isEditing, allEmpresas, allEmpleados]);
+
+    // Efecto adicional para prellenar cuando los datos estén completamente cargados
+    useEffect(() => {
+        if (isOpen && isEditing && initialData && allEmpresas.length > 0 && allEmpleados.length > 0) {
+            // Preseleccionar la empresa si no está ya seleccionada
+            if (initialData.empresaId && !selectedEmpresa) {
+                const empresaActual = allEmpresas.find(e => e.id === initialData.empresaId);
+                if (empresaActual) {
+                    setSelectedEmpresa({ value: empresaActual.id, label: empresaActual.nombre });
+                }
+            }
+
+            // Preseleccionar el gerente si no está ya seleccionado
+            if (initialData.gerenteId && !selectedGerente) {
+                const gerenteActual = allEmpleados.find(e => e.id === initialData.gerenteId);
+                if (gerenteActual) {
+                    setSelectedGerente({ 
+                        value: gerenteActual.id, 
+                        label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
+                    });
+                }
+            }
+        }
+    }, [isOpen, isEditing, initialData, allEmpresas, allEmpleados, selectedEmpresa, selectedGerente]);
 
     const handleCreateEmpresa = async (inputValue: string) => {
             setIsCreatingEmpresa(true);

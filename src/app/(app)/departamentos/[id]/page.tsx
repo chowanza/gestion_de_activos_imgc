@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "nextjs-toast-notify";
 import { 
   ArrowLeft, 
@@ -16,13 +19,17 @@ import {
   Briefcase, 
   Monitor, 
   Smartphone,
-  Calendar,
   MapPin,
   User,
   ExternalLink,
-  Eye
+  Eye,
+  Edit,
+  Plus,
+  Search
 } from "lucide-react";
 import Link from "next/link";
+import DepartamentoForm from "@/components/DeptoForm";
+import EmpleadoForm from "@/components/EmpleadoForm";
 
 interface DepartamentoDetails {
   id: string;
@@ -50,6 +57,28 @@ interface DepartamentoDetails {
     cargo: {
       nombre: string;
     };
+    computadores?: Array<{
+      id: string;
+      serial: string;
+      estado: string;
+      modelo: {
+        nombre: string;
+        marca: {
+          nombre: string;
+        };
+      };
+    }>;
+    dispositivos?: Array<{
+      id: string;
+      serial: string;
+      estado: string;
+      modelo: {
+        nombre: string;
+        marca: {
+          nombre: string;
+        };
+      };
+    }>;
   }>;
   cargos: Array<{
     id: string;
@@ -99,6 +128,18 @@ export default function DepartamentoDetailsPage() {
   const [departamento, setDepartamento] = useState<DepartamentoDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para filtros
+  const [filtroActivo, setFiltroActivo] = useState<string>("");
+  const [filtroNombre, setFiltroNombre] = useState<string>("");
+  
+  // Estados para modales
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEmpleadoModalOpen, setIsEmpleadoModalOpen] = useState(false);
+  
+  // Estados para datos del formulario
+  const [empresas, setEmpresas] = useState<any[]>([]);
+  const [empleados, setEmpleados] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDepartamento = async () => {
@@ -128,6 +169,31 @@ export default function DepartamentoDetailsPage() {
     }
   }, [id]);
 
+  // Cargar empresas y empleados para el formulario
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        // Cargar empresas
+        const empresasResponse = await fetch('/api/empresas');
+        if (empresasResponse.ok) {
+          const empresasData = await empresasResponse.json();
+          setEmpresas(empresasData);
+        }
+
+        // Cargar empleados
+        const empleadosResponse = await fetch('/api/usuarios');
+        if (empleadosResponse.ok) {
+          const empleadosData = await empleadosResponse.json();
+          setEmpleados(empleadosData);
+        }
+      } catch (err) {
+        console.error('Error al cargar datos del formulario:', err);
+      }
+    };
+
+    fetchFormData();
+  }, []);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -146,6 +212,189 @@ export default function DepartamentoDetailsPage() {
         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Funciones para filtros
+  const getEmpleadosFiltrados = () => {
+    if (!departamento?.empleados) return [];
+    
+    let empleadosFiltrados = departamento.empleados;
+    
+    // Filtrar por tipo de equipo
+    if (filtroActivo === "computadores") {
+      empleadosFiltrados = empleadosFiltrados.filter(emp => 
+        emp.computadores && emp.computadores.length > 0
+      );
+    } else if (filtroActivo === "dispositivos") {
+      empleadosFiltrados = empleadosFiltrados.filter(emp => 
+        emp.dispositivos && emp.dispositivos.length > 0
+      );
+    }
+    
+    // Filtrar por nombre
+    if (filtroNombre) {
+      empleadosFiltrados = empleadosFiltrados.filter(emp =>
+        `${emp.nombre} ${emp.apellido}`.toLowerCase().includes(filtroNombre.toLowerCase())
+      );
+    }
+    
+    return empleadosFiltrados;
+  };
+
+  const getTituloFiltro = () => {
+    if (filtroActivo === "computadores") return "Empleados con Computadores";
+    if (filtroActivo === "dispositivos") return "Empleados con Dispositivos";
+    return "Empleados";
+  };
+
+  // Función para calcular el total de computadores (directos + de empleados)
+  const getTotalComputadores = () => {
+    if (!departamento) return 0;
+    
+    // Computadores asignados directamente al departamento
+    const computadoresDirectos = departamento.computadores?.length || 0;
+    
+    // Computadores asignados a empleados del departamento
+    const computadoresEmpleados = departamento.empleados?.reduce((total, empleado) => {
+      return total + (empleado.computadores?.length || 0);
+    }, 0) || 0;
+    
+    return computadoresDirectos + computadoresEmpleados;
+  };
+
+  // Función para calcular el total de dispositivos (directos + de empleados)
+  const getTotalDispositivos = () => {
+    if (!departamento) return 0;
+    
+    // Dispositivos asignados directamente al departamento
+    const dispositivosDirectos = departamento.dispositivos?.length || 0;
+    
+    // Dispositivos asignados a empleados del departamento
+    const dispositivosEmpleados = departamento.empleados?.reduce((total, empleado) => {
+      return total + (empleado.dispositivos?.length || 0);
+    }, 0) || 0;
+    
+    return dispositivosDirectos + dispositivosEmpleados;
+  };
+
+  // Función para obtener todos los computadores del departamento (directos + de empleados)
+  const getAllComputadores = () => {
+    if (!departamento) return [];
+    
+    const computadoresDirectos = departamento.computadores?.map(comp => ({
+      ...comp,
+      asignadoA: 'Departamento'
+    })) || [];
+    
+    const computadoresEmpleados = departamento.empleados?.flatMap(empleado => 
+      empleado.computadores?.map(comp => ({
+        ...comp,
+        asignadoA: empleado.nombre + ' ' + empleado.apellido
+      })) || []
+    ) || [];
+    
+    return [...computadoresDirectos, ...computadoresEmpleados];
+  };
+
+  // Función para obtener todos los dispositivos del departamento (directos + de empleados)
+  const getAllDispositivos = () => {
+    if (!departamento) return [];
+    
+    const dispositivosDirectos = departamento.dispositivos?.map(disp => ({
+      ...disp,
+      asignadoA: 'Departamento'
+    })) || [];
+    
+    const dispositivosEmpleados = departamento.empleados?.flatMap(empleado => 
+      empleado.dispositivos?.map(disp => ({
+        ...disp,
+        asignadoA: empleado.nombre + ' ' + empleado.apellido
+      })) || []
+    ) || [];
+    
+    return [...dispositivosDirectos, ...dispositivosEmpleados];
+  };
+
+  // Funciones para modales
+  const handleEditDepartamento = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateDepartamento = async (formData: FormData) => {
+    try {
+      const data = {
+        nombre: formData.get('nombre'),
+        descripcion: formData.get('descripcion'),
+        empresaId: departamento?.empresa.id
+      };
+
+      const response = await fetch(`/api/departamentos/${departamento?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar el departamento');
+      }
+
+      setIsEditModalOpen(false);
+      showToast.success("Departamento actualizado exitosamente", { position: "top-right" });
+      
+      // Recargar los datos del departamento
+      const updatedResponse = await fetch(`/api/departamentos/${id}`);
+      if (updatedResponse.ok) {
+        const updatedData = await updatedResponse.json();
+        setDepartamento(updatedData);
+      }
+    } catch (error: any) {
+      showToast.error(`Error al actualizar: ${error.message}`, { position: "top-right" });
+    }
+  };
+
+  const handleAddEmpleado = () => {
+    setIsEmpleadoModalOpen(true);
+  };
+
+  const handleCreateEmpleado = async (formData: FormData) => {
+    try {
+      const data = {
+        nombre: formData.get('nombre'),
+        apellido: formData.get('apellido'),
+        ced: formData.get('ced'),
+        fechaIngreso: formData.get('fechaIngreso'),
+        cargoId: formData.get('cargoId'),
+        departamentoId: departamento?.id
+      };
+
+      const response = await fetch('/api/empleados', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear el empleado');
+      }
+
+      setIsEmpleadoModalOpen(false);
+      showToast.success("Empleado creado exitosamente", { position: "top-right" });
+      
+      // Recargar los datos del departamento
+      const updatedResponse = await fetch(`/api/departamentos/${id}`);
+      if (updatedResponse.ok) {
+        const updatedData = await updatedResponse.json();
+        setDepartamento(updatedData);
+      }
+    } catch (error: any) {
+      showToast.error(`Error al crear empleado: ${error.message}`, { position: "top-right" });
     }
   };
 
@@ -185,13 +434,22 @@ export default function DepartamentoDetailsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{departamento.nombre}</h1>
             <p className="text-gray-600">Detalles del departamento</p>
           </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleEditDepartamento}
+            className="flex items-center space-x-2"
+          >
+            <Edit className="h-4 w-4" />
+            <span>Editar</span>
+          </Button>
         </div>
       </div>
 
@@ -254,18 +512,28 @@ export default function DepartamentoDetailsPage() {
               <p className="text-2xl font-bold">{departamento._count.cargos}</p>
               <p className="text-sm text-gray-600">Cargos</p>
             </div>
-            <div className="text-center">
+            <div 
+              className={`text-center cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors ${
+                filtroActivo === "computadores" ? "bg-purple-50 border-2 border-purple-200" : ""
+              }`}
+              onClick={() => setFiltroActivo(filtroActivo === "computadores" ? "" : "computadores")}
+            >
               <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
                 <Monitor className="h-6 w-6 text-purple-600" />
               </div>
-              <p className="text-2xl font-bold">{departamento._count.computadores}</p>
+              <p className="text-2xl font-bold">{getTotalComputadores()}</p>
               <p className="text-sm text-gray-600">Computadores</p>
             </div>
-            <div className="text-center">
+            <div 
+              className={`text-center cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors ${
+                filtroActivo === "dispositivos" ? "bg-orange-50 border-2 border-orange-200" : ""
+              }`}
+              onClick={() => setFiltroActivo(filtroActivo === "dispositivos" ? "" : "dispositivos")}
+            >
               <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2">
                 <Smartphone className="h-6 w-6 text-orange-600" />
               </div>
-              <p className="text-2xl font-bold">{departamento._count.dispositivos}</p>
+              <p className="text-2xl font-bold">{getTotalDispositivos()}</p>
               <p className="text-sm text-gray-600">Dispositivos</p>
             </div>
           </div>
@@ -275,15 +543,47 @@ export default function DepartamentoDetailsPage() {
       {/* Empleados */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Users className="h-5 w-5 mr-2" />
-            Empleados ({departamento.empleados?.length || 0})
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              {getTituloFiltro()} ({getEmpleadosFiltrados().length})
+            </div>
+            <div className="flex items-center space-x-2">
+              <Link href="/empleados">
+                <Button variant="outline" size="sm" className="flex items-center space-x-1">
+                  <Users className="h-4 w-4" />
+                  <span>Gestionar Empleados</span>
+                </Button>
+              </Link>
+              <Button 
+                variant="default" 
+                onClick={handleAddEmpleado}
+                size="sm"
+                className="flex items-center space-x-1 bg-black hover:bg-gray-800 text-white"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Agregar Empleado</span>
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {departamento.empleados && departamento.empleados.length > 0 ? (
+          {/* Barra de búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar empleado por nombre..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          
+          {getEmpleadosFiltrados().length > 0 ? (
             <div className="space-y-3">
-              {departamento.empleados.map((empleado) => (
+              {getEmpleadosFiltrados().map((empleado) => (
                   <div key={empleado.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -295,14 +595,14 @@ export default function DepartamentoDetailsPage() {
                           {empleado.cargo.nombre} • Cédula: {empleado.ced}
                         </p>
                         <div className="flex space-x-2 mt-1">
-                          {(empleado as any).computadores && (empleado as any).computadores.length > 0 && (
+                          {empleado.computadores && empleado.computadores.length > 0 && (
                             <Badge variant="outline" className="text-xs">
-                              {(empleado as any).computadores.length} PC
+                              {empleado.computadores.length} PC
                             </Badge>
                           )}
-                          {(empleado as any).dispositivos && (empleado as any).dispositivos.length > 0 && (
+                          {empleado.dispositivos && empleado.dispositivos.length > 0 && (
                             <Badge variant="outline" className="text-xs">
-                              {(empleado as any).dispositivos.length} Disp
+                              {empleado.dispositivos.length} Disp
                             </Badge>
                           )}
                         </div>
@@ -365,21 +665,27 @@ export default function DepartamentoDetailsPage() {
         {/* Computadores */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle 
+              className="flex items-center cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => setFiltroActivo(filtroActivo === "computadores" ? "" : "computadores")}
+            >
               <Monitor className="h-5 w-5 mr-2" />
-              Computadores ({departamento.computadores?.length || 0})
+              Computadores ({getTotalComputadores()})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {departamento.computadores && departamento.computadores.length > 0 ? (
+            {getAllComputadores().length > 0 ? (
               <div className="space-y-3">
-                {departamento.computadores.map((computador) => (
+                {getAllComputadores().map((computador) => (
                   <div key={computador.id} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold">{computador.serial}</p>
                         <p className="text-sm text-gray-600">
                           {computador.modelo.marca.nombre} {computador.modelo.nombre}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Asignado a: {(computador as any).asignadoA}
                         </p>
                       </div>
                       <Badge className={getEstadoColor(computador.estado)}>
@@ -398,21 +704,27 @@ export default function DepartamentoDetailsPage() {
         {/* Dispositivos */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle 
+              className="flex items-center cursor-pointer hover:text-orange-600 transition-colors"
+              onClick={() => setFiltroActivo(filtroActivo === "dispositivos" ? "" : "dispositivos")}
+            >
               <Smartphone className="h-5 w-5 mr-2" />
-              Dispositivos ({departamento.dispositivos?.length || 0})
+              Dispositivos ({getTotalDispositivos()})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {departamento.dispositivos && departamento.dispositivos.length > 0 ? (
+            {getAllDispositivos().length > 0 ? (
               <div className="space-y-3">
-                {departamento.dispositivos.map((dispositivo) => (
+                {getAllDispositivos().map((dispositivo) => (
                   <div key={dispositivo.id} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold">{dispositivo.serial}</p>
                         <p className="text-sm text-gray-600">
                           {dispositivo.modelo.marca.nombre} {dispositivo.modelo.nombre}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Asignado a: {(dispositivo as any).asignadoA}
                         </p>
                       </div>
                       <Badge className={getEstadoColor(dispositivo.estado)}>
@@ -429,27 +741,21 @@ export default function DepartamentoDetailsPage() {
         </Card>
       </div>
 
-      {/* Información de Auditoría */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
-            Información de Auditoría
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Fecha de creación</label>
-              <p className="text-sm">{formatDate(departamento.createdAt)}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Última actualización</label>
-              <p className="text-sm">{formatDate(departamento.updatedAt)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* Edit Modal */}
+      <DepartamentoForm
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleUpdateDepartamento}
+        empresas={empresas}
+        empleados={empleados}
+        initialData={departamento ? {
+          nombre: departamento.nombre,
+          descripcion: '',
+          empresaId: departamento.empresa.id,
+          gerenteId: departamento.gerente?.id
+        } : null}
+      />
     </div>
   );
 }
