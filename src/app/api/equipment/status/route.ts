@@ -23,19 +23,33 @@ export async function POST(request: NextRequest) {
     const equipment = equipmentType === 'Computador' 
       ? await prisma.computador.findUnique({
           where: { id: equipmentId },
-          include: {
-            empleado: true,
-            departamento: true,
-            modelo: { include: { marca: true } }
-          }
+        include: {
+          empleado: {
+            include: {
+              departamento: {
+                include: {
+                  empresa: true
+                }
+              }
+            }
+          },
+          modelo: { include: { marca: true } }
+        }
         })
       : await prisma.dispositivo.findUnique({
           where: { id: equipmentId },
-          include: {
-            empleado: true,
-            departamento: true,
-            modelo: { include: { marca: true } }
-          }
+        include: {
+          empleado: {
+            include: {
+              departamento: {
+                include: {
+                  empresa: true
+                }
+              }
+            }
+          },
+          modelo: { include: { marca: true } }
+        }
         });
 
     if (!equipment) {

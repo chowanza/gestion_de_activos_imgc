@@ -10,7 +10,7 @@ const asignacionSchema = z.object({
   itemId: z.string().uuid(),
   itemType: z.enum(['Computador', 'Dispositivo']),
   asignarA_id: z.string().uuid().optional(),
-  asignarA_type: z.enum(['Usuario', 'Departamento']).optional(),
+  asignarA_type: z.enum(['Usuario']).optional(),
   notas: z.string().optional(),
   gerenteId: z.string().optional(),
   gerente: z.string().optional(),
@@ -77,13 +77,6 @@ export async function GET(request: NextRequest) {
           tipo: 'Usuario',
           nombre: `${a.targetEmpleado.nombre} ${a.targetEmpleado.apellido}`,
         };
-      } else if (a.targetType === 'Departamento' && a.targetDepartamento) {
-        asignadoA = {
-          id: a.targetDepartamento.id,
-          tipo: 'Departamento',
-          nombre: a.targetDepartamento.nombre,
-        };
-      }
 
       return {
         id: a.id,
@@ -125,7 +118,7 @@ export async function POST(request: NextRequest) {
       itemId,
       itemType,               // 'Computador' | 'Dispositivo'
       asignarA_id,            // id del Usuario o Departamento
-      asignarA_type,          // 'Usuario' | 'Departamento'
+      asignarA_type,          // 'Usuario'
       notas,
       gerenteId,              // <- ID seleccionado manualmente en el frontend (renombrado)
       serialC,
@@ -161,7 +154,6 @@ export async function POST(request: NextRequest) {
             select: { 
               estado: true, 
               empleadoId: true, 
-              departamentoId: true,
               serial: true 
             }
           });
@@ -171,7 +163,6 @@ export async function POST(request: NextRequest) {
             select: { 
               estado: true, 
               empleadoId: true, 
-              departamentoId: true,
               serial: true 
             }
           });
@@ -233,9 +224,8 @@ export async function POST(request: NextRequest) {
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
 
-            targetType: asignarA_type,
-            targetEmpleadoId: asignarA_type === 'Usuario' ? asignarA_id : null,
-            targetDepartamentoId: asignarA_type === 'Departamento' ? asignarA_id : null,
+            targetType: 'Usuario',
+            targetEmpleadoId: asignarA_id,
 
             notes: notas || null,
 
@@ -254,9 +244,8 @@ export async function POST(request: NextRequest) {
 
         // 4) Actualizar el activo
         const updateData: any = {
-          estado: 'Asignado',
-          empleadoId: asignarA_type === 'Usuario' ? asignarA_id : null,
-          departamentoId: asignarA_type === 'Departamento' ? asignarA_id : null,
+          estado: 'ASIGNADO',
+          empleadoId: asignarA_id,
         };
 
         if (itemType === 'Computador') {

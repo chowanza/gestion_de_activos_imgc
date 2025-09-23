@@ -68,7 +68,6 @@ export async function GET() {
         _count: {
           select: {
             empleados: true,
-            computadores: true,
           },
         },
       },
@@ -77,12 +76,9 @@ export async function GET() {
     // Mapeamos los datos para darles el formato que el frontend espera.
     const departmentStats = deptsData.map((dept) => ({
       name: dept.nombre,
-      computers: dept._count.computadores,
+      computers: 0, // Se calculará por separado a través de empleados
       users: dept._count.empleados,
-      percentage:
-        totalComputers > 0
-          ? parseFloat(((dept._count.computadores / totalComputers) * 100).toFixed(1))
-          : 0,
+      percentage: 0, // Se calculará después
     }));
 
     // --- 2.1. ESTADÍSTICAS POR EMPRESA ---
@@ -94,8 +90,6 @@ export async function GET() {
             _count: {
               select: {
                 empleados: true,
-                computadores: true,
-                dispositivos: true,
               },
             },
             empleados: {
@@ -115,13 +109,7 @@ export async function GET() {
 
     // Mapeamos los datos de empresas con sus departamentos.
     const empresaStats = empresasData.map((empresa) => {
-      // Computadores asignados directamente a departamentos
-      const computersByDept = empresa.departamentos.reduce(
-        (sum, dept) => sum + dept._count.computadores,
-        0
-      );
-      
-      // Computadores asignados directamente a empleados de la empresa
+      // Computadores asignados a empleados de la empresa
       const computersByEmployees = empresa.departamentos.reduce(
         (sum, dept) => sum + dept.empleados.reduce(
           (empSum, emp) => empSum + emp._count.computadores,
@@ -130,13 +118,7 @@ export async function GET() {
         0
       );
       
-      // Dispositivos asignados directamente a departamentos
-      const devicesByDept = empresa.departamentos.reduce(
-        (sum, dept) => sum + dept._count.dispositivos,
-        0
-      );
-      
-      // Dispositivos asignados directamente a empleados de la empresa
+      // Dispositivos asignados a empleados de la empresa
       const devicesByEmployees = empresa.departamentos.reduce(
         (sum, dept) => sum + dept.empleados.reduce(
           (empSum, emp) => empSum + emp._count.dispositivos,
@@ -145,8 +127,8 @@ export async function GET() {
         0
       );
       
-      const totalComputersEmpresa = computersByDept + computersByEmployees;
-      const totalDevicesEmpresa = devicesByDept + devicesByEmployees;
+      const totalComputersEmpresa = computersByEmployees;
+      const totalDevicesEmpresa = devicesByEmployees;
       
       const totalUsersEmpresa = empresa.departamentos.reduce(
         (sum, dept) => sum + dept._count.empleados,
@@ -160,14 +142,14 @@ export async function GET() {
         total: totalComputersEmpresa + totalDevicesEmpresa,
         users: totalUsersEmpresa,
         departamentos: empresa.departamentos.map((dept) => {
-          // Computadores del departamento + computadores de empleados del departamento
-          const deptComputers = dept._count.computadores + dept.empleados.reduce(
+          // Computadores de empleados del departamento
+          const deptComputers = dept.empleados.reduce(
             (sum, emp) => sum + emp._count.computadores,
             0
           );
           
-          // Dispositivos del departamento + dispositivos de empleados del departamento
-          const deptDevices = dept._count.dispositivos + dept.empleados.reduce(
+          // Dispositivos de empleados del departamento
+          const deptDevices = dept.empleados.reduce(
             (sum, emp) => sum + emp._count.dispositivos,
             0
           );
@@ -254,8 +236,14 @@ export async function GET() {
       }),
     ]);
 
-    // Estados definidos en el sistema
-    const estadosDefinidos = ["En resguardo", "Operativo", "Asignado", "Mantenimiento", "De baja"];
+    // Estados definidos en el sistema (nueva lógica: asignado/no asignado con subestados)
+    const estadosDefinidos = [
+      "ASIGNADO",       // Asignado a empleado (PRIMERO)
+      "OPERATIVO",      // No asignado - operativo
+      "EN_MANTENIMIENTO", // No asignado - en mantenimiento
+      "EN_RESGUARDO",   // No asignado - en resguardo
+      "DE_BAJA"         // No asignado - de baja
+    ];
 
     // Mapeamos los datos de estados para computadores, incluyendo estados con 0
     const computadorEstadoStats = estadosDefinidos.map((estado) => {

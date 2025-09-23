@@ -30,8 +30,15 @@ export async function GET(request: Request) {
             marca: true,
           },
         },
-        empleado: true, // Incluimos esto para saber a quién está asignado
-        departamento: true, // Y a qué depto
+        empleado: {
+          include: {
+            departamento: {
+              include: {
+                empresa: true
+              }
+            }
+          }
+        }, // Incluimos esto para saber a quién está asignado y su departamento
         ubicacion: true, // Incluimos la ubicación asignada (si existe)
       },
       orderBy: {

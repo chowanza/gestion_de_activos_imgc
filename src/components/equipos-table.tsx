@@ -6,7 +6,7 @@ import React from "react";
 import {z} from "zod";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, Trash2 } from "lucide-react";
+import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, Trash2, Shield } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,13 @@ export const dispositivoSchema = z.object({
   fechaCompra: z.string().nullable(),
   numeroFactura: z.string().nullable(),
   proveedor: z.string().nullable(),
-  monto: z.number().nullable()
+  monto: z.number().nullable(),
+  // Campo para empleado asignado
+  empleado: z.object({
+    id: z.string(),
+    nombre: z.string(),
+    apellido: z.string()
+  }).optional()
 });
 
 export type DispositivoFormData = z.infer<typeof dispositivoSchema>;
@@ -291,18 +297,31 @@ const columns: ColumnDef<Dispositivo>[] = [
       const estado = row.getValue("estado") as string;
       return (
         <div className="flex items-center gap-2">
-          {estado === "En resguardo" ? (
-            <ArchiveRestore className="h-4 w-4 text-orange-500" />
-          ) : estado === "Operativo" ? (
+          {estado === "OPERATIVO" ? (
             <CheckCircle2Icon className="h-4 w-4 text-green-600" />
-          ) : estado === "Asignado" ? (
+          ) : estado === "ASIGNADO" ? (
             <User2Icon className="h-4 w-4 text-blue-500" />
-          ) : estado === "Mantenimiento" ? (
-            <WrenchIcon className="h-4 w-4 text-yellow-500" />
-          ) : estado === "De baja" ? (
+          ) : estado === "EN_MANTENIMIENTO" ? (
+            <WrenchIcon className="h-4 w-4 text-orange-500" />
+          ) : estado === "EN_RESGUARDO" ? (
+            <Shield className="h-4 w-4 text-blue-500" />
+          ) : estado === "DE_BAJA" ? (
             <Trash2 className="h-4 w-4 text-red-500" />
           ) : (
-            <XCircleIcon className="h-4 w-4 text-destructive" />
+            // Mantener compatibilidad con estados antiguos
+            estado === "Operativo" ? (
+              <CheckCircle2Icon className="h-4 w-4 text-green-600" />
+            ) : estado === "Asignado" ? (
+              <User2Icon className="h-4 w-4 text-blue-500" />
+            ) : estado === "Mantenimiento" || estado === "En mantenimiento" ? (
+              <WrenchIcon className="h-4 w-4 text-orange-500" />
+            ) : estado === "Resguardo" || estado === "En resguardo" ? (
+              <Shield className="h-4 w-4 text-blue-500" />
+            ) : estado === "De baja" ? (
+              <Trash2 className="h-4 w-4 text-red-500" />
+            ) : (
+              <XCircleIcon className="h-4 w-4 text-gray-500" />
+            )
           )}
           <span>{estado}</span>
         </div>

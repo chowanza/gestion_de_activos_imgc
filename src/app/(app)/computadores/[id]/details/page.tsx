@@ -52,7 +52,7 @@ import { handleGenerateAndDownloadQR } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
 import { IntelligentHistory } from "@/components/IntelligentHistory"
-import EquipmentStatusModal from "@/components/EquipmentStatusModal"
+import NuevoEquipmentStatusModal from "@/components/NuevoEquipmentStatusModal"
 
 
 // Define la interfaz para una entrada de modificación
@@ -157,13 +157,15 @@ interface ComputadorDetallado {
 
 
 const statusConfig = {
-  Resguardo: { label: "Resguardo", color: "green", bgColor: "bg-green-500/20", textColor: "text-green-400" },
-  Reparacion: { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  repair: { label: "En Reparación", color: "orange", bgColor: "bg-orange-500/20", textColor: "text-orange-400" },
-  "en reparacion": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  "en reparación": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  Asignado: { label: "Asignado", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  OPERATIVO: { label: "Operativo", color: "emerald", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
+  DE_BAJA: { label: "De Baja", color: "red", bgColor: "bg-red-500/20", textColor: "text-red-400" },
+  EN_RESGUARDO: { label: "En Resguardo", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  EN_MANTENIMIENTO: { label: "En Mantenimiento", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
+  ASIGNADO: { label: "Asignado", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  // Mantener compatibilidad con estados antiguos
+  Resguardo: { label: "En Resguardo", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
   Operativo: { label: "Operativo", color: "emerald", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
+  Asignado: { label: "Asignado", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
   Baja: { label: "De Baja", color: "red", bgColor: "bg-red-500/20", textColor: "text-red-400" },
   Desconocido: { label: "Desconocido", color: "gray", bgColor: "bg-gray-500/20", textColor: "text-gray-600" },
 }
@@ -203,7 +205,7 @@ export default function EquipmentDetails() {
     }, [id]);
 
 const departamentoTag = (
-  (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
+  (equipo?.estado === 'ASIGNADO' || (equipo?.estado === 'EN_MANTENIMIENTO' && equipo?.empleado))
     ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
     : '—'
 );
@@ -261,14 +263,14 @@ const departamentoTag = (
 
   const handleStatusChange = async (newStatus: string, assignmentData: any) => {
     try {
-      const response = await fetch('/api/equipment/status', {
+      const response = await fetch('/api/equipos/cambiarEstado', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          equipmentId: equipo?.id,
-          equipmentType: 'Computador',
-          newStatus,
-          assignmentData
+          equipoId: equipo?.id,
+          tipoEquipo: 'computador',
+          nuevoEstado: newStatus,
+          motivo: assignmentData.motivo || 'Cambio de estado'
         })
       });
 
@@ -280,21 +282,31 @@ const departamentoTag = (
       setEquipo(prev => prev ? {
         ...prev,
         estado: newStatus,
-        empleado: result.equipment.empleado,
-        departamento: result.equipment.departamento,
-        ubicacion: result.equipment.ubicacion,
-        historial: [
-          {
-            id: `asig-${result.assignment.id}`,
-            tipo: 'asignacion',
-            fecha: result.assignment.date,
-            detalle: result.assignment
-          },
-          ...prev.historial
-        ]
+        // Si el nuevo estado es ASIGNADO y hay datos de asignación, actualizar empleado/departamento
+        ...(newStatus === 'ASIGNADO' && assignmentData.targetEmpleadoId && {
+          empleado: {
+            id: assignmentData.targetEmpleadoId,
+            nombre: assignmentData.targetEmpleado?.split(' ')[0] || '',
+            apellido: assignmentData.targetEmpleado?.split(' ').slice(1).join(' ') || '',
+            departamento: {
+              nombre: 'Actualizando...',
+              empresa: { nombre: 'Actualizando...' }
+            }
+          }
+        }),
+        // Actualizar ubicación si se proporciona
+        ...(assignmentData.ubicacionId && {
+          ubicacion: {
+            id: assignmentData.ubicacionId,
+            nombre: assignmentData.ubicacion || 'Actualizando...'
+          }
+        })
       } : null);
 
       showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
+      
+      // Recargar los datos del equipo para obtener información actualizada
+      loadEquipoData();
     } catch (error) {
       console.error('Error actualizando estado:', error);
       showToast.error('Error actualizando el estado del equipo');
@@ -551,7 +563,7 @@ const departamentoTag = (
                         </div>
 
                         {/* Mostrar departamento y empresa si está asignado o en mantenimiento con empleado */}
-                        {(equipo.estado === 'Asignado' || (equipo.estado === 'Mantenimiento' && equipo.empleado)) && (
+                        {(equipo.estado === 'ASIGNADO' || (equipo.estado === 'EN_MANTENIMIENTO' && equipo.empleado)) && (
                           <>
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
@@ -678,12 +690,12 @@ const departamentoTag = (
                 <CardHeader className="border-b border-gray-200 pb-3">
                     <CardTitle className="text-gray-800 flex items-center">
                         <Users className="mr-2 h-5 w-5 text-orange-500" />
-                        {equipo.estado === 'Asignado' ? 'Asignación Actual' : 'Estado del Equipo'}
+                        {equipo.estado === 'ASIGNADO' ? 'Asignación Actual' : 'Estado del Equipo'}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                     {/* CASO 1: El equipo está asignado a un USUARIO */}
-                    {equipo.estado === 'Asignado' && equipo.empleado && (
+                    {equipo.estado === 'ASIGNADO' && equipo.empleado && (
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-12 w-12">
@@ -716,7 +728,7 @@ const departamentoTag = (
                     )}
 
                     {/* CASO 2: El equipo está asignado a un DEPARTAMENTO (y no a un usuario) */}
-                    {equipo.estado === 'Asignado' && equipo.departamento && !equipo.empleado && (
+                    {equipo.estado === 'ASIGNADO' && equipo.departamento && !equipo.empleado && (
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-12 w-12">
@@ -749,7 +761,7 @@ const departamentoTag = (
                     )}
 
                     {/* CASO 3: El equipo NO ESTÁ ASIGNADO */}
-                    {equipo.estado !== 'Asignado' && (
+                    {equipo.estado !== 'ASIGNADO' && (
                         <div className="text-center text-gray-600 py-8">
                             <div className="flex flex-col items-center space-y-4">
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
@@ -794,7 +806,7 @@ const departamentoTag = (
 
       {/* Modal de gestión de estado */}
       {equipo && (
-        <EquipmentStatusModal
+        <NuevoEquipmentStatusModal
           isOpen={statusModalOpen}
           onClose={() => setStatusModalOpen(false)}
           equipment={{

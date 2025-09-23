@@ -55,6 +55,10 @@ export default function EditarComputadorPage() {
         }
     };
 
+    const handleCancel = () => {
+        router.back();
+    };
+
     if (loading) {
         return <div className="flex justify-center items-center h-screen"><Spinner /></div>;
     }
@@ -74,6 +78,7 @@ export default function EditarComputadorPage() {
                     onSubmit={handleUpdateComputador}
                     initialData={initialData}
                     isEditing={true}
+                    onCancel={handleCancel}
                 />
             </CardContent>
         </Card>

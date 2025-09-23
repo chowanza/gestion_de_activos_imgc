@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- CONSTANTES DE ESTADO ---
+// Estados cuando NO está asignado: OPERATIVO, DE_BAJA, EN_RESGUARDO
+// Estados cuando SÍ está asignado: ASIGNADO, EN_MANTENIMIENTO
+
 // --- DATOS MAESTROS DE EQUIPOS ---
 model Marca {
   id      String              @id @default(uuid())
@@ -60,9 +64,6 @@ model Departamento {
   gerenteId    String?
   gerente      Empleado?      @relation("DepartamentoGerente", fields: [gerenteId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   empleados    Empleado[]     @relation("DepartamentoEmpleados")
-  computadores Computador[]
-  dispositivos Dispositivo[]
-  asignaciones Asignaciones[]
   cargos       Cargo[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -85,6 +86,8 @@ model Empleado {
   apellido               String
   ced                    String
   email                  String?
+  telefono               String?
+  direccion              String?
   fechaNacimiento        String?
   fechaIngreso           String?
   fechaDesincorporacion  String?
@@ -98,18 +101,17 @@ model Empleado {
   asignaciones           Asignaciones[]
   targetAsignaciones     Asignaciones[] @relation("targetEmpleado")
   departamentosGerenciados Departamento[] @relation("DepartamentoGerente")
+  statusHistory          EmpleadoStatusHistory[]
 }
 
 model Computador {
   id                      String                    @id @default(uuid())
   serial                  String                    @unique
-  estado                  String
+  estado                  String                    @default("OPERATIVO")
   modeloId                String
   modelo                  ModeloDispositivo         @relation(fields: [modeloId], references: [id])
   empleadoId              String?
   empleado                Empleado?                 @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  departamentoId          String?
-  departamento            Departamento?             @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ubicacionId             String?
   ubicacion               Ubicacion?                @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   
@@ -187,13 +189,11 @@ model HistorialMovimientos {
 model Dispositivo {
   id             String            @id @default(uuid())
   serial         String            @unique
-  estado         String
+  estado         String            @default("OPERATIVO")
   modeloId       String
   modelo         ModeloDispositivo @relation(fields: [modeloId], references: [id])
   empleadoId     String?
   empleado       Empleado?         @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  departamentoId String?
-  departamento   Departamento?     @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ubicacionId    String?
   ubicacion      Ubicacion?        @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   mac            String?
@@ -236,8 +236,6 @@ model Asignaciones {
   targetEmpleadoId String?
   targetEmpleado   Empleado? @relation(fields: [targetEmpleadoId], references: [id], name: "targetEmpleado", onDelete: NoAction, onUpdate: NoAction)
 
-  targetDepartamentoId String?
-  targetDepartamento   Departamento? @relation(fields: [targetDepartamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   itemType String
 
@@ -252,4 +250,17 @@ model Asignaciones {
 
   ubicacionId String?
   ubicacion   Ubicacion? @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+}
+
+// Historial de cambios de estado de empleados
+model EmpleadoStatusHistory {
+  id          String   @id @default(uuid())
+  empleadoId  String
+  empleado    Empleado @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  accion      String   // 'activar' o 'desactivar'
+  fecha       String   // Fecha del cambio
+  motivo      String?  // Motivo opcional del cambio
+  usuarioId   String?  // Usuario que hizo el cambio
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

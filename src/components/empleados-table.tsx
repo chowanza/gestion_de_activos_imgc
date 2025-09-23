@@ -45,6 +45,8 @@ export interface Empleado {
     apellido: string;
     cedula: string;
     email?: string;
+    telefono?: string;
+    direccion?: string;
     fechaNacimiento?: string;
     fechaIngreso?: string;
     fechaDesincorporacion?: string;
@@ -72,7 +74,10 @@ export function EmpleadoTable({}: EmpleadoTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
-    email: true
+    email: true,
+    telefono: true,
+    direccion: true,
+    fechaDesincorporacion: false
   })
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -206,6 +211,47 @@ const columns: ColumnDef<Empleado>[] = [
     },
   },
   {
+    accessorKey: "telefono",
+    header: "Teléfono",
+    cell: ({ row }) => {
+      const telefono = row.getValue("telefono") as string;
+      return telefono ? (
+        <div className="flex items-center">
+          <a 
+            href={`tel:${telefono}`}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {telefono}
+          </a>
+        </div>
+      ) : (
+        <span className="text-muted-foreground italic">Sin teléfono</span>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const telefono = row.getValue(id)?.toString().toLowerCase() || '';
+      return telefono.includes(value);
+    },
+  },
+  {
+    accessorKey: "direccion",
+    header: "Dirección",
+    cell: ({ row }) => {
+      const direccion = row.getValue("direccion") as string;
+      return direccion ? (
+        <div className="max-w-xs truncate" title={direccion}>
+          {direccion}
+        </div>
+      ) : (
+        <span className="text-muted-foreground italic">Sin dirección</span>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const direccion = row.getValue(id)?.toString().toLowerCase() || '';
+      return direccion.includes(value);
+    },
+  },
+  {
     accessorKey: "fechaNacimiento",
     header: "Cumpleaños",
     cell: ({ row }) => {
@@ -276,6 +322,35 @@ const columns: ColumnDef<Empleado>[] = [
     header: "Fecha de Ingreso",
     cell: ({ row }) => {
       const fecha = row.getValue("fechaIngreso") as string;
+      if (!fecha) return <div>-</div>;
+      
+      // Si la fecha ya está en formato dd/mm/yy, mostrarla directamente
+      if (fecha.includes('/')) {
+        return <div>{fecha}</div>;
+      }
+      
+      // Si está en formato ISO, convertirla correctamente evitando problemas de zona horaria
+      if (fecha.includes('-')) {
+        const [year, month, day] = fecha.split('-');
+        return <div>{`${day}/${month}/${year}`}</div>;
+      }
+      
+      // Fallback para otros formatos
+      const fechaObj = new Date(fecha);
+      if (isNaN(fechaObj.getTime())) return <div>-</div>;
+      
+      const dia = fechaObj.getDate().toString().padStart(2, '0');
+      const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+      const año = fechaObj.getFullYear();
+      
+      return <div>{`${dia}/${mes}/${año}`}</div>;
+    },
+  },
+  {
+    accessorKey: "fechaDesincorporacion",
+    header: "Fecha de Desincorporación",
+    cell: ({ row }) => {
+      const fecha = row.getValue("fechaDesincorporacion") as string;
       if (!fecha) return <div>-</div>;
       
       // Si la fecha ya está en formato dd/mm/yy, mostrarla directamente
@@ -597,8 +672,11 @@ const columns: ColumnDef<Empleado>[] = [
     const nombre = row.getValue('nombre')?.toString().toLowerCase() || '';
     const apellido = row.getValue('apellido')?.toString().toLowerCase() || '';
     const cedula = row.getValue('cedula')?.toString().toLowerCase() || '';
+    const telefono = row.getValue('telefono')?.toString().toLowerCase() || '';
+    const direccion = row.getValue('direccion')?.toString().toLowerCase() || '';
     
-    return nombre.includes(search) || apellido.includes(search) || cedula.includes(search);
+    return nombre.includes(search) || apellido.includes(search) || cedula.includes(search) || 
+           telefono.includes(search) || direccion.includes(search);
   },
   });
 
@@ -663,7 +741,7 @@ return (
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Buscar por nombre, apellido o cédula..."
+                placeholder="Buscar por nombre, apellido, cédula, teléfono o dirección..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-sm border-primary/20"
@@ -719,13 +797,19 @@ return (
                         >
                           {column.id === "cedula"
                               ? "Cédula"
-                              : column.id === "departamento"
-                                ? "Departamento"
-                                    : column.id === "cargo"
-                                        ? "Cargo"
-                                            : column.id === "fechaIngreso"
-                                                ? "Fecha de Ingreso"
-                                                    : column.id}
+                              : column.id === "telefono"
+                                ? "Teléfono"
+                                    : column.id === "direccion"
+                                        ? "Dirección"
+                                            : column.id === "departamento"
+                                                ? "Departamento"
+                                                    : column.id === "cargo"
+                                                        ? "Cargo"
+                                                            : column.id === "fechaIngreso"
+                                                                ? "Fecha de Ingreso"
+                                                                    : column.id === "fechaDesincorporacion"
+                                                                        ? "Fecha de Desincorporación"
+                                                                            : column.id}
                         </DropdownMenuCheckboxItem>
                       )
                     })}

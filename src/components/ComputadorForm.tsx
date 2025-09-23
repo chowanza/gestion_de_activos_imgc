@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import Select from 'react-select'; // Usando react-select para modelos
 import { showToast } from "nextjs-toast-notify"; // Usando el componente de scroll de Shadcn
 import Link from 'next/link';
@@ -58,12 +59,19 @@ export interface ComputadorFormData {
     numeroFactura?: string;
     proveedor?: string;
     monto?: number;
+    // Campo para empleado asignado
+    empleado?: {
+        id: string;
+        nombre: string;
+        apellido: string;
+    };
 }
 
 interface ComputadorFormProps {
     onSubmit: (data: ComputadorFormData) => Promise<void>;
     initialData?: ComputadorFormData | null;
     isEditing?: boolean; // Añadido para manejar el modo de edición
+    onCancel?: () => void; // Función opcional para manejar cancelación
 }
 
 interface OptionType {
@@ -100,6 +108,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     isEditing = false, // Por defecto es false
     onSubmit,
     initialData,
+    onCancel,
 }) => {
 
     const [formData, setFormData] = useState<ComputadorFormData>(initialState);
@@ -109,10 +118,8 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
     
     // Estados para la lógica de asignación
-    const [asignarA, setAsignarA] = useState<'Usuario' | 'Departamento'>('Usuario');
     const [selectedTarget, setSelectedTarget] = useState<any>(null);
     const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
     const [motivo, setMotivo] = useState('');
     const [notas, setNotas] = useState('');
     const [selectedGerente, setSelectedGerente] = useState<any>(null);
@@ -124,18 +131,16 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                 setIsLoadingModelos(true);
                 setIsLoadingUbicaciones(true);
                 try {
-                    const [modelosRes, ubicacionesRes, usuariosRes, departamentosRes] = await Promise.all([
+                    const [modelosRes, ubicacionesRes, usuariosRes] = await Promise.all([
                         fetch('/api/modelos'),
                         fetch('/api/ubicaciones'),
-                        fetch('/api/usuarios'),
-                        fetch('/api/departamentos')
+                        fetch('/api/usuarios')
                     ]);
 
-                    const [modelosData, ubicacionesData, usuariosData, departamentosData] = await Promise.all([
+                    const [modelosData, ubicacionesData, usuariosData] = await Promise.all([
                         modelosRes.json(),
                         ubicacionesRes.json(),
-                        usuariosRes.json(),
-                        departamentosRes.json()
+                        usuariosRes.json()
                     ]);
 
                     // Procesar modelos y ubicaciones
@@ -151,15 +156,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                         empresa: user.departamento?.empresa?.nombre || 'N/A'
                     }));
 
-                    // Procesar departamentos
-                    const departamentosFormatted = departamentosData.map((dept: any) => ({
-                        value: dept.id,
-                        label: dept.nombre,
-                        empresa: dept.empresa?.nombre || 'N/A'
-                    }));
-
                     setUsuarios(usuariosFormatted);
-                    setDepartamentos(departamentosFormatted);
                 } catch (error) {
                     showToast.error("¡Error en Cargar Datos!", { position: "top-right" });
                 } finally {
@@ -172,8 +169,16 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     
            if (initialData) {
             setFormData(initialData);
+            
+            // Pre-seleccionar empleado si el equipo está asignado
+            if (initialData.empleado && usuarios.length > 0) {
+                const empleadoAsignado = usuarios.find(user => user.value === initialData.empleado.id);
+                if (empleadoAsignado) {
+                    setSelectedTarget(empleadoAsignado);
+                }
+            }
         }
-    }, [initialData]); // Dependencias correctas
+    }, [initialData, usuarios]); // Agregar usuarios a las dependencias
 
     // --- Handlers para los cambios en los inputs ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -204,12 +209,12 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
         }
 
         // Validaciones adicionales según el estado
-        if (formData.estado === 'Asignado' && !selectedTarget) {
+        if (formData.estado === 'ASIGNADO' && !selectedTarget) {
             showToast.error('Debe seleccionar un usuario o departamento para asignar');
             return;
         }
 
-        if (formData.estado === 'Mantenimiento' && !motivo.trim()) {
+        if (formData.estado === 'EN_MANTENIMIENTO' && !motivo.trim()) {
             showToast.error('Debe especificar el motivo del mantenimiento');
             return;
         }
@@ -236,6 +241,24 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const ubicacionOptions = ubicaciones.map(ubicacion => ({ value: ubicacion.id, label: ubicacion.nombre }));
     const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
     const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;
+    
+    // Determinar si el equipo está asignado para filtrar opciones de estado
+    // Solo ASIGNADO requiere restricciones, EN_MANTENIMIENTO puede cambiar libremente
+    const isEquipoAsignado = initialData?.estado === 'ASIGNADO';
+    
+    // Opciones de estado filtradas según si está asignado
+    const opcionesEstado = [
+        { value: 'OPERATIVO', label: 'Operativo (No asignado - Disponible para uso)' },
+        { value: 'ASIGNADO', label: 'Asignado (Asignado a empleado)' },
+        { value: 'EN_MANTENIMIENTO', label: 'En Mantenimiento (No asignado - En mantenimiento)' },
+        { value: 'EN_RESGUARDO', label: 'En Resguardo (No asignado - En resguardo)' },
+        { value: 'DE_BAJA', label: 'De Baja (No asignado - De baja)' }
+    ];
+    
+    // Si el equipo está asignado, solo mostrar opciones no asignadas
+    const opcionesEstadoFiltradas = isEquipoAsignado 
+        ? opcionesEstado.filter(opcion => opcion.value !== 'ASIGNADO')
+        : opcionesEstado;
 
     return (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -351,64 +374,112 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                             {/* Sección Estado */}
                             <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Estado del Equipo</h3>
                             <div className="grid grid-cols-1">
+                                {/* Nota informativa para equipos asignados */}
+                                {isEquipoAsignado && (
+                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-blue-800 font-medium">
+                                                ⚠️ Equipo Asignado
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-blue-700 mt-1">
+                                            Este equipo está asignado a un empleado. Para cambiar el estado, use la opción <strong>"Gestionar Estado"</strong> desde la pantalla de detalles del equipo.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {/* Nota informativa para equipos en mantenimiento */}
+                                {initialData?.estado === 'EN_MANTENIMIENTO' && !isEquipoAsignado && (
+                                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-orange-800 font-medium">
+                                                🔧 Equipo en Mantenimiento
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-orange-700 mt-1">
+                                            Este equipo está en mantenimiento. Puede cambiar el estado libremente desde este formulario.
+                                        </p>
+                                    </div>
+                                )}
+                                
                                 <div className="grid gap-2">
                                     <Label htmlFor="estado">Estado <span className="text-destructive">*</span></Label>
                                     <select
                                         id="estado"
-                                        className="w-full h-10 border rounded-md px-2 bg-[hsl(var(--background))] border-[hsl(var(--input))] focus:ring-1 focus:ring-[hsl(var(--ring))] focus:outline-none"
+                                        className={`w-full h-10 border rounded-md px-2 focus:ring-1 focus:ring-[hsl(var(--ring))] focus:outline-none ${
+                                            isEquipoAsignado 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed' 
+                                                : 'bg-[hsl(var(--background))] border-[hsl(var(--input))]'
+                                        }`}
                                         value={formData.estado || ''}
                                         onChange={handleInputChange}
+                                        disabled={isEquipoAsignado}
                                     >
                                         <option value="" disabled>Seleccionar estado...</option>
-                                        <option value="En resguardo">En resguardo (Guardado, no operativo)</option>
-                                        <option value="Operativo">Operativo (Disponible para uso)</option>
-                                        <option value="Asignado">Asignado (Vinculado a empleado)</option>
-                                        <option value="Mantenimiento">Mantenimiento (En reparación)</option>
-                                        <option value="De baja">De baja (Dañado, en sistema)</option>
+                                        {opcionesEstadoFiltradas.map(opcion => (
+                                            <option key={opcion.value} value={opcion.value}>
+                                                {opcion.label}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {isEquipoAsignado && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            El estado solo se puede cambiar desde la opción "Gestionar Estado" en los detalles del equipo.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Debug: Mostrar el estado actual */}
                             <div className="text-xs text-gray-500 p-2 bg-yellow-100 border rounded mt-2">
-                                Estado actual: "{formData.estado || 'vacío'}" | ¿Es Asignado?: {formData.estado === 'Asignado' ? 'SÍ' : 'NO'}
+                                Estado actual: "{formData.estado || 'vacío'}" | ¿Es Asignado?: {formData.estado === 'ASIGNADO' ? 'SÍ' : 'NO'}
                             </div>
 
-                            {/* Campos de Asignación - Solo se muestran si el estado es "Asignado" */}
-                            {formData.estado === 'Asignado' && (
+                            {/* Información de Asignación - Solo lectura cuando está asignado */}
+                            {formData.estado === 'ASIGNADO' && initialData?.empleado && (
+                                <div className="grid gap-4 p-4 border rounded-lg bg-gray-50 mt-4">
+                                    <h4 className="text-sm font-medium text-gray-700">Información de Asignación Actual</h4>
+                                    
+                                    {/* Usuario asignado (solo lectura) */}
+                                    <div className="grid gap-2">
+                                        <Label>Usuario Asignado</Label>
+                                        <div className="p-3 bg-white border rounded-md">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-gray-900">
+                                                    {initialData.empleado.nombre} {initialData.empleado.apellido}
+                                                </span>
+                                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                                    Asignado
+                                                </Badge>
+                                            </div>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Para cambiar la asignación, primero desasigne el equipo cambiando el estado.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Campos de Asignación - Solo se muestran si se está creando un nuevo equipo o cambiando a ASIGNADO */}
+                            {formData.estado === 'ASIGNADO' && (!initialData || !initialData.empleado) && (
                                 <div className="grid gap-4 p-4 border rounded-lg bg-gray-50 mt-4">
                                     <h4 className="text-sm font-medium text-gray-700">Información de Asignación</h4>
                                     
-                                    {/* Selector de tipo de asignación */}
+                                    {/* Selector de usuario */}
                                     <div className="grid gap-2">
-                                        <Label>Asignar a:</Label>
-                                        <RadioGroup value={asignarA} onValueChange={(value) => setAsignarA(value as 'Usuario' | 'Departamento')}>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="Usuario" id="usuario" />
-                                                <Label htmlFor="usuario">Usuario</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="Departamento" id="departamento" />
-                                                <Label htmlFor="departamento">Departamento</Label>
-                                            </div>
-                                        </RadioGroup>
-                                    </div>
-
-                                    {/* Selector de usuario o departamento */}
-                                    <div className="grid gap-2">
-                                        <Label>{asignarA === 'Usuario' ? 'Usuario' : 'Departamento'}</Label>
+                                        <Label>Usuario</Label>
                                         <Select
-                                            options={asignarA === 'Usuario' ? usuarios : departamentos}
+                                            options={usuarios}
                                             value={selectedTarget}
                                             onChange={setSelectedTarget}
-                                            placeholder={`Seleccionar ${asignarA.toLowerCase()}`}
+                                            placeholder="Seleccionar usuario"
                                             isSearchable
                                             styles={reactSelectStyles}
                                             formatOptionLabel={(option: any) => (
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{option.label}</span>
                                                     <span className="text-sm text-gray-500">
-                                                        {asignarA === 'Usuario' ? `${option.cargo} - ${option.departamento}` : option.empresa}
+                                                        {option.cargo} - {option.departamento}
                                                     </span>
                                                 </div>
                                             )}
@@ -457,7 +528,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                             )}
 
                             {/* Campo de motivo para mantenimiento */}
-                            {formData.estado === 'Mantenimiento' && (
+                            {formData.estado === 'EN_MANTENIMIENTO' && (
                                 <div className="grid gap-2 mt-4">
                                     <Label htmlFor="motivo">Motivo del Mantenimiento <span className="text-destructive">*</span></Label>
                                     <Input 
@@ -514,8 +585,8 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                             </div>
                         </div>
                    <div className="flex justify-end gap-4 pt-6">
-                        <Button type="button" variant="outline" asChild>
-                            <Link href="/computadores">Cancelar</Link>
+                        <Button type="button" variant="outline" onClick={onCancel}>
+                            {onCancel ? 'Cancelar' : <Link href="/computadores">Cancelar</Link>}
                         </Button>
                         <Button type="submit" className="cyber-button text-white font-semibold">
                             {isEditing ? 'GUARDAR CAMBIOS' : 'GUARDAR EQUIPO'}

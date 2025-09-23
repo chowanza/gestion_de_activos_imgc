@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
         },
         cargo: true,
         computadores: {
+          where: {
+            estado: {
+              not: 'OPERATIVO' // Solo mostrar computadores que NO estén en estado operativo (no asignados)
+            }
+          },
           include: {
             modelo: {
               include: {
@@ -36,12 +41,22 @@ export async function GET(request: NextRequest) {
           }
         },
         dispositivos: {
+          where: {
+            estado: {
+              not: 'OPERATIVO' // Solo mostrar dispositivos que NO estén en estado operativo (no asignados)
+            }
+          },
           include: {
             modelo: {
               include: {
                 marca: true
               }
             }
+          }
+        },
+        statusHistory: {
+          orderBy: {
+            createdAt: 'desc'
           }
         }
       }
@@ -71,7 +86,7 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
 
         // Extraemos los datos del cuerpo de la petición.
-        const { nombre, apellido, cargoId, ced, cedula, departamentoId, email, fechaNacimiento, fechaIngreso, fotoPerfil } = body;
+        const { nombre, apellido, cargoId, ced, cedula, departamentoId, email, fechaNacimiento, fechaIngreso, fechaDesincorporacion, telefono, direccion, fotoPerfil } = body;
         
 
         // Función para procesar fechas y evitar problemas de zona horaria
@@ -93,14 +108,29 @@ export async function PUT(request: NextRequest) {
         const dataToUpdate: { [key: string]: any } = {};
         if (nombre) dataToUpdate.nombre = nombre;
         if (apellido) dataToUpdate.apellido = apellido;
-        if (cargoId) dataToUpdate.cargoId = cargoId;
         if (ced) dataToUpdate.ced = ced;
         if (cedula) dataToUpdate.ced = cedula; // Mapear cedula a ced
-        if (departamentoId) dataToUpdate.departamentoId = departamentoId;
         if (email !== undefined) dataToUpdate.email = email;
         if (fechaNacimiento) dataToUpdate.fechaNacimiento = processDate(fechaNacimiento);
         if (fechaIngreso) dataToUpdate.fechaIngreso = processDate(fechaIngreso);
+        if (fechaDesincorporacion !== undefined) dataToUpdate.fechaDesincorporacion = processDate(fechaDesincorporacion);
+        if (telefono !== undefined) dataToUpdate.telefono = telefono;
+        if (direccion !== undefined) dataToUpdate.direccion = direccion;
         if (fotoPerfil !== undefined) dataToUpdate.fotoPerfil = fotoPerfil;
+        
+        // Manejar cargoId usando la relación correcta
+        if (cargoId) {
+            dataToUpdate.cargo = {
+                connect: { id: cargoId }
+            };
+        }
+        
+        // Manejar departamentoId usando la relación correcta
+        if (departamentoId) {
+            dataToUpdate.departamento = {
+                connect: { id: departamentoId }
+            };
+        }
         
 
         const updatedEmpleado = await prisma.empleado.update({
@@ -108,10 +138,42 @@ export async function PUT(request: NextRequest) {
                 id: id,
             },
             data: dataToUpdate, // Pasamos el objeto de datos corregido
+            include: {
+                departamento: {
+                    include: {
+                        empresa: true
+                    }
+                },
+                cargo: true,
+                computadores: {
+                    include: {
+                        modelo: {
+                            include: {
+                                marca: true
+                            }
+                        }
+                    }
+                },
+                dispositivos: {
+                    include: {
+                        modelo: {
+                            include: {
+                                marca: true
+                            }
+                        }
+                    }
+                }
+            }
         });
 
+        // Agregar estado calculado basado en fechaDesincorporacion
+        const empleadoConEstado = {
+            ...updatedEmpleado,
+            estado: updatedEmpleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
+            fotoPerfil: updatedEmpleado.fotoPerfil,
+        };
 
-        return NextResponse.json(updatedEmpleado, { status: 200 });
+        return NextResponse.json(empleadoConEstado, { status: 200 });
 
     } catch (error) {
         console.error("Error en PUT /api/usuarios/[id]:", error);

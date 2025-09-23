@@ -32,8 +32,15 @@ export async function GET(request: Request) {
             marca: true, // Incluye la marca del modelo
           }
         },
-        empleado: true, // Incluye el empleado asignado (si existe)
-        departamento: true, // Incluye el departamento asignado (si existe)
+        empleado: {
+          include: {
+            departamento: {
+              include: {
+                empresa: true
+              }
+            }
+          }
+        }, // Incluye el empleado asignado y su departamento
         ubicacion: true, // Incluye la ubicación asignada (si existe)
       },
       orderBy: {

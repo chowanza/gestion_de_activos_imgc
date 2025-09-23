@@ -14,20 +14,13 @@ export async function GET(request: NextRequest) {
   let where: Prisma.ComputadorWhereInput = {};
 
   if (asignado === 'false') {
-    // --- PASO 2: LÓGICA REFORZADA ---
-    // Un equipo NO está asignado si AMBOS campos son null o vacíos.
+    // Un equipo NO está asignado si no tiene empleado asignado
     where = {
-      AND: [
-        { empleadoId: null },
-        { departamentoId: null }
-      ]
+      empleadoId: null
     };
   } else if (asignado === 'true') {
     where = {
-      OR: [
-        { empleadoId: { not: null } },
-        { departamentoId: { not: null } },
-      ],
+      empleadoId: { not: null }
     };
   }
   
@@ -46,8 +39,7 @@ export async function GET(request: NextRequest) {
                 },
                 asignaciones: {
                   include: {
-                    targetEmpleado: true,
-                    targetDepartamento: true
+                    targetEmpleado: true
                   }
                 },
                 empleado: {
@@ -59,11 +51,6 @@ export async function GET(request: NextRequest) {
                       }
                   }
                 },      // Incluye el objeto 'usuario' asignado (si existe)
-                departamento: {
-                  include: {
-                    empresa: true, // Incluye la 'empresa' del departamento (si existe)
-                  }
-                },
                 ubicacion: true, // Incluye la ubicación asignada (si existe)
                 historialModificaciones: {
                   orderBy: {
@@ -168,7 +155,6 @@ export async function PUT(request: NextRequest) {
             anydesk: body.anydesk,
             modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,
             empleado: body.empleadoId ? { connect: { id: body.empleadoId } } : { disconnect: true },
-            departamento: body.departamentoId ? { connect: { id: body.departamentoId } } : undefined,
             ubicacion: body.ubicacionId ? { connect: { id: body.ubicacionId } } : { disconnect: true }
         },
       });

@@ -37,8 +37,11 @@ export interface EmpleadoFormData {
     apellido: string;
     cedula: string;
     email?: string;
+    telefono?: string;
+    direccion?: string;
     fechaNacimiento: string;
     fechaIngreso: string;
+    fechaDesincorporacion?: string;
     fotoPerfil?: string;
     cargoId: string;
 }
@@ -62,8 +65,11 @@ const initialState: EmpleadoFormData = {
     apellido: '',
     cedula: '',
     email: '',
+    telefono: '',
+    direccion: '',
     fechaNacimiento: '',
     fechaIngreso: '',
+    fechaDesincorporacion: '',
     fotoPerfil: '',
     cargoId: '',
 };
@@ -357,6 +363,25 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                         placeholder="Ej: empleado@empresa.com"
                     />
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="telefono">Teléfono</Label>
+                    <Input 
+                        id="telefono" 
+                        type="tel"
+                        value={formData.telefono || ''} 
+                        onChange={handleInputChange} 
+                        placeholder="Ej: +58 424-1234567"
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="direccion">Dirección</Label>
+                    <Input 
+                        id="direccion" 
+                        value={formData.direccion || ''} 
+                        onChange={handleInputChange} 
+                        placeholder="Ej: Av. Principal, Edificio ABC, Piso 2"
+                    />
+                </div>
 
                 {/* Fila 4: Fecha de Nacimiento y Fecha de Ingreso */}
                 <div className="grid gap-2">
@@ -374,6 +399,15 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                         id="fechaIngreso" 
                         type="date" 
                         value={formData.fechaIngreso || ''} 
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="fechaDesincorporacion">Fecha de Desincorporación</Label>
+                    <Input 
+                        id="fechaDesincorporacion" 
+                        type="date" 
+                        value={formData.fechaDesincorporacion || ''} 
                         onChange={handleInputChange}
                     />
                 </div>

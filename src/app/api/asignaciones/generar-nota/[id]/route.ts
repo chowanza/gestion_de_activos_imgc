@@ -36,8 +36,15 @@ export async function GET(
                 marca: true, // Incluir la marca del modelo
               },
             },
-            empleado: true, // Si el computador está directamente asignado a un empleado
-            departamento: true, // Si el computador está directamente asignado a un departamento
+            empleado: {
+              include: {
+                departamento: {
+                  include: {
+                    empresa: true
+                  }
+                }
+              }
+            }, // Si el computador está asignado a un empleado
           },
         },
         dispositivo: {
@@ -47,8 +54,15 @@ export async function GET(
                 marca: true,
               },
             },
-            empleado: true,
-            departamento: true,
+            empleado: {
+              include: {
+                departamento: {
+                  include: {
+                    empresa: true
+                  }
+                }
+              }
+            },
           },
         },
         targetEmpleado: {

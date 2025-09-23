@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useParams } from "next/navigation"
-import Loading from "@/utils/loading"
+import { Loading } from "@/utils/loading"
 import { formatDate } from "@/utils/formatDate"
 
 
