@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import EmpleadoStatusModal from "@/components/EmpleadoStatusModal";
 import AsignarEquipoModal from "@/components/AsignarEquipoModal";
+import { EmployeeAssignmentHistory } from "@/components/EmployeeAssignmentHistory";
 import Link from "next/link";
 
 interface EmpleadoDetails {
@@ -851,101 +852,14 @@ export default function EmpleadoDetailsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Historial de Asignaciones ({getHistorialFiltrado().length})
+            Historial de Asignaciones ({historialAsignaciones.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Barra de búsqueda */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Buscar en historial por acción, serial, marca, modelo, motivo, notas..."
-                value={searchHistorial}
-                onChange={(e) => setSearchHistorial(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
-          {loadingHistorial ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="h-6 w-6" />
-              <span className="ml-2">Cargando historial...</span>
-            </div>
-          ) : getHistorialFiltrado().length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>{searchHistorial ? 'No hay resultados que coincidan con la búsqueda' : 'No hay historial de asignaciones para este empleado'}</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {getHistorialFiltrado().map((asignacion) => (
-                <div key={asignacion.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant={asignacion.accion === 'Asignacion' ? 'default' : 'secondary'}>
-                          {asignacion.accion}
-                        </Badge>
-                        <span className="text-sm text-gray-500">
-                          {new Date(asignacion.fecha).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      
-                      {asignacion.item && (
-                        <div className="mb-2">
-                          <p className="font-medium">
-                            {asignacion.itemType}: {asignacion.item.serial || asignacion.item.numero}
-                          </p>
-                          {asignacion.item.modelo && (
-                            <p className="text-sm text-gray-600">
-                              {asignacion.item.marca} {asignacion.item.modelo}
-                            </p>
-                          )}
-                          {asignacion.item.proveedor && (
-                            <p className="text-sm text-gray-600">
-                              Proveedor: {asignacion.item.proveedor}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      
-                      {asignacion.motivo && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Motivo:</strong> {asignacion.motivo}
-                        </p>
-                      )}
-                      
-                      {asignacion.notas && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Notas:</strong> {asignacion.notas}
-                        </p>
-                      )}
-                      
-                      {asignacion.gerente && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Gerente:</strong> {asignacion.gerente}
-                        </p>
-                      )}
-                      
-                      {asignacion.localidad && (
-                        <p className="text-sm text-gray-600">
-                          <strong>Localidad:</strong> {asignacion.localidad}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <EmployeeAssignmentHistory 
+            historial={historialAsignaciones} 
+            loading={loadingHistorial}
+          />
         </CardContent>
       </Card>
 

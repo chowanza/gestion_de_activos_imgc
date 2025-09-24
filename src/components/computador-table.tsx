@@ -233,10 +233,18 @@ const columns: ColumnDef<Computador>[] = [
       },
     },
   {
+    accessorKey: "modelo.tipo",
+    header: "Tipo",
+    cell: ({ row }) => {
+      const tipo = row.original.modelo?.tipo;
+      return <div>{tipo || "Sin tipo"}</div>;
+    },
+  },
+  {
   accessorKey: "estado",
   header: ({ column }) => {
     const isFilterActive = !!column.getFilterValue();
-    const estadosUnicos = ["En resguardo", "Operativo", "Asignado", "Mantenimiento", "De baja"];
+    const estadosUnicos = ["ASIGNADO", "OPERATIVO", "EN_MANTENIMIENTO", "EN_RESGUARDO", "DE_BAJA"];
     
     return (
       <div className="flex items-center">
@@ -263,7 +271,11 @@ const columns: ColumnDef<Computador>[] = [
               <option value="">Todos</option>
               {estadosUnicos.map((estado) => (
                 <option key={estado} value={estado}>
-                  {estado}
+                  {estado === "ASIGNADO" ? "Asignado" :
+                   estado === "OPERATIVO" ? "Operativo" :
+                   estado === "EN_MANTENIMIENTO" ? "En Mantenimiento" :
+                   estado === "EN_RESGUARDO" ? "En Resguardo" :
+                   estado === "DE_BAJA" ? "De Baja" : estado}
                 </option>
               ))}
             </select>
@@ -392,6 +404,11 @@ const columns: ColumnDef<Computador>[] = [
               >
                 {loading ? 'Generando...' : 'Descargar Sticker'}
               </DropdownMenuItem> */}
+              <DropdownMenuItem asChild>
+                <Link href={`/computadores/${computador.id}/details`}>
+                    Gestionar Estado
+                </Link>
+              </DropdownMenuItem>
               { isAdmin && (
                 <>
                   <DropdownMenuItem asChild>
@@ -663,3 +680,4 @@ return (
     </Card>
   )
 }
+

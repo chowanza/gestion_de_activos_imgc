@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const actionType = searchParams.get('actionType');
     const itemType = searchParams.get('itemType');
+    const estadoEquipo = searchParams.get('estadoEquipo');
     const empresaId = searchParams.get('empresaId');
     const departamentoId = searchParams.get('departamentoId');
     const empleadoId = searchParams.get('empleadoId');
@@ -47,95 +48,96 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    if (departamentoId) {
-      where.targetDepartamentoId = departamentoId;
-    }
+    // Nota: targetDepartamentoId ya no existe, se filtra por empleado
+    // if (departamentoId) {
+    //   where.targetDepartamentoId = departamentoId;
+    // }
 
-    // Obtener movimientos con relaciones completas
-    const movements = await prisma.asignaciones.findMany({
-      where,
-      include: {
-        targetEmpleado: {
-          include: {
-            departamento: {
-              include: { empresa: true }
+    // Obtener solo movimientos relevantes para el negocio (no auditoría general)
+    const [asignaciones, historialModificaciones] = await Promise.all([
+      // Asignaciones (asignaciones, devoluciones, transferencias)
+      prisma.asignaciones.findMany({
+        where,
+        include: {
+          targetEmpleado: {
+            include: {
+              departamento: {
+                include: { empresa: true }
+              }
             }
-          }
-        },
-        targetDepartamento: {
-          include: { empresa: true }
-        },
-        gerenteEmpleado: true,
-        computador: {
-          include: {
-            modelo: { include: { marca: true } },
-            empleado: {
-              include: {
-                departamento: {
-                  include: { empresa: true }
+          },
+          computador: {
+            include: {
+              modelo: { include: { marca: true } },
+              empleado: {
+                include: {
+                  departamento: {
+                    include: { empresa: true }
+                  }
                 }
               }
-            },
-            departamento: {
-              include: { empresa: true }
             }
-          }
-        },
-        dispositivo: {
-          include: {
-            modelo: { include: { marca: true } },
-            empleado: {
-              include: {
-                departamento: {
-                  include: { empresa: true }
+          },
+          dispositivo: {
+            include: {
+              modelo: { include: { marca: true } },
+              empleado: {
+                include: {
+                  departamento: {
+                    include: { empresa: true }
+                  }
                 }
               }
-            },
-            departamento: {
-              include: { empresa: true }
+            }
+          },
+          ubicacion: true
+        },
+        orderBy: {
+          date: 'desc'
+        }
+      }),
+      
+      // Historial de Modificaciones (cambios de estado y especificaciones) - solo computadores
+      prisma.historialModificaciones.findMany({
+        where: {
+          fecha: {
+            gte: start,
+            lte: end
+          }
+        },
+        include: {
+          computador: {
+            include: {
+              modelo: { include: { marca: true } },
+              empleado: {
+                include: {
+                  departamento: {
+                    include: { empresa: true }
+                  }
+                }
+              }
             }
           }
         },
-        ubicacion: true
-      },
-      orderBy: {
-        date: 'desc'
-      }
-    });
+        orderBy: {
+          fecha: 'desc'
+        }
+      })
+    ]);
 
-    // Filtrar por empresa si se especifica
-    let filteredMovements = movements;
-    if (empresaId) {
-      filteredMovements = movements.filter(movement => {
-        const empresaViaEmpleado = movement.targetEmpleado?.departamento?.empresa?.id;
-        const empresaViaDepartamento = movement.targetDepartamento?.empresa?.id;
-        const empresaViaComputador = movement.computador?.empleado?.departamento?.empresa?.id || 
-                                   movement.computador?.departamento?.empresa?.id;
-        const empresaViaDispositivo = movement.dispositivo?.empleado?.departamento?.empresa?.id || 
-                                    movement.dispositivo?.departamento?.empresa?.id;
-        
-        return empresaViaEmpleado === empresaId || 
-               empresaViaDepartamento === empresaId ||
-               empresaViaComputador === empresaId ||
-               empresaViaDispositivo === empresaId;
-      });
-    }
-
-    // Procesar datos para el reporte
-    const processedMovements = filteredMovements.map(movement => {
+    // Procesar datos de asignaciones
+    const processedAsignaciones = asignaciones.map(movement => {
       const equipo = movement.computador || movement.dispositivo;
       const tipoEquipo = movement.itemType;
       
       return {
-        id: movement.id,
+        id: `asig-${movement.id}`,
         fecha: movement.date,
         accion: movement.actionType,
         motivo: movement.motivo,
         notas: movement.notes,
         localidad: movement.ubicacion?.nombre || null,
-        gerente: movement.gerenteEmpleado ? 
-          `${movement.gerenteEmpleado.nombre} ${movement.gerenteEmpleado.apellido}` : 
-          movement.gerente,
+        tipoMovimiento: 'asignacion',
         
         // Información del equipo
         equipo: {
@@ -151,37 +153,117 @@ export async function GET(request: NextRequest) {
           tipo: movement.targetType,
           empleado: movement.targetEmpleado ? 
             `${movement.targetEmpleado.nombre} ${movement.targetEmpleado.apellido}` : null,
-          departamento: movement.targetDepartamento?.nombre || null,
-          empresa: movement.targetEmpleado?.departamento?.empresa?.nombre || 
-                  movement.targetDepartamento?.empresa?.nombre || null
+          departamento: movement.targetEmpleado?.departamento?.nombre || null,
+          empresa: movement.targetEmpleado?.departamento?.empresa?.nombre || null
         },
         
         // Información de la empresa actual del equipo
         empresaActual: {
           viaEmpleado: equipo?.empleado?.departamento?.empresa?.nombre || null,
-          viaDepartamento: equipo?.departamento?.empresa?.nombre || null,
-          nombre: equipo?.empleado?.departamento?.empresa?.nombre || 
-                 equipo?.departamento?.empresa?.nombre || 'Sin empresa'
+          nombre: equipo?.empleado?.departamento?.empresa?.nombre || 'Sin empresa'
         }
       };
     });
 
-    // Generar estadísticas
+    // Procesar datos de historial de modificaciones (cambios de estado y especificaciones)
+    const processedModificaciones = historialModificaciones.map(mod => {
+      const equipo = mod.computador;
+      const tipoEquipo = 'Computador';
+      
+      // Determinar el tipo de modificación para mejor categorización
+      let accionTipo = 'Modificación';
+      if (mod.campo === 'estado') {
+        accionTipo = 'Cambio de Estado';
+      } else if (['serial', 'modelo', 'marca'].includes(mod.campo)) {
+        accionTipo = 'Modificación de Especificaciones';
+      } else if (['empleadoId', 'ubicacionId'].includes(mod.campo)) {
+        accionTipo = 'Cambio de Asignación';
+      }
+      
+      return {
+        id: `mod-${mod.id}`,
+        fecha: mod.fecha,
+        accion: accionTipo,
+        motivo: `${mod.campo}: ${mod.valorAnterior || 'N/A'} → ${mod.valorNuevo || 'N/A'}`,
+        notas: `Campo modificado: ${mod.campo}`,
+        localidad: null,
+        tipoMovimiento: 'modificacion',
+        
+        // Información del equipo
+        equipo: {
+          tipo: tipoEquipo,
+          serial: equipo?.serial || 'N/A',
+          modelo: equipo?.modelo ? 
+            `${equipo.modelo.marca.nombre} ${equipo.modelo.nombre}` : 'N/A',
+          estado: equipo?.estado || 'N/A'
+        },
+        
+        // Información del destino
+        destino: {
+          tipo: 'Equipo',
+          empleado: equipo?.empleado ? 
+            `${equipo.empleado.nombre} ${equipo.empleado.apellido}` : null,
+          departamento: equipo?.empleado?.departamento?.nombre || null,
+          empresa: equipo?.empleado?.departamento?.empresa?.nombre || null
+        },
+        
+        // Información de la empresa actual del equipo
+        empresaActual: {
+          viaEmpleado: equipo?.empleado?.departamento?.empresa?.nombre || null,
+          nombre: equipo?.empleado?.departamento?.empresa?.nombre || 'Sin empresa'
+        }
+      };
+    });
+
+    // Combinar solo movimientos relevantes para el negocio
+    const allMovements = [...processedAsignaciones, ...processedModificaciones];
+
+    // Aplicar filtros adicionales
+    let filteredMovements = allMovements;
+    
+    if (empresaId) {
+      filteredMovements = filteredMovements.filter(movement => {
+        const empresaViaEmpleado = movement.destino.empresa;
+        const empresaViaComputador = movement.empresaActual.nombre;
+        
+        return empresaViaEmpleado === empresaId || 
+               empresaViaComputador === empresaId;
+      });
+    }
+
+    if (estadoEquipo) {
+      filteredMovements = filteredMovements.filter(movement => {
+        return movement.equipo.estado === estadoEquipo;
+      });
+    }
+
+    // Ordenar por fecha
+    filteredMovements.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+    // Generar estadísticas enfocadas en movimientos del negocio
     const stats = {
-      totalMovimientos: processedMovements.length,
-      porTipoAccion: processedMovements.reduce((acc, mov) => {
+      totalMovimientos: filteredMovements.length,
+      porTipoAccion: filteredMovements.reduce((acc, mov) => {
         acc[mov.accion] = (acc[mov.accion] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      porTipoEquipo: processedMovements.reduce((acc, mov) => {
+      porTipoEquipo: filteredMovements.reduce((acc, mov) => {
         acc[mov.equipo.tipo] = (acc[mov.equipo.tipo] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      porEmpresa: processedMovements.reduce((acc, mov) => {
+      porTipoMovimiento: filteredMovements.reduce((acc, mov) => {
+        acc[mov.tipoMovimiento] = (acc[mov.tipoMovimiento] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      porEmpresa: filteredMovements.reduce((acc, mov) => {
         const empresa = mov.empresaActual.nombre;
         acc[empresa] = (acc[empresa] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>)
+      }, {} as Record<string, number>),
+      // Estadísticas específicas para cambios de estado
+      cambiosEstado: filteredMovements.filter(mov => mov.accion === 'Cambio de Estado').length,
+      modificacionesEspecificaciones: filteredMovements.filter(mov => mov.accion === 'Modificación de Especificaciones').length,
+      asignaciones: filteredMovements.filter(mov => mov.tipoMovimiento === 'asignacion').length
     };
 
     // Obtener rangos de fechas para contexto
@@ -194,7 +276,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        movimientos: processedMovements,
+        movimientos: filteredMovements,
         estadisticas: stats,
         rangoFechas: dateRange,
         filtros: {
@@ -202,6 +284,7 @@ export async function GET(request: NextRequest) {
           endDate,
           actionType,
           itemType,
+          estadoEquipo,
           empresaId,
           departamentoId,
           empleadoId

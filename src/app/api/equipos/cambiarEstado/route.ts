@@ -11,11 +11,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', body);
     
-    const { equipoId, tipoEquipo, nuevoEstado, motivo } = body;
+    const { equipoId, tipoEquipo, nuevoEstado, motivo, targetEmpleadoId } = body;
 
     if (!equipoId || !tipoEquipo || !nuevoEstado || !motivo) {
       console.log('Missing required fields:', { equipoId, tipoEquipo, nuevoEstado, motivo });
-      return NextResponse.json({ message: 'Todos los campos son requeridos' }, { status: 400 });
+      return NextResponse.json({ 
+        message: 'Todos los campos son requeridos',
+        received: { equipoId, tipoEquipo, nuevoEstado, motivo }
+      }, { status: 400 });
     }
 
     if (!['computador', 'dispositivo'].includes(tipoEquipo)) {
@@ -69,8 +72,8 @@ export async function POST(request: NextRequest) {
     const estadoActual = equipo.estado;
     
     // Validaciones de lógica de negocio
-    // Si se quiere cambiar a ASIGNADO, debe tener empleado
-    if (nuevoEstado === 'ASIGNADO' && !equipo.empleadoId) {
+    // Si se quiere cambiar a ASIGNADO, debe tener empleado (actual o nuevo)
+    if (nuevoEstado === 'ASIGNADO' && !equipo.empleadoId && !targetEmpleadoId) {
       return NextResponse.json({ 
         message: 'No se puede cambiar a estado ASIGNADO sin tener un empleado asignado.' 
       }, { status: 400 });
@@ -85,8 +88,15 @@ export async function POST(request: NextRequest) {
     // Preparar datos de actualización
     const updateData: any = { estado: nuevoEstado };
     
-    // Si el nuevo estado no es ASIGNADO, desasignar el empleado
-    if (nuevoEstado !== 'ASIGNADO') {
+    // Manejar asignación de empleado
+    if (nuevoEstado === 'ASIGNADO') {
+      // Si se proporciona un empleado específico, asignarlo
+      if (targetEmpleadoId) {
+        updateData.empleadoId = targetEmpleadoId;
+      }
+      // Si no se proporciona empleado pero ya tiene uno, mantenerlo
+    } else {
+      // Si el nuevo estado no es ASIGNADO, desasignar el empleado
       updateData.empleadoId = null;
     }
 
@@ -95,58 +105,86 @@ export async function POST(request: NextRequest) {
     // Actualizar el estado del equipo
     console.log(`Actualizando ${tipoEquipo} con ID: ${equipoId}`);
     let equipoActualizado;
-    if (tipoEquipo === 'computador') {
-      equipoActualizado = await prisma.computador.update({
-        where: { id: equipoId },
-        data: updateData,
-        include: {
-          modelo: {
-            include: {
-              marca: true,
+    try {
+      if (tipoEquipo === 'computador') {
+        console.log('Actualizando computador...');
+        equipoActualizado = await prisma.computador.update({
+          where: { id: equipoId },
+          data: updateData,
+          include: {
+            modelo: {
+              include: {
+                marca: true,
+              },
             },
+            empleado: true,
           },
-          empleado: true,
-        },
-      });
-    } else {
-      equipoActualizado = await prisma.dispositivo.update({
-        where: { id: equipoId },
-        data: updateData,
-        include: {
-          modelo: {
-            include: {
-              marca: true,
+        });
+        console.log('Computador actualizado exitosamente');
+      } else {
+        console.log('Actualizando dispositivo...');
+        equipoActualizado = await prisma.dispositivo.update({
+          where: { id: equipoId },
+          data: updateData,
+          include: {
+            modelo: {
+              include: {
+                marca: true,
+              },
             },
+            empleado: true,
           },
-          empleado: true,
-        },
-      });
+        });
+        console.log('Dispositivo actualizado exitosamente');
+      }
+    } catch (updateError) {
+      console.error('Error en actualización de equipo:', updateError);
+      throw updateError;
     }
 
-    // Registrar en el historial de modificaciones
-    console.log('Registrando en historial de modificaciones...');
+    // Registrar en el historial de modificaciones (solo para computadores)
     if (tipoEquipo === 'computador') {
-      await prisma.historialModificaciones.create({
-        data: {
-          computadorId: equipoId,
-          campo: 'estado',
-          valorAnterior: estadoActual,
-          valorNuevo: nuevoEstado,
-          motivo: motivo,
-        },
-      });
-    } else {
-      await prisma.historialModificaciones.create({
-        data: {
-          dispositivoId: equipoId,
-          campo: 'estado',
-          valorAnterior: estadoActual,
-          valorNuevo: nuevoEstado,
-          motivo: motivo,
-        },
-      });
+      console.log('Registrando en historial de modificaciones...');
+      try {
+        await prisma.historialModificaciones.create({
+          data: {
+            computadorId: equipoId,
+            campo: 'estado',
+            valorAnterior: estadoActual,
+            valorNuevo: nuevoEstado,
+          },
+        });
+        console.log('Historial de computador registrado exitosamente');
+      } catch (historialError) {
+        console.error('Error registrando historial:', historialError);
+        // No fallar por error de historial, solo logear
+      }
     }
-    console.log('Historial registrado exitosamente');
+
+    // Si se está asignando a un empleado, crear registro en Asignaciones
+    if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
+      console.log('Creando registro de asignación...');
+      try {
+        await prisma.asignaciones.create({
+          data: {
+            date: new Date(),
+            actionType: 'Assignment',
+            targetType: 'Usuario',
+            targetEmpleadoId: targetEmpleadoId,
+            itemType: tipoEquipo === 'computador' ? 'Computador' : 'Dispositivo',
+            computadorId: tipoEquipo === 'computador' ? equipoId : null,
+            dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
+            motivo: motivo,
+            notes: `Asignación automática por cambio de estado a ${nuevoEstado}`,
+            gerente: 'Sistema',
+          },
+        });
+        console.log('Registro de asignación creado exitosamente');
+      } catch (asignacionError) {
+        console.error('Error creando registro de asignación:', asignacionError);
+        // No fallar por error de asignación, solo logear
+      }
+    }
 
     // Log de auditoría
     try {
@@ -169,6 +207,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error al cambiar estado del equipo:', error);
-    return NextResponse.json({ message: 'Error al cambiar estado del equipo' }, { status: 500 });
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      body: body
+    });
+    return NextResponse.json({ 
+      message: 'Error al cambiar estado del equipo',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

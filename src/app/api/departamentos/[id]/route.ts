@@ -94,45 +94,9 @@ export async function GET(
             nombre: 'asc'
           }
         },
-        computadores: {
-          select: {
-            id: true,
-            serial: true,
-            estado: true,
-            modelo: {
-              select: {
-                nombre: true,
-                marca: {
-                  select: {
-                    nombre: true
-                  }
-                }
-              }
-            }
-          }
-        },
-        dispositivos: {
-          select: {
-            id: true,
-            serial: true,
-            estado: true,
-            modelo: {
-              select: {
-                nombre: true,
-                marca: {
-                  select: {
-                    nombre: true
-                  }
-                }
-              }
-            }
-          }
-        },
         _count: {
           select: {
             empleados: true,
-            computadores: true,
-            dispositivos: true,
             cargos: true
           }
         }

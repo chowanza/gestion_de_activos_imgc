@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { EmpleadoTable } from "@/components/empleados-table";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Loading } from "@/utils/loading";
 
@@ -22,6 +25,7 @@ export default function empleadosPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadData() {
@@ -65,6 +69,11 @@ export default function empleadosPage() {
   return (
     <div>
       <div className="mb-6">
+        <div className="flex items-center space-x-4 mb-4">
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
         <h1 className="text-2xl font-semibold text-gray-900">Gestión de Empleados</h1>
         <p className="text-sm text-gray-600 mt-1">Administra la información de los empleados de la empresa</p>
       </div>

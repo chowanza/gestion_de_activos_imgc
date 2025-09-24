@@ -2,28 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import ComputadorForm from "@/components/ComputadorForm";
-import type { ComputadorFormData } from "@/components/ComputadorForm";
+import DispositivoForm, { DispositivoFormData } from "@/components/DispositivoForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showToast } from "nextjs-toast-notify";
-import { Spinner } from "@/components/ui/spinner"; // Asumiendo que tienes un componente Spinner
+import { Spinner } from "@/components/ui/spinner";
 import { Trash2, ArrowLeft } from "lucide-react";
 
-export default function EditarComputadorPage() {
+export default function EditarDispositivoPage() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
 
-    const [initialData, setInitialData] = useState<ComputadorFormData | null>(null);
+    const [initialData, setInitialData] = useState<DispositivoFormData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (id) {
-            const fetchComputador = async () => {
+            const fetchDispositivo = async () => {
                 try {
-                    const response = await fetch(`/api/computador/${id}`);
-                    if (!response.ok) throw new Error("No se pudo cargar el computador.");
+                    const response = await fetch(`/api/dispositivos/${id}`);
+                    if (!response.ok) throw new Error("No se pudo cargar el dispositivo.");
                     const data = await response.json();
                     setInitialData(data);
                 } catch (error: any) {
@@ -32,13 +31,13 @@ export default function EditarComputadorPage() {
                     setLoading(false);
                 }
             };
-            fetchComputador();
+            fetchDispositivo();
         }
     }, [id]);
 
-    const handleUpdateComputador = async (data: ComputadorFormData) => {
+    const handleUpdateDispositivo = async (data: DispositivoFormData) => {
         try {
-            const response = await fetch(`/api/computador/${id}`, {
+            const response = await fetch(`/api/dispositivos/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
@@ -49,11 +48,32 @@ export default function EditarComputadorPage() {
                 throw new Error(errorData.message || "Error al actualizar");
             }
 
-            showToast.success("Computador actualizado con éxito");
-            router.push('/computadores');
-            router.refresh();
+            showToast.success("Dispositivo actualizado exitosamente");
+            router.push(`/dispositivos/${id}/details`);
         } catch (error: any) {
-            showToast.error(`Error: ${error.message}`);
+            showToast.error(error.message);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm("¿Estás seguro de que quieres eliminar este dispositivo?")) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/dispositivos/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Error al eliminar");
+            }
+
+            showToast.success("Dispositivo eliminado exitosamente");
+            router.push("/dispositivos");
+        } catch (error: any) {
+            showToast.error(error.message);
         }
     };
 
@@ -61,35 +81,12 @@ export default function EditarComputadorPage() {
         router.back();
     };
 
-    const handleDelete = async () => {
-        if (!id) return;
-        
-        const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta computadora? Esta acción no se puede deshacer.');
-        if (!confirmed) return;
-
-        try {
-            const response = await fetch(`/api/computador/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (response.ok) {
-                showToast.success('Computadora eliminada correctamente');
-                router.push('/computadores');
-            } else {
-                showToast.error('Error al eliminar la computadora');
-            }
-        } catch (error) {
-            console.error('Error al eliminar computadora:', error);
-            showToast.error('Error al eliminar la computadora');
-        }
-    };
-
     if (loading) {
         return <div className="flex justify-center items-center h-screen"><Spinner /></div>;
     }
 
     if (!initialData) {
-        return <div>Computador no encontrado.</div>;
+        return <div>Dispositivo no encontrado.</div>;
     }
 
     return (
@@ -101,8 +98,8 @@ export default function EditarComputadorPage() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div>
-                            <CardTitle>Editar Computador</CardTitle>
-                            <CardDescription>Actualice los detalles del computador con serial: {initialData.serial}</CardDescription>
+                            <CardTitle>Editar Dispositivo</CardTitle>
+                            <CardDescription>Actualice los detalles del dispositivo con serial: {initialData.serial}</CardDescription>
                         </div>
                     </div>
                     <Button
@@ -117,8 +114,8 @@ export default function EditarComputadorPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <ComputadorForm
-                    onSubmit={handleUpdateComputador}
+                <DispositivoForm
+                    onSubmit={handleUpdateDispositivo}
                     initialData={initialData}
                     isEditing={true}
                     onCancel={handleCancel}
@@ -127,4 +124,3 @@ export default function EditarComputadorPage() {
         </Card>
     );
 }
-

@@ -39,18 +39,36 @@ export async function GET(request: NextRequest) {
                 },
                 asignaciones: {
                   include: {
-                    targetEmpleado: true
+                    targetEmpleado: {
+                      select: {
+                        id: true,
+                        nombre: true,
+                        apellido: true,
+                        cargo: true,
+                        fotoPerfil: true,
+                        departamento: {
+                          include: {
+                            empresa: true
+                          }
+                        }
+                      }
+                    }
                   }
                 },
                 empleado: {
-                  include:{
-                      departamento: {
-                        include: {
-                          empresa: true // Incluye la empresa del departamento del empleado
-                        }
+                  select: {
+                    id: true,
+                    nombre: true,
+                    apellido: true,
+                    cargo: true,
+                    fotoPerfil: true,
+                    departamento: {
+                      include: {
+                        empresa: true // Incluye la empresa del departamento del empleado
                       }
+                    }
                   }
-                },      // Incluye el objeto 'usuario' asignado (si existe)
+                },      // Incluye el objeto 'empleado' asignado (si existe)
                 ubicacion: true, // Incluye la ubicación asignada (si existe)
                 historialModificaciones: {
                   orderBy: {

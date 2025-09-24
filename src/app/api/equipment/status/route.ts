@@ -102,9 +102,7 @@ export async function POST(request: NextRequest) {
                   }
                 }
               },
-              departamento: {
-                include: { empresa: true }
-              },
+              ubicacion: true,
               modelo: { include: { marca: true } }
             }
           })
@@ -119,9 +117,7 @@ export async function POST(request: NextRequest) {
                   }
                 }
               },
-              departamento: {
-                include: { empresa: true }
-              },
+              ubicacion: true,
               modelo: { include: { marca: true } }
             }
           });

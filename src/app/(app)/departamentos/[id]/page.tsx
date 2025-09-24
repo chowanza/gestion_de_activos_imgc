@@ -592,7 +592,7 @@ export default function DepartamentoDetailsPage() {
                       <div>
                         <p className="font-semibold">{empleado.nombre} {empleado.apellido}</p>
                         <p className="text-sm text-gray-600">
-                          {empleado.cargo.nombre} • Cédula: {empleado.ced}
+                          {empleado.cargo?.nombre || 'Sin cargo'} • Cédula: {empleado.ced}
                         </p>
                         <div className="flex space-x-2 mt-1">
                           {empleado.computadores && empleado.computadores.length > 0 && (

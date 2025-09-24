@@ -49,8 +49,9 @@ import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { handleGenerateAndDownloadQRd } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
-import { IntelligentHistory } from "@/components/IntelligentHistory"
-import EquipmentStatusModal from "@/components/EquipmentStatusModal"
+import { EquipmentTimeline } from "@/components/EquipmentTimeline"
+import { EquipmentUsersSection } from "@/components/EquipmentUsersSection"
+import NuevoEquipmentStatusModal from "@/components/NuevoEquipmentStatusModal"
 
 
 interface HistorialEntry {
@@ -137,15 +138,119 @@ interface DispositivoDetallado {
 
 
 const statusConfig = {
-  Resguardo: { label: "Resguardo", color: "green", bgColor: "bg-green-500/20", textColor: "text-green-400" },
-  Reparacion: { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  repair: { label: "En Reparación", color: "orange", bgColor: "bg-orange-500/20", textColor: "text-orange-400" },
-  "en reparacion": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  "en reparación": { label: "En Reparación", color: "amber", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  Asignado: { label: "Asignado", color: "blue", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
-  Operativo: { label: "Operativo", color: "emerald", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
-  Baja: { label: "De Baja", color: "red", bgColor: "bg-red-500/20", textColor: "text-red-400" },
-  Desconocido: { label: "Desconocido", color: "gray", bgColor: "bg-gray-500/20", textColor: "text-gray-600" },
+  OPERATIVO: { 
+    label: "Operativo", 
+    color: "emerald", 
+    bgColor: "bg-emerald-500/20", 
+    textColor: "text-emerald-400",
+    description: "Equipo disponible para asignación",
+    icon: "✅"
+  },
+  DE_BAJA: { 
+    label: "De Baja", 
+    color: "red", 
+    bgColor: "bg-red-500/20", 
+    textColor: "text-red-400",
+    description: "Equipo dado de baja, no disponible",
+    icon: "❌"
+  },
+  EN_RESGUARDO: { 
+    label: "En Resguardo", 
+    color: "blue", 
+    bgColor: "bg-blue-500/20", 
+    textColor: "text-blue-400",
+    description: "Equipo en almacén o resguardo",
+    icon: "📦"
+  },
+  EN_MANTENIMIENTO: { 
+    label: "En Mantenimiento", 
+    color: "amber", 
+    bgColor: "bg-amber-500/20", 
+    textColor: "text-amber-400",
+    description: "Equipo en proceso de mantenimiento",
+    icon: "🔧"
+  },
+  ASIGNADO: { 
+    label: "Asignado", 
+    color: "blue", 
+    bgColor: "bg-blue-500/20", 
+    textColor: "text-blue-400",
+    description: "Equipo asignado a un empleado",
+    icon: "👤"
+  },
+  // Mantener compatibilidad con estados antiguos
+  Resguardo: { 
+    label: "En Resguardo", 
+    color: "blue", 
+    bgColor: "bg-blue-500/20", 
+    textColor: "text-blue-400",
+    description: "Equipo en almacén o resguardo",
+    icon: "📦"
+  },
+  Reparacion: { 
+    label: "En Reparación", 
+    color: "amber", 
+    bgColor: "bg-amber-500/20", 
+    textColor: "text-amber-400",
+    description: "Equipo en proceso de reparación",
+    icon: "🔧"
+  },
+  repair: { 
+    label: "En Reparación", 
+    color: "amber", 
+    bgColor: "bg-amber-500/20", 
+    textColor: "text-amber-400",
+    description: "Equipo en proceso de reparación",
+    icon: "🔧"
+  },
+  "en reparacion": { 
+    label: "En Reparación", 
+    color: "amber", 
+    bgColor: "bg-amber-500/20", 
+    textColor: "text-amber-400",
+    description: "Equipo en proceso de reparación",
+    icon: "🔧"
+  },
+  "en reparación": { 
+    label: "En Reparación", 
+    color: "amber", 
+    bgColor: "bg-amber-500/20", 
+    textColor: "text-amber-400",
+    description: "Equipo en proceso de reparación",
+    icon: "🔧"
+  },
+  Operativo: { 
+    label: "Operativo", 
+    color: "emerald", 
+    bgColor: "bg-emerald-500/20", 
+    textColor: "text-emerald-400",
+    description: "Equipo disponible para asignación",
+    icon: "✅"
+  },
+  Asignado: { 
+    label: "Asignado", 
+    color: "blue", 
+    bgColor: "bg-blue-500/20", 
+    textColor: "text-blue-400",
+    description: "Equipo asignado a un empleado",
+    icon: "👤"
+  },
+  Baja: { 
+    label: "De Baja", 
+    color: "red", 
+    bgColor: "bg-red-500/20", 
+    textColor: "text-red-400",
+    description: "Equipo dado de baja, no disponible",
+    icon: "❌"
+  },
+  Desconocido: { 
+    label: "Desconocido", 
+    color: "gray", 
+    bgColor: "bg-gray-500/20", 
+    textColor: "text-gray-600",
+    description: "Estado del equipo no determinado",
+    icon: "❓"
+  },
 }
 
 export default function EquipmentDetails() {
@@ -159,25 +264,27 @@ export default function EquipmentDetails() {
       const [loading, setLoading] = useState(true);
       const [statusModalOpen, setStatusModalOpen] = useState(false);
   
-     useEffect(() => {
-        if (id) {
-            const fetchDispositivo = async () => {
-                setLoading(true); // Asegurarse de poner loading en true al empezar
-                try {
-                    const response = await fetch(`/api/dispositivos/${id}`);
-                    if (!response.ok) throw new Error("No se pudo cargar el dispositivo.");
-                    const data = await response.json();
-                    setEquipo(data);
-                } catch (error: any) {
-                    console.error(error);
-                    // Aquí puedes usar un toast para notificar al usuario del error
-                } finally {
-                    setLoading(false); // Poner loading en false cuando la petición termina (con éxito o error)
-                }
-            };
-            fetchDispositivo();
-        }
-    }, [id]);
+  const loadEquipoData = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/dispositivos/${id}`);
+      console.log('Recargando datos del dispositivo:', id);
+      if (!response.ok) throw new Error("No se pudo cargar el dispositivo.");
+      const data = await response.json();
+      setEquipo(data);
+    } catch (error: any) {
+      console.error('Error cargando dispositivo:', error);
+      showToast.error('Error al recargar los datos del equipo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEquipoData();
+  }, [id]);
 
 const departamentoTag = (
   (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
@@ -233,47 +340,37 @@ const departamentoTag = (
 
   const handleStatusChange = async (newStatus: string, assignmentData: any) => {
     try {
-      const response = await fetch('/api/equipment/status', {
+      const requestData = {
+        equipoId: equipo?.id,
+        tipoEquipo: 'dispositivo',
+        nuevoEstado: newStatus,
+        motivo: assignmentData.motivo || 'Cambio de estado',
+        targetEmpleadoId: assignmentData.targetEmpleadoId || null
+      };
+      
+      console.log('Enviando datos al API:', requestData);
+      
+      const response = await fetch('/api/equipos/cambiarEstado', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          equipmentId: equipo?.id,
-          equipmentType: 'Dispositivo',
-          newStatus,
-          assignmentData
-        })
+        body: JSON.stringify(requestData)
       });
 
-      if (!response.ok) throw new Error('Error actualizando estado');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(`Error actualizando estado: ${errorData.message || 'Error desconocido'}`);
+      }
 
       const result = await response.json();
       
-      // Actualizar el estado local del equipo
-      setEquipo(prev => prev ? {
-        ...prev,
-        estado: newStatus,
-        empleado: result.equipment.empleado,
-        departamento: result.equipment.departamento,
-        ubicacion: result.equipment.ubicacion,
-        historial: [
-          {
-            id: result.assignment.id,
-            tipo: 'asignacion',
-            fecha: result.assignment.date,
-            detalle: `Cambio de estado a ${newStatus}`,
-            targetType: result.assignment.targetType,
-            actionType: result.assignment.actionType,
-            targetEmpleado: result.assignment.targetEmpleado,
-            targetDepartamento: result.assignment.targetDepartamento
-          },
-          ...prev.historial
-        ]
-      } : null);
+      // Recargar los datos completos del equipo
+      await loadEquipoData();
 
       showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
     } catch (error) {
       console.error('Error actualizando estado:', error);
-      showToast.error('Error actualizando el estado del equipo');
+      showToast.error('Error al actualizar el estado del equipo');
     }
   };
 
@@ -380,7 +477,7 @@ const departamentoTag = (
                 <CardContent className="p-0">
                   <div className="relative">
                     <img
-                      src={equipo?.modelo.img || "/placeholder.svg"}
+                      src={equipo?.modelo.img || "/file.svg"}
                       alt={equipo?.modelo.nombre}
                       className="w-full h-64 object-cover"
                     />
@@ -608,96 +705,7 @@ const departamentoTag = (
               </TabsContent>
 
               <TabsContent value="users" className="mt-0">
-            <Card className="bg-white/90 border-gray-200 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-200 pb-3">
-                    <CardTitle className="text-gray-800 flex items-center">
-                        <Users className="mr-2 h-5 w-5 text-[#EA7704]" />
-                        {equipo.estado === 'Asignado' ? 'Asignación Actual' : 'Estado del Equipo'}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                    {/* CASO 1: El equipo está asignado a un USUARIO */}
-                    {equipo.estado === 'Asignado' && equipo.empleado && (
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <Avatar className="h-12 w-12">
-                                    <AvatarImage src="/placeholder-user.jpg" alt={`${equipo.empleado.nombre} ${equipo.empleado.apellido}`} />
-                                    <AvatarFallback className="bg-gray-100 text-[#EA7704]">
-                                        {equipo.empleado.nombre[0]}{equipo.empleado.apellido[0]}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-800">{equipo.empleado.nombre} {equipo.empleado.apellido}</h3>
-                                    <p className="text-xs text-gray-600">{equipo.empleado.cargo}</p>
-                                    {/* Mostramos el depto del usuario si está disponible */}
-                                    {equipo.empleado.departamento && (
-                                        <p className="text-xs text-gray-500">Dpto: {equipo.empleado.departamento.nombre}</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-xs text-gray-600">Asignado desde</p>
-                                <p className="text-sm text-gray-800">
-                                    {equipo.historial && equipo.historial.length > 0 
-                                      ? formatDate(equipo.historial[0].fecha) 
-                                      : 'N/A'}
-                                </p>
-                                <Badge className="mt-1 bg-green-500/20 text-green-400 border-green-500/50">
-                                    Usuario
-                                </Badge>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* CASO 2: El equipo está asignado a un DEPARTAMENTO (y no a un usuario) */}
-                    {equipo.estado === 'Asignado' && equipo.departamento && !equipo.empleado && (
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <Avatar className="h-12 w-12">
-                                    {/* Puedes tener un placeholder para departamentos */}
-                                    <AvatarImage src="/placeholder-dept.jpg" alt={equipo.departamento.nombre} />
-                                    <AvatarFallback className="bg-gray-100 text-[#EA7704]">
-                                      {equipo.departamento.nombre.slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-800">{equipo.departamento.nombre}</h3>
-                                    <p className="text-xs text-gray-600">CECO: {equipo.departamento.ceco}</p>
-                                    {equipo.departamento.gerencia && (
-                                        <p className="text-xs text-gray-500">Gerencia: {equipo.departamento.gerencia.nombre}</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-xs text-gray-600">Asignado desde</p>
-                                <p className="text-sm text-gray-800">
-                                    {equipo.historial && equipo.historial.length > 0 
-                                      ? formatDate(equipo.historial[0].fecha) 
-                                      : 'N/A'}
-                                </p>
-                                <Badge className="mt-1 bg-blue-500/20 text-blue-400 border-blue-500/50">
-                                    Departamento
-                                </Badge>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* CASO 3: El equipo NO ESTÁ ASIGNADO */}
-                    {equipo.estado !== 'Asignado' && (
-                        <div className="text-center text-gray-600 py-8">
-                            <div className="flex flex-col items-center space-y-4">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <Users className="h-8 w-8 text-gray-400" />
-                                </div>
-                                <div>
-                                    <p className="text-lg font-medium text-gray-800">No está asignado</p>
-                                    <p className="text-sm text-gray-600">Este equipo se encuentra en resguardo</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                <EquipmentUsersSection equipo={equipo} />
               </TabsContent>
 
               <TabsContent value="history" className="mt-0">
@@ -709,15 +717,7 @@ const departamentoTag = (
                           </CardTitle>
                       </CardHeader>
                       <CardContent className="p-6">
-                          <IntelligentHistory 
-                              historial={equipo.historial || []} 
-                              equipoActual={{
-                                  estado: equipo.estado,
-                                  empleado: equipo.empleado,
-                                  departamento: equipo.departamento,
-                                  ubicacion: equipo.ubicacion
-                              }}
-                          />
+                          <EquipmentTimeline equipo={equipo} />
                       </CardContent>
                   </Card>
               </TabsContent>
@@ -728,7 +728,7 @@ const departamentoTag = (
 
       {/* Modal de gestión de estado */}
       {equipo && (
-        <EquipmentStatusModal
+        <NuevoEquipmentStatusModal
           isOpen={statusModalOpen}
           onClose={() => setStatusModalOpen(false)}
           equipment={{
@@ -765,3 +765,4 @@ const departamentoTag = (
     </div>
   )
 }
+

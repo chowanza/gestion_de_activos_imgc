@@ -114,16 +114,12 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const [formData, setFormData] = useState<ComputadorFormData>(initialState);
     const [modelos, setModelos] = useState<Modelo[]>([]);
     const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+    const [usuarios, setUsuarios] = useState<any[]>([]);
+    const [selectedTarget, setSelectedTarget] = useState<any>(null);
     const [isLoadingModelos, setIsLoadingModelos] = useState(false);
     const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
     
-    // Estados para la lógica de asignación
-    const [selectedTarget, setSelectedTarget] = useState<any>(null);
-    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-    const [motivo, setMotivo] = useState('');
-    const [notas, setNotas] = useState('');
-    const [selectedGerente, setSelectedGerente] = useState<any>(null);
-    const [selectedUbicacionAsignacion, setSelectedUbicacionAsignacion] = useState<any>(null);
+    // Estados para la lógica de asignación (ya no se usan - el estado se maneja desde "Gestionar Estado")
 
     // --- useEffect CORREGIDO para manejar el estado del formulario ---
         useEffect(() => {
@@ -178,7 +174,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                 }
             }
         }
-    }, [initialData, usuarios]); // Agregar usuarios a las dependencias
+    }, [initialData]); // Remover usuarios de las dependencias para evitar bucle infinito
 
     // --- Handlers para los cambios en los inputs ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -203,21 +199,12 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!formData.modeloId || !formData.serial || !formData.estado || !formData.codigoImgc) {
-            showToast.warning("Modelo, Serial, Estado y Código IMGC son obligatorios.", { position: "top-right" });
+        if (!formData.modeloId || !formData.serial || !formData.codigoImgc) {
+            showToast.warning("Modelo, Serial y Código IMGC son obligatorios.", { position: "top-right" });
             return;
         }
 
-        // Validaciones adicionales según el estado
-        if (formData.estado === 'ASIGNADO' && !selectedTarget) {
-            showToast.error('Debe seleccionar un usuario o departamento para asignar');
-            return;
-        }
-
-        if (formData.estado === 'EN_MANTENIMIENTO' && !motivo.trim()) {
-            showToast.error('Debe especificar el motivo del mantenimiento');
-            return;
-        }
+        // El estado del equipo se maneja desde "Gestionar Estado" en los detalles
 
         await onSubmit(formData); // Llama a la función del padre para manejar la lógica de API
     };
@@ -242,23 +229,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const selectedModelValue = modeloOptions.find(option => option.value === formData.modeloId) || null;
     const selectedUbicacionValue = ubicacionOptions.find(option => option.value === formData.ubicacionId) || null;
     
-    // Determinar si el equipo está asignado para filtrar opciones de estado
-    // Solo ASIGNADO requiere restricciones, EN_MANTENIMIENTO puede cambiar libremente
-    const isEquipoAsignado = initialData?.estado === 'ASIGNADO';
-    
-    // Opciones de estado filtradas según si está asignado
-    const opcionesEstado = [
-        { value: 'OPERATIVO', label: 'Operativo (No asignado - Disponible para uso)' },
-        { value: 'ASIGNADO', label: 'Asignado (Asignado a empleado)' },
-        { value: 'EN_MANTENIMIENTO', label: 'En Mantenimiento (No asignado - En mantenimiento)' },
-        { value: 'EN_RESGUARDO', label: 'En Resguardo (No asignado - En resguardo)' },
-        { value: 'DE_BAJA', label: 'De Baja (No asignado - De baja)' }
-    ];
-    
-    // Si el equipo está asignado, solo mostrar opciones no asignadas
-    const opcionesEstadoFiltradas = isEquipoAsignado 
-        ? opcionesEstado.filter(opcion => opcion.value !== 'ASIGNADO')
-        : opcionesEstado;
+    // El estado del equipo se maneja desde "Gestionar Estado" en los detalles
 
     return (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -371,175 +342,20 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                 </div>
                             </div>
 
-                            {/* Sección Estado */}
-                            <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Estado del Equipo</h3>
-                            <div className="grid grid-cols-1">
-                                {/* Nota informativa para equipos asignados */}
-                                {isEquipoAsignado && (
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-blue-800 font-medium">
-                                                ⚠️ Equipo Asignado
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-blue-700 mt-1">
-                                            Este equipo está asignado a un empleado. Para cambiar el estado, use la opción <strong>"Gestionar Estado"</strong> desde la pantalla de detalles del equipo.
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                {/* Nota informativa para equipos en mantenimiento */}
-                                {initialData?.estado === 'EN_MANTENIMIENTO' && !isEquipoAsignado && (
-                                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-orange-800 font-medium">
-                                                🔧 Equipo en Mantenimiento
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-orange-700 mt-1">
-                                            Este equipo está en mantenimiento. Puede cambiar el estado libremente desde este formulario.
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                <div className="grid gap-2">
-                                    <Label htmlFor="estado">Estado <span className="text-destructive">*</span></Label>
-                                    <select
-                                        id="estado"
-                                        className={`w-full h-10 border rounded-md px-2 focus:ring-1 focus:ring-[hsl(var(--ring))] focus:outline-none ${
-                                            isEquipoAsignado 
-                                                ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed' 
-                                                : 'bg-[hsl(var(--background))] border-[hsl(var(--input))]'
-                                        }`}
-                                        value={formData.estado || ''}
-                                        onChange={handleInputChange}
-                                        disabled={isEquipoAsignado}
-                                    >
-                                        <option value="" disabled>Seleccionar estado...</option>
-                                        {opcionesEstadoFiltradas.map(opcion => (
-                                            <option key={opcion.value} value={opcion.value}>
-                                                {opcion.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {isEquipoAsignado && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            El estado solo se puede cambiar desde la opción "Gestionar Estado" en los detalles del equipo.
-                                        </p>
-                                    )}
+                            {/* Nota informativa sobre el estado del equipo */}
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-blue-800 font-medium">
+                                        ℹ️ Estado del Equipo
+                                    </span>
                                 </div>
+                                <p className="text-sm text-blue-700 mt-1">
+                                    El estado del equipo se gestiona desde la opción <strong>"Gestionar Estado"</strong> en la pantalla de detalles del equipo.
+                                </p>
                             </div>
 
-                            {/* Debug: Mostrar el estado actual */}
-                            <div className="text-xs text-gray-500 p-2 bg-yellow-100 border rounded mt-2">
-                                Estado actual: "{formData.estado || 'vacío'}" | ¿Es Asignado?: {formData.estado === 'ASIGNADO' ? 'SÍ' : 'NO'}
-                            </div>
 
-                            {/* Información de Asignación - Solo lectura cuando está asignado */}
-                            {formData.estado === 'ASIGNADO' && initialData?.empleado && (
-                                <div className="grid gap-4 p-4 border rounded-lg bg-gray-50 mt-4">
-                                    <h4 className="text-sm font-medium text-gray-700">Información de Asignación Actual</h4>
-                                    
-                                    {/* Usuario asignado (solo lectura) */}
-                                    <div className="grid gap-2">
-                                        <Label>Usuario Asignado</Label>
-                                        <div className="p-3 bg-white border rounded-md">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-gray-900">
-                                                    {initialData.empleado.nombre} {initialData.empleado.apellido}
-                                                </span>
-                                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                                    Asignado
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                Para cambiar la asignación, primero desasigne el equipo cambiando el estado.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Campos de Asignación - Solo se muestran si se está creando un nuevo equipo o cambiando a ASIGNADO */}
-                            {formData.estado === 'ASIGNADO' && (!initialData || !initialData.empleado) && (
-                                <div className="grid gap-4 p-4 border rounded-lg bg-gray-50 mt-4">
-                                    <h4 className="text-sm font-medium text-gray-700">Información de Asignación</h4>
-                                    
-                                    {/* Selector de usuario */}
-                                    <div className="grid gap-2">
-                                        <Label>Usuario</Label>
-                                        <Select
-                                            options={usuarios}
-                                            value={selectedTarget}
-                                            onChange={setSelectedTarget}
-                                            placeholder="Seleccionar usuario"
-                                            isSearchable
-                                            styles={reactSelectStyles}
-                                            formatOptionLabel={(option: any) => (
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">{option.label}</span>
-                                                    <span className="text-sm text-gray-500">
-                                                        {option.cargo} - {option.departamento}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        />
-                                    </div>
-
-                                    {/* Gerente responsable */}
-                                    <div className="grid gap-2">
-                                        <Label>Gerente Responsable</Label>
-                                        <Select
-                                            options={usuarios}
-                                            value={selectedGerente}
-                                            onChange={setSelectedGerente}
-                                            placeholder="Seleccionar gerente"
-                                            isSearchable
-                                            isClearable
-                                            styles={reactSelectStyles}
-                                        />
-                                    </div>
-
-                                    {/* Ubicación de Asignación */}
-                                    <div className="grid gap-2">
-                                        <Label>Ubicación de Asignación</Label>
-                                        <Select
-                                            options={ubicacionOptions}
-                                            value={selectedUbicacionAsignacion}
-                                            onChange={setSelectedUbicacionAsignacion}
-                                            placeholder="Seleccionar ubicación específica"
-                                            isSearchable
-                                            isClearable
-                                            styles={reactSelectStyles}
-                                        />
-                                    </div>
-
-                                    {/* Notas */}
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="notas">Notas</Label>
-                                        <Input 
-                                            id="notas" 
-                                            value={notas} 
-                                            onChange={(e) => setNotas(e.target.value)}
-                                            placeholder="Notas adicionales"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Campo de motivo para mantenimiento */}
-                            {formData.estado === 'EN_MANTENIMIENTO' && (
-                                <div className="grid gap-2 mt-4">
-                                    <Label htmlFor="motivo">Motivo del Mantenimiento <span className="text-destructive">*</span></Label>
-                                    <Input 
-                                        id="motivo" 
-                                        value={motivo} 
-                                        onChange={(e) => setMotivo(e.target.value)}
-                                        placeholder="Especificar motivo del mantenimiento"
-                                        required
-                                    />
-                                </div>
-                            )}
                         </div>
 
                         {/* Sección Información de Compra */}

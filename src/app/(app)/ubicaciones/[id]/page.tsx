@@ -22,7 +22,8 @@ import {
   User, 
   Globe,
   Edit,
-  Trash2
+  Trash2,
+  Eye
 } from 'lucide-react';
 import { UbicacionForm } from '@/components/ubicacion-form';
 
@@ -322,6 +323,7 @@ export default function UbicacionDetailsPage() {
                   <TableHead>Estado</TableHead>
                   <TableHead>Asignado a</TableHead>
                   <TableHead>Empresa/Departamento</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -356,6 +358,28 @@ export default function UbicacionDetailsPage() {
                         <span className="text-gray-400 italic">-</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/computadores/${computador.id}/details`)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {computador.empleado && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/empleados/${computador.empleado.id}`)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <User className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -382,6 +406,7 @@ export default function UbicacionDetailsPage() {
                   <TableHead>Estado</TableHead>
                   <TableHead>Asignado a</TableHead>
                   <TableHead>Empresa/Departamento</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -415,6 +440,28 @@ export default function UbicacionDetailsPage() {
                       ) : (
                         <span className="text-gray-400 italic">-</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dispositivos/${dispositivo.id}/details`)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {dispositivo.empleado && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/empleados/${dispositivo.empleado.id}`)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <User className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

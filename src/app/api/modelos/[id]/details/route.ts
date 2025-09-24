@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = request.nextUrl.pathname.split('/')[3];
+    const { id } = await params;
 
     // Obtener el modelo con sus relaciones
     const modelo = await prisma.modeloDispositivo.findUnique({
@@ -13,17 +13,17 @@ export async function GET(request: NextRequest) {
         computadores: {
           include: {
             empleado: {
-              include: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true,
+                cargo: true,
+                fotoPerfil: true,
                 departamento: {
                   include: {
                     empresa: true
                   }
                 }
-              }
-            },
-            departamento: {
-              include: {
-                empresa: true
               }
             },
             ubicacion: true
@@ -32,17 +32,17 @@ export async function GET(request: NextRequest) {
         dispositivos: {
           include: {
             empleado: {
-              include: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true,
+                cargo: true,
+                fotoPerfil: true,
                 departamento: {
                   include: {
                     empresa: true
                   }
                 }
-              }
-            },
-            departamento: {
-              include: {
-                empresa: true
               }
             },
             ubicacion: true
@@ -60,35 +60,30 @@ export async function GET(request: NextRequest) {
     const totalDispositivos = modelo.dispositivos.length;
     const totalEquipos = totalComputadores + totalDispositivos;
 
-    // Calcular estados
+    // Calcular estados usando el nuevo sistema
     const estadosComputadores = {
-      asignado: modelo.computadores.filter(c => c.empleado !== null).length,
-      resguardo: modelo.computadores.filter(c => c.empleado === null && c.departamento !== null).length,
-      reparacion: modelo.computadores.filter(c => c.estado === 'reparacion').length,
-      deBaja: modelo.computadores.filter(c => c.estado === 'de baja').length,
-      operativo: modelo.computadores.filter(c => c.estado === 'operativo' && c.empleado !== null).length,
+      ASIGNADO: modelo.computadores.filter(c => c.estado === 'ASIGNADO').length,
+      OPERATIVO: modelo.computadores.filter(c => c.estado === 'OPERATIVO').length,
+      EN_MANTENIMIENTO: modelo.computadores.filter(c => c.estado === 'EN_MANTENIMIENTO').length,
+      DE_BAJA: modelo.computadores.filter(c => c.estado === 'DE_BAJA').length,
+      EN_RESGUARDO: modelo.computadores.filter(c => c.estado === 'EN_RESGUARDO').length,
     };
 
     const estadosDispositivos = {
-      asignado: modelo.dispositivos.filter(d => d.empleado !== null).length,
-      resguardo: modelo.dispositivos.filter(d => d.empleado === null && d.departamento !== null).length,
-      reparacion: modelo.dispositivos.filter(d => d.estado === 'reparacion').length,
-      deBaja: modelo.dispositivos.filter(d => d.estado === 'de baja').length,
-      operativo: modelo.dispositivos.filter(d => d.estado === 'operativo' && d.empleado !== null).length,
+      ASIGNADO: modelo.dispositivos.filter(d => d.estado === 'ASIGNADO').length,
+      OPERATIVO: modelo.dispositivos.filter(d => d.estado === 'OPERATIVO').length,
+      EN_MANTENIMIENTO: modelo.dispositivos.filter(d => d.estado === 'EN_MANTENIMIENTO').length,
+      DE_BAJA: modelo.dispositivos.filter(d => d.estado === 'DE_BAJA').length,
+      EN_RESGUARDO: modelo.dispositivos.filter(d => d.estado === 'EN_RESGUARDO').length,
     };
 
     const estadosTotales = {
-      asignado: estadosComputadores.asignado + estadosDispositivos.asignado,
-      resguardo: estadosComputadores.resguardo + estadosDispositivos.resguardo,
-      reparacion: estadosComputadores.reparacion + estadosDispositivos.reparacion,
-      deBaja: estadosComputadores.deBaja + estadosDispositivos.deBaja,
-      operativo: estadosComputadores.operativo + estadosDispositivos.operativo,
+      ASIGNADO: estadosComputadores.ASIGNADO + estadosDispositivos.ASIGNADO,
+      OPERATIVO: estadosComputadores.OPERATIVO + estadosDispositivos.OPERATIVO,
+      EN_MANTENIMIENTO: estadosComputadores.EN_MANTENIMIENTO + estadosDispositivos.EN_MANTENIMIENTO,
+      DE_BAJA: estadosComputadores.DE_BAJA + estadosDispositivos.DE_BAJA,
+      EN_RESGUARDO: estadosComputadores.EN_RESGUARDO + estadosDispositivos.EN_RESGUARDO,
     };
-
-    // Debug logs (comentados para producción)
-    // console.log('=== DEBUG MODELO ESTADOS ===');
-    // console.log('Modelo:', modelo.nombre);
-    // console.log('Estados totales:', estadosTotales);
 
     // Estadísticas por empresa
     const empresaStats = new Map<string, number>();
@@ -119,9 +114,6 @@ export async function GET(request: NextRequest) {
           departamento: departamentoNombre,
           empresa: empresaNombre
         };
-      } else if (computador.departamento) {
-        empresaNombre = computador.departamento.empresa.nombre;
-        departamentoNombre = computador.departamento.nombre;
       }
 
       // Contar por empresa
@@ -167,9 +159,6 @@ export async function GET(request: NextRequest) {
           departamento: departamentoNombre,
           empresa: empresaNombre
         };
-      } else if (dispositivo.departamento) {
-        empresaNombre = dispositivo.departamento.empresa.nombre;
-        departamentoNombre = dispositivo.departamento.nombre;
       }
 
       // Contar por empresa

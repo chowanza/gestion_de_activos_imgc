@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2, MapPin } from "lucide-react";
+import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2, MapPin, Eye } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import Link from "next/link";
 
@@ -270,24 +270,24 @@ export default function ModeloDetailsPage() {
                   
                   {/* Estados */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{stats.estados.operativo}</div>
-                      <div className="text-xs text-green-600 font-medium">Operativo</div>
-                    </div>
                     <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{stats.estados.asignado}</div>
+                      <div className="text-2xl font-bold text-blue-600">{stats.estados.ASIGNADO}</div>
                       <div className="text-xs text-blue-600 font-medium">Asignado</div>
                     </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                      <div className="text-2xl font-bold text-yellow-600">{stats.estados.resguardo}</div>
-                      <div className="text-xs text-yellow-600 font-medium">Resguardo</div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{stats.estados.OPERATIVO}</div>
+                      <div className="text-xs text-green-600 font-medium">Operativo</div>
                     </div>
-                    <div className="text-center p-3 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{stats.estados.reparacion}</div>
-                      <div className="text-xs text-orange-600 font-medium">Reparación</div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">{stats.estados.EN_MANTENIMIENTO}</div>
+                      <div className="text-xs text-yellow-600 font-medium">En Mantenimiento</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">{stats.estados.EN_RESGUARDO}</div>
+                      <div className="text-xs text-purple-600 font-medium">En Resguardo</div>
                     </div>
                     <div className="text-center p-3 bg-red-50 rounded-lg">
-                      <div className="text-2xl font-bold text-red-600">{stats.estados.deBaja}</div>
+                      <div className="text-2xl font-bold text-red-600">{stats.estados.DE_BAJA}</div>
                       <div className="text-xs text-red-600 font-medium">De Baja</div>
                     </div>
                   </div>
@@ -308,7 +308,26 @@ export default function ModeloDetailsPage() {
                       {stats.empresas.map((empresa, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                           <span className="font-medium">{empresa.nombre}</span>
-                          <Badge variant="outline">{empresa.count} equipos</Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline">{empresa.count} equipos</Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Buscar el ID de la empresa en los datos del modelo
+                                const empresaData = modelo.computadores.find(c => c.empleado?.departamento?.empresa?.nombre === empresa.nombre)?.empleado?.departamento?.empresa ||
+                                                 modelo.dispositivos.find(d => d.empleado?.departamento?.empresa?.nombre === empresa.nombre)?.empleado?.departamento?.empresa;
+                                if (empresaData?.id) {
+                                  router.push(`/empresas/${empresaData.id}`);
+                                } else {
+                                  router.push(`/empresas?search=${empresa.nombre}`);
+                                }
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -335,7 +354,26 @@ export default function ModeloDetailsPage() {
                             <span className="font-medium">{depto.nombre}</span>
                             <p className="text-sm text-gray-500">{depto.empresa}</p>
                           </div>
-                          <Badge variant="outline">{depto.count} equipos</Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline">{depto.count} equipos</Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Buscar el ID del departamento en los datos del modelo
+                                const deptoData = modelo.computadores.find(c => c.empleado?.departamento?.nombre === depto.nombre && c.empleado?.departamento?.empresa?.nombre === depto.empresa)?.empleado?.departamento ||
+                                                modelo.dispositivos.find(d => d.empleado?.departamento?.nombre === depto.nombre && d.empleado?.departamento?.empresa?.nombre === depto.empresa)?.empleado?.departamento;
+                                if (deptoData?.id) {
+                                  router.push(`/departamentos/${deptoData.id}`);
+                                } else {
+                                  router.push(`/departamentos?search=${depto.nombre}`);
+                                }
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -362,7 +400,17 @@ export default function ModeloDetailsPage() {
                             <span className="font-medium">{empleado.nombre} {empleado.apellido}</span>
                             <p className="text-sm text-gray-500">{empleado.departamento} - {empleado.empresa}</p>
                           </div>
-                          <Badge variant="outline">{empleado.count} equipos</Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline">{empleado.count} equipos</Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/empleados/${empleado.id}`)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -386,7 +434,26 @@ export default function ModeloDetailsPage() {
                       {stats.ubicaciones.map((ubicacion, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                           <span className="font-medium">{ubicacion.nombre}</span>
-                          <Badge variant="outline">{ubicacion.count} equipos</Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline">{ubicacion.count} equipos</Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Buscar el ID de la ubicación en los datos del modelo
+                                const ubicacionData = modelo.computadores.find(c => c.ubicacion?.nombre === ubicacion.nombre)?.ubicacion ||
+                                                    modelo.dispositivos.find(d => d.ubicacion?.nombre === ubicacion.nombre)?.ubicacion;
+                                if (ubicacionData?.id) {
+                                  router.push(`/ubicaciones/${ubicacionData.id}`);
+                                } else {
+                                  router.push(`/ubicaciones?search=${ubicacion.nombre}`);
+                                }
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

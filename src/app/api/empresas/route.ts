@@ -12,9 +12,7 @@ export async function GET() {
           include: {
             _count: {
               select: {
-                empleados: true,
-                computadores: true,
-                dispositivos: true
+                empleados: true
               }
             }
           }

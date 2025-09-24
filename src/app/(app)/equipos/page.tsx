@@ -2,15 +2,23 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cpu, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Cpu, Monitor, ArrowLeft } from "lucide-react";
 import { ComputadorTable } from "@/components/computador-table";
 import { DispositivoTable } from "@/components/equipos-table";
+import { useRouter } from "next/navigation";
 
 export default function EquiposPage() {
+  const router = useRouter();
 
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
+        <div className="flex items-center space-x-4 mb-4">
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Equipos</h1>
         <p className="text-gray-600">Gestiona todos los equipos de la organización</p>
       </div>

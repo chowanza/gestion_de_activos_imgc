@@ -17,6 +17,7 @@ import DispositivoForm from "./EquipoForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useRouter } from "next/navigation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import TableRowSkeleton from "@/utils/loading";
 
@@ -98,6 +99,7 @@ export function DispositivoTable({}: DispositivoTableProps) {
   const [modelos, setModelos] = React.useState<{ id: string; nombre: string; tipo: string }[]>([]);
   const [isLoading, setIsLoading] = React.useState(true); 
   const isAdmin = useIsAdmin();
+  const router = useRouter();
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
   const [currentImage, setCurrentImage] = React.useState<string | null>(null);
 
@@ -252,12 +254,20 @@ const columns: ColumnDef<Dispositivo>[] = [
         </div>
       );
     },
+    },
+  {
+    accessorKey: "modelo.tipo",
+    header: "Tipo",
+    cell: ({ row }) => {
+      const tipo = row.original.modelo?.tipo;
+      return <div>{tipo || "Sin tipo"}</div>;
+    },
   },
   {
     accessorKey: "estado",
     header: ({ column }) => {
       const isFilterActive = !!column.getFilterValue();
-      const estadosUnicos = ["En resguardo", "Operativo", "Asignado", "Mantenimiento", "De baja"];
+      const estadosUnicos = ["ASIGNADO", "OPERATIVO", "EN_MANTENIMIENTO", "EN_RESGUARDO", "DE_BAJA"];
       
       return (
         <div className="flex items-center">
@@ -284,7 +294,11 @@ const columns: ColumnDef<Dispositivo>[] = [
                 <option value="">Todos</option>
                 {estadosUnicos.map((estado) => (
                   <option key={estado} value={estado}>
-                    {estado}
+                    {estado === "ASIGNADO" ? "Asignado" :
+                     estado === "OPERATIVO" ? "Operativo" :
+                     estado === "EN_MANTENIMIENTO" ? "En Mantenimiento" :
+                     estado === "EN_RESGUARDO" ? "En Resguardo" :
+                     estado === "DE_BAJA" ? "De Baja" : estado}
                   </option>
                 ))}
               </select>
@@ -385,6 +399,11 @@ const columns: ColumnDef<Dispositivo>[] = [
                 <DropdownMenuItem asChild>
                   <Link href={`/dispositivos/${dispositivo.id}/details`}>
                     Ver detalles
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/dispositivos/${dispositivo.id}/details`}>
+                    Gestionar Estado
                   </Link>
                 </DropdownMenuItem>
                 { isAdmin && (
@@ -500,8 +519,8 @@ const columns: ColumnDef<Dispositivo>[] = [
     }, []);
   
     const handleOpenEditModal = (dispositivos: Dispositivo) => {
-    setEditingDispositivo(dispositivos);
-    setIsEditModalOpen(true);
+    // Navegar a la página de edición responsiva
+    router.push(`/dispositivos/${dispositivos.id}/edit`);
   };
 
   // ==================================================================
@@ -753,3 +772,4 @@ return (
   )
 
 }
+

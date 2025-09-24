@@ -30,7 +30,8 @@ import {
   MapPin,
   Building,
   Laptop,
-  Printer
+  Printer,
+  ArrowLeft
 } from 'lucide-react';
 import { UbicacionForm } from '@/components/ubicacion-form';
 import { useRouter } from 'next/navigation';
@@ -134,11 +135,16 @@ export default function UbicacionesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ubicaciones</h1>
-          <p className="text-muted-foreground">
-            Gestiona las ubicaciones físicas de los equipos
-          </p>
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Ubicaciones</h1>
+            <p className="text-muted-foreground">
+              Gestiona las ubicaciones físicas de los equipos
+            </p>
+          </div>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-2 h-4 w-4" />

@@ -252,7 +252,7 @@ export default function UserProfile() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <div className="lg:col-span-1">
                         <img
-                          src={computador.modelo.img || "/placeholder.svg"}
+                          src={computador.modelo.img || "/file.svg"}
                           alt={computador.modelo.nombre}
                           className="w-full h-48 object-cover rounded-md border border-slate-700/50"
                         />
@@ -310,7 +310,7 @@ export default function UserProfile() {
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-1">
                           <img
-                            src={dispositivo.modelo.img || "/placeholder.svg"}
+                            src={dispositivo.modelo.img || "/file.svg"}
                             alt={dispositivo.modelo}
                             className="w-full h-48 object-cover rounded-md border border-slate-700/50"
                           />

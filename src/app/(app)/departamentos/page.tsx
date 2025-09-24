@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { DepartamentoTable } from "@/components/depto-table";
 import Loading from "@/utils/loading";
+import { useRouter } from "next/navigation";
 
 interface DepartamentoContainerProps {
   onCreateModel: (formData: FormData) => Promise<void>;
@@ -30,6 +33,7 @@ export default function DepartamentoPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadData() {
@@ -73,6 +77,13 @@ export default function DepartamentoPage() {
 
   return (
     <DepartamentoContainer onCreateModel={handleCreateDepartamento}>
+      <div className="mb-6">
+        <div className="flex items-center space-x-4 mb-4">
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
       <DepartamentoTable />
     </DepartamentoContainer>
   );

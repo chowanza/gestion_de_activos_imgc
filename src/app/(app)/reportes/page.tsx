@@ -15,6 +15,7 @@ import { showToast } from 'nextjs-toast-notify';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
 import { formatDate } from '@/utils/formatDate';
 import { exportToPDF, exportToExcel, ExportData } from '@/utils/exportUtils';
+import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
 
 // Componentes dinámicos para evitar problemas de hidratación
 const DynamicReactSelect = dynamic(() => import('react-select'), {
@@ -78,6 +79,7 @@ export default function ReportesPage() {
   const [endDate, setEndDate] = useState('');
   const [actionType, setActionType] = useState('all');
   const [itemType, setItemType] = useState('all');
+  const [estadoEquipo, setEstadoEquipo] = useState('all');
   const [selectedEmpresa, setSelectedEmpresa] = useState<any>(null);
   const [selectedDepartamento, setSelectedDepartamento] = useState<any>(null);
   const [selectedEmpleado, setSelectedEmpleado] = useState<any>(null);
@@ -89,13 +91,28 @@ export default function ReportesPage() {
 
   // Establecer fechas por defecto (últimos 30 días)
   useEffect(() => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    // Usar fechas que incluyan los datos existentes (2025)
+    const startDate = new Date('2025-01-01');
+    const endDate = new Date('2025-12-31');
     
-    setEndDate(today.toISOString().split('T')[0]);
-    setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    // Formatear fechas en formato YYYY-MM-DD
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    setStartDate(formatDate(startDate));
+    setEndDate(formatDate(endDate));
   }, []);
+
+  // Generar reporte automáticamente cuando se establezcan las fechas
+  useEffect(() => {
+    if (startDate && endDate) {
+      generateReport();
+    }
+  }, [startDate, endDate]);
 
   // Cargar datos para filtros
   useEffect(() => {
@@ -151,6 +168,7 @@ export default function ReportesPage() {
         endDate,
         ...(actionType && actionType !== 'all' && { actionType }),
         ...(itemType && itemType !== 'all' && { itemType }),
+        ...(estadoEquipo && estadoEquipo !== 'all' && { estadoEquipo }),
         ...(selectedEmpresa?.value && { empresaId: selectedEmpresa.value }),
         ...(selectedDepartamento?.value && { departamentoId: selectedDepartamento.value }),
         ...(selectedEmpleado?.value && { empleadoId: selectedEmpleado.value })
@@ -160,7 +178,8 @@ export default function ReportesPage() {
       if (!response.ok) throw new Error('Error generando reporte');
 
       const data = await response.json();
-      // Debug logging removed for production
+      console.log('Datos del reporte recibidos:', data);
+      console.log('Movimientos encontrados:', data.data?.movimientos?.length || 0);
       setReportData(data.data);
       showToast.success('Reporte generado exitosamente');
     } catch (error) {
@@ -207,6 +226,7 @@ export default function ReportesPage() {
           endDate,
           actionType: actionType !== 'all' ? actionType : undefined,
           itemType: itemType !== 'all' ? itemType : undefined,
+          estadoEquipo: estadoEquipo !== 'all' ? estadoEquipo : undefined,
           empresa: selectedEmpresa?.label,
           departamento: selectedDepartamento?.label,
           empleado: selectedEmpleado?.label
@@ -229,18 +249,26 @@ export default function ReportesPage() {
   const getActionBadgeColor = (action: string) => {
     switch (action) {
       case 'Asignación': return 'bg-green-100 text-green-800';
-      case 'Mantenimiento': return 'bg-yellow-100 text-yellow-800';
-      case 'Resguardo': return 'bg-blue-100 text-blue-800';
       case 'Devolución': return 'bg-red-100 text-red-800';
+      case 'Cambio de Estado': return 'bg-blue-100 text-blue-800';
+      case 'Mantenimiento': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'Asignado': return 'bg-green-100 text-green-800';
-      case 'Mantenimiento': return 'bg-yellow-100 text-yellow-800';
-      case 'Resguardo': return 'bg-blue-100 text-blue-800';
+      case 'ASIGNADO': return 'bg-blue-100 text-blue-800';
+      case 'OPERATIVO': return 'bg-green-100 text-green-800';
+      case 'EN_MANTENIMIENTO': return 'bg-orange-100 text-orange-800';
+      case 'EN_RESGUARDO': return 'bg-amber-100 text-amber-800';
+      case 'DE_BAJA': return 'bg-red-100 text-red-800';
+      // Mantener compatibilidad con estados antiguos
+      case 'Asignado': return 'bg-blue-100 text-blue-800';
+      case 'Operativo': return 'bg-green-100 text-green-800';
+      case 'Mantenimiento': return 'bg-orange-100 text-orange-800';
+      case 'Resguardo': return 'bg-amber-100 text-amber-800';
+      case 'De Baja': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -290,22 +318,38 @@ export default function ReportesPage() {
                   <SelectContent>
                     <SelectItem value="all">Todas las acciones</SelectItem>
                     <SelectItem value="Asignación">Asignación</SelectItem>
-                    <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                    <SelectItem value="Resguardo">Resguardo</SelectItem>
                     <SelectItem value="Devolución">Devolución</SelectItem>
+                    <SelectItem value="Cambio de Estado">Cambio de Estado</SelectItem>
+                    <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Tipo de Equipo</Label>
+                <Label>Categoría de Equipo</Label>
                 <Select value={itemType} onValueChange={setItemType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos los equipos" />
+                    <SelectValue placeholder="Todas las categorías" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los equipos</SelectItem>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
                     <SelectItem value="Computador">Computadores</SelectItem>
                     <SelectItem value="Dispositivo">Dispositivos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Estado Actual del Equipo</Label>
+                <Select value={estadoEquipo} onValueChange={setEstadoEquipo}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value={ESTADOS_EQUIPO.ASIGNADO}>Asignado</SelectItem>
+                    <SelectItem value={ESTADOS_EQUIPO.OPERATIVO}>Operativo</SelectItem>
+                    <SelectItem value={ESTADOS_EQUIPO.EN_MANTENIMIENTO}>En Mantenimiento</SelectItem>
+                    <SelectItem value={ESTADOS_EQUIPO.EN_RESGUARDO}>En Resguardo</SelectItem>
+                    <SelectItem value={ESTADOS_EQUIPO.DE_BAJA}>De Baja</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
