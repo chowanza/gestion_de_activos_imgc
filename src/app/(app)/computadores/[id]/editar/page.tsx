@@ -50,7 +50,7 @@ export default function EditarComputadorPage() {
             }
 
             showToast.success("Computador actualizado con éxito");
-            router.push('/computadores');
+            router.push(`/computadores/${id}/details`);
             router.refresh();
         } catch (error: any) {
             showToast.error(`Error: ${error.message}`);

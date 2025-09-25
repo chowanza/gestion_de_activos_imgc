@@ -278,6 +278,16 @@ export default function EquipmentDetails() {
     loadEquipoData();
   }, [id]);
 
+  // Recargar datos cuando la página se enfoque (al volver de editar)
+  useEffect(() => {
+    const handleFocus = () => {
+      loadEquipoData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
 const departamentoTag = (
   (equipo?.estado === 'ASIGNADO' || (equipo?.estado === 'EN_MANTENIMIENTO' && equipo?.empleado))
     ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
@@ -344,7 +354,8 @@ const departamentoTag = (
         tipoEquipo: 'computador',
         nuevoEstado: newStatus,
         motivo: assignmentData.motivo || 'Cambio de estado',
-        targetEmpleadoId: assignmentData.targetEmpleadoId || null
+        targetEmpleadoId: assignmentData.targetEmpleadoId || null,
+        ubicacionId: assignmentData.ubicacionId || null
       };
       
       console.log('Enviando datos al API:', requestData);
@@ -363,35 +374,10 @@ const departamentoTag = (
 
       const result = await response.json();
       
-      // Actualizar el estado local del equipo
-      setEquipo(prev => prev ? {
-        ...prev,
-        estado: newStatus,
-        // Si el nuevo estado es ASIGNADO y hay datos de asignación, actualizar empleado/departamento
-        ...(newStatus === 'ASIGNADO' && assignmentData.targetEmpleadoId && {
-          empleado: {
-            id: assignmentData.targetEmpleadoId,
-            nombre: assignmentData.targetEmpleado?.split(' ')[0] || '',
-            apellido: assignmentData.targetEmpleado?.split(' ').slice(1).join(' ') || '',
-            departamento: {
-              nombre: 'Actualizando...',
-              empresa: { nombre: 'Actualizando...' }
-            }
-          }
-        }),
-        // Actualizar ubicación si se proporciona
-        ...(assignmentData.ubicacionId && {
-          ubicacion: {
-            id: assignmentData.ubicacionId,
-            nombre: assignmentData.ubicacion || 'Actualizando...'
-          }
-        })
-      } : null);
+      // Recargar los datos completos del equipo
+      await loadEquipoData();
 
       showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
-      
-      // Recargar los datos del equipo para obtener información actualizada
-      loadEquipoData();
     } catch (error) {
       console.error('Error actualizando estado:', error);
       showToast.error('Error actualizando el estado del equipo');

@@ -75,7 +75,7 @@ export function BarChart({
             >
               {/* Barra */}
               <div className="flex items-center space-x-4 mb-2">
-                <div className="w-24 text-sm font-medium text-gray-700 truncate">
+                <div className="w-32 text-sm font-medium text-gray-700 truncate">
                   {item.name}
                 </div>
                 <div className="flex-1 relative">
@@ -97,13 +97,35 @@ export function BarChart({
                   
                   {/* Valor en la barra */}
                   {item.value > 0 && (
-                    <div 
-                      className={`absolute inset-y-0 left-2 flex items-center text-sm font-semibold transition-colors duration-300 ${
-                        barWidth > 30 ? 'text-white' : 'text-gray-800'
-                      }`}
-                    >
-                      {item.value}
-                    </div>
+                    <>
+                      {barWidth > 2 ? (
+                        // Mostrar valor dentro de la barra si es suficientemente ancha
+                        <div 
+                          className="absolute inset-y-0 left-2 flex items-center text-sm font-semibold text-white transition-colors duration-300"
+                          style={{
+                            color: '#ffffff',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {item.value}
+                        </div>
+                      ) : (
+                        // Mostrar valor fuera de la barra si es muy estrecha
+                        <div 
+                          className="absolute inset-y-0 left-2 flex items-center text-sm font-semibold text-gray-800 transition-colors duration-300"
+                          style={{
+                            left: `${Math.max(barWidth + 10, 15)}%`,
+                            transform: 'translateX(-50%)',
+                            minWidth: '24px',
+                            textAlign: 'center',
+                            zIndex: 10,
+                            color: '#1f2937'
+                          }}
+                        >
+                          {item.value}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
                 
@@ -121,7 +143,7 @@ export function BarChart({
               
               {/* Información adicional al seleccionar */}
               {isSelected && (
-                <div className="ml-28 mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="ml-36 mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-blue-900">{item.name}</p>

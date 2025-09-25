@@ -49,10 +49,10 @@ interface EquipmentUsersSectionProps {
 }
 
 export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
-  // Función para obtener el historial de asignaciones de usuarios
+  // Función para obtener el historial de asignaciones de usuarios (solo asignaciones, no devoluciones)
   const getAssignmentHistory = () => {
     const assignments = equipo.historial
-      .filter(entry => entry.tipo === 'asignacion')
+      .filter(entry => entry.tipo === 'asignacion' && entry.detalle.actionType === 'Assignment')
       .map(entry => {
         const detalle = entry.detalle;
         return {
@@ -82,11 +82,10 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
     if (equipo.estado !== 'ASIGNADO' || !equipo.empleado) return null;
     
     const currentAssignment = equipo.historial
-      .filter(entry => entry.tipo === 'asignacion')
+      .filter(entry => entry.tipo === 'asignacion' && entry.detalle.actionType === 'Assignment')
       .find(entry => {
         const detalle = entry.detalle;
-        return detalle.actionType === 'Assignment' && 
-               detalle.targetEmpleado?.id === equipo.empleado?.id;
+        return detalle.targetEmpleado?.id === equipo.empleado?.id;
       });
     
     return currentAssignment ? currentAssignment.fecha : null;
@@ -103,22 +102,14 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
     return '/file.svg'; // Fallback a file.svg
   };
 
-  // Función para obtener el color del badge según la acción
-  const getActionBadgeColor = (accion: string) => {
-    switch (accion) {
-      case 'Assignment': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Return': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  // Función para obtener el color del badge (solo asignaciones)
+  const getActionBadgeColor = () => {
+    return 'bg-green-100 text-green-800 border-green-200';
   };
 
-  // Función para obtener el icono según la acción
-  const getActionIcon = (accion: string) => {
-    switch (accion) {
-      case 'Assignment': return <ArrowRight className="h-3 w-3" />;
-      case 'Return': return <ArrowLeft className="h-3 w-3" />;
-      default: return <Clock className="h-3 w-3" />;
-    }
+  // Función para obtener el icono (solo asignaciones)
+  const getActionIcon = () => {
+    return <ArrowRight className="h-3 w-3" />;
   };
 
   return (
@@ -130,7 +121,7 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        {/* Usuario actual (si está asignado) */}
+        {/* Estado actual del equipo (siempre primero) */}
         {equipo.estado === 'ASIGNADO' && equipo.empleado && (
           <div className="mb-6">
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -207,7 +198,28 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
           </div>
         )}
 
-        {/* Historial de asignaciones */}
+        {/* Caso: No está asignado - AHORA PRIMERO */}
+        {equipo.estado !== 'ASIGNADO' && (
+          <div className="mb-6">
+            <div className="text-center text-gray-600 py-6">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-medium text-gray-800">No está asignado</p>
+                  <p className="text-sm text-gray-600">
+                    Este equipo se encuentra <span className="font-medium text-gray-700">
+                      {equipo.estado.toLowerCase()}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Historial de asignaciones - AHORA DEBAJO */}
         {assignmentHistory.length > 0 && (
           <div>
             <div className="flex items-center mb-4">
@@ -223,7 +235,7 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                   {/* Timeline decorator */}
                   <div className="flex flex-col items-center">
                     <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center border border-gray-300">
-                      {getActionIcon(assignment.accion)}
+                      {getActionIcon()}
                     </div>
                     {index < assignmentHistory.length - 1 && (
                       <div className="w-px h-16 bg-gray-200 mt-2"></div>
@@ -260,8 +272,8 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                         </div>
                         <div className="flex items-center space-x-2">
                           <p className="text-xs text-gray-600">{formatDate(assignment.fecha)}</p>
-                          <Badge className={`${getActionBadgeColor(assignment.accion)} text-xs`}>
-                            {assignment.accion === 'Assignment' ? 'Asignado' : 'Devuelto'}
+                          <Badge className={`${getActionBadgeColor()} text-xs`}>
+                            Asignado
                           </Badge>
                         </div>
                       </div>
@@ -283,25 +295,6 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Caso: No está asignado */}
-        {equipo.estado !== 'ASIGNADO' && (
-          <div className="text-center text-gray-600 py-8">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <Users className="h-8 w-8 text-gray-400" />
-              </div>
-              <div>
-                <p className="text-lg font-medium text-gray-800">No está asignado</p>
-                <p className="text-sm text-gray-600">
-                  Este equipo se encuentra <span className="font-medium text-gray-700">
-                    {equipo.estado.toLowerCase()}
-                  </span>
-                </p>
-              </div>
             </div>
           </div>
         )}

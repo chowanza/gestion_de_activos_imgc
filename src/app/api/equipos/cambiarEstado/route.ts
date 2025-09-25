@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', body);
     
-    const { equipoId, tipoEquipo, nuevoEstado, motivo, targetEmpleadoId } = body;
+    const { equipoId, tipoEquipo, nuevoEstado, motivo, targetEmpleadoId, ubicacionId } = body;
 
     if (!equipoId || !tipoEquipo || !nuevoEstado || !motivo) {
       console.log('Missing required fields:', { equipoId, tipoEquipo, nuevoEstado, motivo });
@@ -100,6 +100,11 @@ export async function POST(request: NextRequest) {
       updateData.empleadoId = null;
     }
 
+    // Manejar cambio de ubicación si se proporciona
+    if (ubicacionId) {
+      updateData.ubicacionId = ubicacionId;
+    }
+
     console.log('Datos de actualización:', updateData);
 
     // Actualizar el estado del equipo
@@ -161,29 +166,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Si se está asignando a un empleado, crear registro en Asignaciones
-    if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
-      console.log('Creando registro de asignación...');
-      try {
-        await prisma.asignaciones.create({
-          data: {
-            date: new Date(),
-            actionType: 'Assignment',
-            targetType: 'Usuario',
-            targetEmpleadoId: targetEmpleadoId,
-            itemType: tipoEquipo === 'computador' ? 'Computador' : 'Dispositivo',
-            computadorId: tipoEquipo === 'computador' ? equipoId : null,
-            dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
-            motivo: motivo,
-            notes: `Asignación automática por cambio de estado a ${nuevoEstado}`,
-            gerente: 'Sistema',
-          },
-        });
-        console.log('Registro de asignación creado exitosamente');
-      } catch (asignacionError) {
-        console.error('Error creando registro de asignación:', asignacionError);
-        // No fallar por error de asignación, solo logear
+    // Crear registro en Asignaciones para cambios de estado
+    console.log('Creando registro de asignación...');
+    try {
+      let actionType = 'Assignment';
+      let targetType = 'Usuario';
+      let targetEmpleadoIdFinal = targetEmpleadoId;
+      let notes = `Asignación automática por cambio de estado a ${nuevoEstado}`;
+
+      // Detectar si es una devolución (de ASIGNADO a otro estado)
+      if (estadoActual === 'ASIGNADO' && nuevoEstado !== 'ASIGNADO') {
+        actionType = 'Return';
+        targetType = 'Usuario';
+        targetEmpleadoIdFinal = equipo.empleadoId; // El empleado que tenía asignado el equipo
+        notes = `Devolución automática por cambio de estado de ${estadoActual} a ${nuevoEstado}`;
       }
+      // Si es una nueva asignación
+      else if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
+        actionType = 'Assignment';
+        targetType = 'Usuario';
+        targetEmpleadoIdFinal = targetEmpleadoId;
+        notes = `Asignación automática por cambio de estado a ${nuevoEstado}`;
+      }
+      // Si no es ni asignación ni devolución, es un cambio de estado
+      else {
+        actionType = 'Status Change';
+        targetType = 'Sistema';
+        targetEmpleadoIdFinal = null;
+        notes = `Cambio de estado de ${estadoActual} a ${nuevoEstado}`;
+      }
+
+      await prisma.asignaciones.create({
+        data: {
+          date: new Date(),
+          actionType: actionType,
+          targetType: targetType,
+          targetEmpleadoId: targetEmpleadoIdFinal,
+          itemType: tipoEquipo === 'computador' ? 'Computador' : 'Dispositivo',
+          computadorId: tipoEquipo === 'computador' ? equipoId : null,
+          dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
+          motivo: motivo,
+          notes: notes,
+          gerente: 'Sistema',
+        },
+      });
+      console.log('Registro de asignación creado exitosamente');
+    } catch (asignacionError) {
+      console.error('Error creando registro de asignación:', asignacionError);
+      // No fallar por error de asignación, solo logear
     }
 
     // Log de auditoría
@@ -209,8 +239,7 @@ export async function POST(request: NextRequest) {
     console.error('Error al cambiar estado del equipo:', error);
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      body: body
+      stack: error instanceof Error ? error.stack : undefined
     });
     return NextResponse.json({ 
       message: 'Error al cambiar estado del equipo',

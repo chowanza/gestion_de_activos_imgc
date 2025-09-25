@@ -286,6 +286,16 @@ export default function EquipmentDetails() {
     loadEquipoData();
   }, [id]);
 
+  // Recargar datos cuando la página se enfoque (al volver de editar)
+  useEffect(() => {
+    const handleFocus = () => {
+      loadEquipoData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
 const departamentoTag = (
   (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
     ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
@@ -345,7 +355,8 @@ const departamentoTag = (
         tipoEquipo: 'dispositivo',
         nuevoEstado: newStatus,
         motivo: assignmentData.motivo || 'Cambio de estado',
-        targetEmpleadoId: assignmentData.targetEmpleadoId || null
+        targetEmpleadoId: assignmentData.targetEmpleadoId || null,
+        ubicacionId: assignmentData.ubicacionId || null
       };
       
       console.log('Enviando datos al API:', requestData);

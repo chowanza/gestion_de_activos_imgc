@@ -19,7 +19,8 @@ import {
   Monitor,
   Calendar,
   Tag,
-  Hash
+  Hash,
+  Edit
 } from 'lucide-react';
 import { formatDate } from '@/utils/formatDate';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +101,37 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
           : asig.targetDepartamento?.nombre || 'N/A';
         
         const isAssignment = asig.actionType === 'Assignment';
+        const isStatusChange = asig.actionType === 'Status Change';
+        const isReturn = asig.actionType === 'Return';
+        const isEdit = asig.actionType === 'Edit';
+        
+        if (isEdit) {
+          return {
+            icon: <Edit className="h-4 w-4 text-indigo-500" />,
+            title: 'Edición de Equipo',
+            message: `Equipo editado el ${fechaFormateada}`,
+            color: 'indigo',
+            badge: 'Edición',
+            details: [
+              asig.notes && `Detalles: ${asig.notes}`,
+              asig.motivo && `Motivo: ${asig.motivo}`
+            ].filter(Boolean)
+          };
+        }
+        
+        if (isStatusChange) {
+          return {
+            icon: <Settings className="h-4 w-4 text-purple-500" />,
+            title: 'Cambio de Estado',
+            message: `Estado cambiado el ${fechaFormateada}`,
+            color: 'purple',
+            badge: 'Estado',
+            details: [
+              asig.notes && `Detalles: ${asig.notes}`,
+              asig.motivo && `Motivo: ${asig.motivo}`
+            ].filter(Boolean)
+          };
+        }
         
         return {
           icon: isAssignment ? <User className="h-4 w-4 text-blue-500" /> : <ArrowRight className="h-4 w-4 text-orange-500" />,

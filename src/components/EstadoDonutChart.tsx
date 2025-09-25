@@ -192,7 +192,7 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
       <h3 className="text-lg font-semibold text-gray-800 mb-6 text-center">{title}</h3>
       
       <div className="flex items-center justify-center">
-        <div className="relative w-48 h-48">
+        <div className="relative w-80 h-80">
           <svg className="w-full h-full cursor-pointer" viewBox="0 0 200 200">
             {/* Fondo del gráfico */}
             <circle

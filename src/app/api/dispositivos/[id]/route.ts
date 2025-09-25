@@ -128,26 +128,87 @@ export async function PUT(request: NextRequest) {
           
         const { serial, codigoImgc, estado, ubicacionId, mac, modeloId, fechaCompra, numeroFactura, proveedor, monto } = body;
 
-        const updatedEquipo = await prisma.dispositivo.update({
-            where: { id },
-            data: {
-                serial,
-                codigoImgc,  // Campo obligatorio
-                estado,
-                mac,
-                ubicacionId: ubicacionId || null,
-                // Nuevos campos de compra
-                fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
-                numeroFactura: numeroFactura || null,
-                proveedor: proveedor || null,
-                monto: monto || null,
-            }, // Cuidado con 'as any', valida y tipa los datos.
+        // Detectar cambios comparando con el estado actual
+        const modificaciones = [];
+        const camposAComparar = ['serial', 'codigoImgc', 'estado', 'ubicacionId', 'mac', 'modeloId', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'];
+        
+        for (const campo of camposAComparar) {
+            const valorActual = equipoExistente[campo];
+            const valorNuevo = body[campo];
+            
+            // Solo comparar si el campo existe en el body
+            if (valorNuevo !== undefined) {
+                // Comparar valores (manejar fechas y nulls)
+                let valorAnterior = String(valorActual || "N/A");
+                let valorNuevoStr = String(valorNuevo || "N/A");
+                
+                // Para fechas, convertir a string para comparación
+                if (campo === 'fechaCompra') {
+                    valorAnterior = valorActual ? new Date(valorActual).toISOString().split('T')[0] : "N/A";
+                    valorNuevoStr = valorNuevo ? new Date(valorNuevo).toISOString().split('T')[0] : "N/A";
+                }
+                
+                // Para montos, convertir a número para comparación
+                if (campo === 'monto') {
+                    valorAnterior = valorActual ? String(valorActual) : "N/A";
+                    valorNuevoStr = valorNuevo ? String(valorNuevo) : "N/A";
+                }
+                
+                if (valorAnterior !== valorNuevoStr) {
+                    modificaciones.push({
+                        campo,
+                        valorAnterior,
+                        valorNuevo: valorNuevoStr
+                    });
+                }
+            }
+        }
+
+        // Ejecutar actualización y registro de historial en una transacción
+        const updatedEquipo = await prisma.$transaction(async (tx) => {
+            // Si hay modificaciones, registrar en Asignaciones para la línea de tiempo inteligente
+            if (modificaciones.length > 0) {
+                await tx.asignaciones.create({
+                    data: {
+                        date: new Date(),
+                        actionType: 'Edit',
+                        targetType: 'Sistema',
+                        targetEmpleadoId: null,
+                        itemType: 'Dispositivo',
+                        computadorId: null,
+                        dispositivoId: id,
+                        motivo: `Edición de dispositivo ${equipoExistente.serial}`,
+                        notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
+                        gerente: 'Sistema',
+                    },
+                });
+            }
+
+            // Actualizar el dispositivo
+            const equipoActualizado = await tx.dispositivo.update({
+                where: { id },
+                data: {
+                    serial,
+                    codigoImgc,  // Campo obligatorio
+                    estado,
+                    mac,
+                    ubicacionId: ubicacionId || null,
+                    modeloId: modeloId || equipoExistente.modeloId,
+                    // Nuevos campos de compra
+                    fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
+                    numeroFactura: numeroFactura || null,
+                    proveedor: proveedor || null,
+                    monto: monto || null,
+                },
+            });
+
+            return equipoActualizado;
         });
 
         return NextResponse.json(updatedEquipo, { status: 200 });
 
     } catch (error) {
-        console.error(`Error en PUT /api/equipos/${id}:`, error);
+        console.error(`Error en PUT /api/dispositivos/${id}:`, error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al actualizar el equipo';
         return NextResponse.json({ message: errorMessage }, { status: 500 });
     }

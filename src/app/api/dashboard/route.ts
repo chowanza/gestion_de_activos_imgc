@@ -55,10 +55,40 @@ export async function GET() {
       }),
     ]);
 
+    // Calcular equipos de baja
+    const equiposDeBaja = await Promise.all([
+      prisma.computador.count({
+        where: {
+          estado: "DE_BAJA",
+        },
+      }),
+      prisma.dispositivo.count({
+        where: {
+          estado: "DE_BAJA",
+        },
+      }),
+    ]);
+
+    // Calcular equipos en mantenimiento
+    const equiposEnMantenimiento = await Promise.all([
+      prisma.computador.count({
+        where: {
+          estado: "EN_MANTENIMIENTO",
+        },
+      }),
+      prisma.dispositivo.count({
+        where: {
+          estado: "EN_MANTENIMIENTO",
+        },
+      }),
+    ]);
+
     // Calcular equipos totales y equipos en resguardo
     const totalEquipos = totalComputers + totalDevices;
     const equiposEnResguardo = storedComputers + storedDevices;
     const totalEquiposOperativos = equiposOperativos[0] + equiposOperativos[1];
+    const totalEquiposDeBaja = equiposDeBaja[0] + equiposDeBaja[1];
+    const totalEquiposEnMantenimiento = equiposEnMantenimiento[0] + equiposEnMantenimiento[1];
 
     // --- 2. ESTADÍSTICAS POR DEPARTAMENTO ---
     // Obtenemos todos los departamentos y contamos sus computadores y usuarios asociados.
@@ -313,6 +343,8 @@ export async function GET() {
       asignados: 11.4, // Tendencia para equipos asignados
       resguardo: -1.2, // Tendencia para equipos en resguardo
       operativos: 6.8, // Tendencia para equipos operativos
+      baja: 2.1, // Tendencia para equipos de baja
+      mantenimiento: -0.5, // Tendencia para equipos en mantenimiento
     };
 
     // --- 5. RESPUESTA FINAL ---
@@ -326,6 +358,8 @@ export async function GET() {
       totalEquipos, // Equipos totales
       equiposEnResguardo, // Equipos en resguardo
       equiposOperativos: totalEquiposOperativos, // Equipos operativos
+      equiposDeBaja: totalEquiposDeBaja, // Equipos de baja
+      equiposEnMantenimiento: totalEquiposEnMantenimiento, // Equipos en mantenimiento
       trends,
       departmentStats,
       empresaStats,

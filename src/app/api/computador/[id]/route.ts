@@ -150,10 +150,26 @@ export async function PUT(request: NextRequest) {
 
     // --- PASO 3: EJECUTAR ACTUALIZACIÓN Y CREACIÓN DE HISTORIAL EN UNA TRANSACCIÓN ---
     const updatedEquipo = await prisma.$transaction(async (tx) => {
-      // Si hay modificaciones, las creamos
+      // Si hay modificaciones, las creamos en HistorialModificaciones
       if (modificaciones.length > 0) {
         await tx.historialModificaciones.createMany({
           data: modificaciones,
+        });
+
+        // También registrar en Asignaciones para la línea de tiempo inteligente
+        await tx.asignaciones.create({
+          data: {
+            date: new Date(),
+            actionType: 'Edit',
+            targetType: 'Sistema',
+            targetEmpleadoId: null,
+            itemType: 'Computador',
+            computadorId: id,
+            dispositivoId: null,
+            motivo: `Edición de computador ${computadorActual.serial}`,
+            notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
+            gerente: 'Sistema',
+          },
         });
       }
 

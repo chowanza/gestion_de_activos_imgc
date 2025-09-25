@@ -14,6 +14,8 @@ import {
   Building,
   MapPin,
   Building2,
+  XCircle,
+  Wrench,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -328,7 +330,7 @@ export default function InventoryDashboard() {
         <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>
         
         {/* Main Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <StatCard
             title="Equipos Totales"
             value={dashboardData.totalEquipos}
@@ -360,6 +362,22 @@ export default function InventoryDashboard() {
             icon={Activity}
             color="purple"
             description="Equipos en operación"
+          />
+          <StatCard
+            title="Equipos de Baja"
+            value={dashboardData.equiposDeBaja}
+            trend={dashboardData.trends.baja}
+            icon={XCircle}
+            color="red"
+            description="Equipos dados de baja"
+          />
+          <StatCard
+            title="En Mantenimiento"
+            value={dashboardData.equiposEnMantenimiento}
+            trend={dashboardData.trends.mantenimiento}
+            icon={Wrench}
+            color="orange"
+            description="Equipos en reparación"
           />
         </div>
 
@@ -597,6 +615,7 @@ export default function InventoryDashboard() {
                              equipmentTypeFilter === "computadores" ? "Solo computadores" : 
                              "Solo dispositivos"} por empresa`}
                     showPercentage={true}
+                    maxValue={Math.max(...dashboardData.empresaStats.map((e: any) => e.total))}
                     onBarClick={(barData) => {
                       setSelectedEmpresaForDetails(barData.name);
                     }}
@@ -653,7 +672,7 @@ export default function InventoryDashboard() {
                       name: ubicacion.name,
                       value: ubicacion.displayValue,
                       percentage: ubicacion.percentage,
-                      color: '#10b981'
+                      color: '#000000'
                     }))}
                     title={`Distribución de ${equipmentTypeFilter === "todos" ? "Equipos" : 
                                            equipmentTypeFilter === "computadores" ? "Computadores" : 
@@ -662,6 +681,7 @@ export default function InventoryDashboard() {
                              equipmentTypeFilter === "computadores" ? "Solo computadores" : 
                              "Solo dispositivos"} por ubicación física`}
                     showPercentage={true}
+                    maxValue={Math.max(...dashboardData.ubicacionStats.map((u: any) => u.total))}
                   />
                   
                   {/* Información adicional de ubicaciones */}
@@ -674,32 +694,33 @@ export default function InventoryDashboard() {
                     </CardHeader>
                     <CardContent className="p-6">
                       <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                        {getFilteredUbicacionStatsByEquipment().map((ubicacion: any) => (
-                          <div key={ubicacion.name} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-gray-800">{ubicacion.name}</h4>
-                              <span className="text-sm text-gray-600">{ubicacion.percentage}%</span>
+                        {dashboardData.ubicacionStats.map((ubicacion: any) => {
+                          const totalEquipos = dashboardData.ubicacionStats.reduce((sum: number, u: any) => sum + u.total, 0);
+                          const percentage = totalEquipos > 0 ? parseFloat(((ubicacion.total / totalEquipos) * 100).toFixed(1)) : 0;
+                          
+                          return (
+                            <div key={ubicacion.name} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-800">{ubicacion.name}</h4>
+                                <span className="text-sm text-gray-600">{percentage}%</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                  <span className="text-gray-600">{ubicacion.computers} computadores</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                  <span className="text-gray-600">{ubicacion.devices} dispositivos</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                  <span className="text-gray-600">{ubicacion.total} total</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                <span className="text-gray-600">{ubicacion.computers} computadores</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span className="text-gray-600">{ubicacion.devices} dispositivos</span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                                <span className="text-gray-600">
-                                  {equipmentTypeFilter === "todos" ? `${ubicacion.total} total` :
-                                   equipmentTypeFilter === "computadores" ? `${ubicacion.computers} computadores` :
-                                   `${ubicacion.devices} dispositivos`}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
