@@ -188,11 +188,11 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
   });
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <h3 className="text-lg font-semibold text-gray-800 mb-6 text-center">{title}</h3>
+    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6 text-center">{title}</h3>
       
       <div className="flex items-center justify-center">
-        <div className="relative w-80 h-80">
+        <div className="relative w-64 h-64 sm:w-80 sm:h-80">
           <svg className="w-full h-full cursor-pointer" viewBox="0 0 200 200">
             {/* Fondo del gráfico */}
             <circle
@@ -241,7 +241,7 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
               x={centerX}
               y={centerY - 5}
               textAnchor="middle"
-              className="text-2xl font-bold fill-gray-800"
+              className="text-xl sm:text-2xl font-bold fill-gray-800"
             >
               {total}
             </text>
@@ -249,7 +249,7 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
               x={centerX}
               y={centerY + 15}
               textAnchor="middle"
-              className="text-sm fill-gray-600"
+              className="text-xs sm:text-sm fill-gray-600"
             >
               Total
             </text>
@@ -258,7 +258,7 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
       </div>
       
       {/* Leyenda interactiva */}
-      <div className="mt-6 space-y-3">
+      <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
         {data.map((item, index) => {
           const isHovered = hoveredState === item.estado;
           const isSelected = selectedState === item.estado;
@@ -275,7 +275,7 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
           return (
             <div 
               key={index} 
-              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 ${
+              className={`flex items-center justify-between p-2 sm:p-3 rounded-lg cursor-pointer transition-all duration-300 ${
                 isHovered || isSelected ? 'bg-gray-50 shadow-sm' : 'hover:bg-gray-50'
               } ${
                 isZero ? 'opacity-50' : ''
@@ -284,26 +284,26 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
               onMouseLeave={() => setHoveredState(null)}
               onClick={() => setSelectedState(selectedState === item.estado ? null : item.estado)}
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <div 
-                  className={`w-4 h-4 rounded-full ${colorConfig.bg} transition-all duration-300 ${
+                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${colorConfig.bg} transition-all duration-300 ${
                     isHovered ? 'scale-125' : isSelected ? 'scale-110 ring-2 ring-gray-300' : ''
                   }`}
                   style={{ backgroundColor: colorConfig.fill }}
                 ></div>
                 <div>
-                  <span className={`text-sm font-medium ${
+                  <span className={`text-xs sm:text-sm font-medium ${
                     isSelected ? 'text-gray-900' : 'text-gray-700'
                   }`}>
                     {colorConfig.label}
                   </span>
                   {isSelected && (
-                    <p className="text-xs text-gray-500 mt-1">{colorConfig.description}</p>
+                    <p className="text-xs text-gray-500 mt-1 hidden sm:block">{colorConfig.description}</p>
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className={`text-sm font-semibold ${
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <span className={`text-xs sm:text-sm font-semibold ${
                   isSelected ? 'text-gray-900' : 'text-gray-800'
                 }`}>
                   {item.count}

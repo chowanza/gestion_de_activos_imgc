@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { Spinner } from './ui/spinner';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useSidebar } from '@/components/ui/sidebar';
+import { useIsSmallScreen } from '@/hooks/use-screen-size';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Define una estructura de datos para la navegación
@@ -40,7 +41,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, setOpen } = useSidebar();
+  const isSmallScreen = useIsSmallScreen();
 
     // Filtrar los items basado en el rol del usuario
   const filteredNavMain = navData.navMain.filter(item => {
@@ -64,6 +66,15 @@ useEffect(() => {
       router.push('/');
     }
   }, [user, router]);
+
+  // Colapsar automáticamente el sidebar en pantallas menores a 1920x1080
+  // Solo cuando la pantalla cambia de grande a pequeña, no cuando el usuario ya lo colapsó manualmente
+  useEffect(() => {
+    if (isSmallScreen && state === "expanded") {
+      // Solo colapsar si el sidebar está expandido y la pantalla se volvió pequeña
+      setOpen(false);
+    }
+  }, [isSmallScreen]); // Solo depende de isSmallScreen, no de state
 
   if (!user) {
     return (

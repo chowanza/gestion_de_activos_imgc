@@ -260,7 +260,6 @@ model EmpleadoStatusHistory {
   accion      String   // 'activar' o 'desactivar'
   fecha       String   // Fecha del cambio
   motivo      String?  // Motivo opcional del cambio
-  usuarioId   String?  // Usuario que hizo el cambio
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

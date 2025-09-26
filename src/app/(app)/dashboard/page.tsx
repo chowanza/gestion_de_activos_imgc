@@ -330,7 +330,7 @@ export default function InventoryDashboard() {
         <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>
         
         {/* Main Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <StatCard
             title="Equipos Totales"
             value={dashboardData.totalEquipos}
@@ -410,7 +410,7 @@ export default function InventoryDashboard() {
               <TabsContent value="overview" className="mt-0">
                 <div className="grid gap-6">
                   {/* Estado de Equipos */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <EstadoDonutChart
                       data={dashboardData.computadorEstadoStats || []}
                       title="Computadores"
@@ -424,7 +424,7 @@ export default function InventoryDashboard() {
                   </div>
                   
                   {/* Bottom Section - Activity, Time and Summary */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Recent Activity */}
                     <Card className="bg-white border-gray-200 shadow-lg lg:col-span-2">
                     <CardHeader className="border-b border-gray-200 pb-3">
@@ -439,7 +439,7 @@ export default function InventoryDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                           {dashboardData.recentActivity.slice(0, 4).map((activity: {
                           id: string | number
                           type: string
@@ -624,14 +624,14 @@ export default function InventoryDashboard() {
               </TabsContent>
 
               <TabsContent value="ubicaciones" className="mt-0">
-                <div className="grid gap-6">
+                <div className="grid gap-4 sm:gap-6">
                   {/* Filtros */}
                   <Card className="bg-white border-gray-200 shadow-lg">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                           <Label className="text-sm font-medium text-gray-700">Filtrar por tipo de equipo:</Label>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               variant={equipmentTypeFilter === "todos" ? "default" : "outline"}
                               size="sm"
@@ -692,19 +692,19 @@ export default function InventoryDashboard() {
                         Detalles por Ubicación
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-3 sm:space-y-4 max-h-[300px] overflow-y-auto">
                         {dashboardData.ubicacionStats.map((ubicacion: any) => {
                           const totalEquipos = dashboardData.ubicacionStats.reduce((sum: number, u: any) => sum + u.total, 0);
                           const percentage = totalEquipos > 0 ? parseFloat(((ubicacion.total / totalEquipos) * 100).toFixed(1)) : 0;
                           
                           return (
-                            <div key={ubicacion.name} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div key={ubicacion.name} className="p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                               <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-gray-800">{ubicacion.name}</h4>
-                                <span className="text-sm text-gray-600">{percentage}%</span>
+                                <h4 className="font-semibold text-gray-800 text-sm sm:text-base">{ubicacion.name}</h4>
+                                <span className="text-xs sm:text-sm text-gray-600">{percentage}%</span>
                               </div>
-                              <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                                 <div className="flex items-center space-x-2">
                                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                                   <span className="text-gray-600">{ubicacion.computers} computadores</span>
@@ -856,15 +856,15 @@ function StatCard({
 
   return (
     <Card className={`bg-gray-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] overflow-hidden relative`}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-gray-600">{title}</div>
-          <Icon className={`h-5 w-5 ${colorClasses.split(" ")[2]}`} />
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="text-xs sm:text-sm text-gray-600 truncate pr-2">{title}</div>
+          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${colorClasses.split(" ")[2]} flex-shrink-0`} />
         </div>
 
-        <div className="space-y-2">
-          <div className="text-4xl font-bold text-gray-700">{value.toLocaleString()}</div>
-
+        <div className="space-y-1 sm:space-y-2">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700">{value.toLocaleString()}</div>
+          <div className="text-xs sm:text-sm text-gray-500 truncate">{description}</div>
         </div>
       </CardContent>
     </Card>

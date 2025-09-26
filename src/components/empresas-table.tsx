@@ -367,12 +367,12 @@ export function EmpresasTable() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-2xl font-bold">Empresas</CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <Input
                 placeholder="Buscar por nombre o descripción..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-sm border-primary/20"
+                className="w-full sm:max-w-sm border-primary/20"
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

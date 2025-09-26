@@ -69,8 +69,7 @@ export async function POST(request: NextRequest) {
           empleadoId: id,
           accion,
           fecha,
-          motivo: motivo || null,
-          usuarioId: user?.id || null
+          motivo: motivo || null
         }
       });
 
