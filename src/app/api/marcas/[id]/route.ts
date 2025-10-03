@@ -93,14 +93,8 @@ export async function PUT(
       data: { nombre }
     });
 
-    // Actualizar todos los modelos que usan esta marca
-    await prisma.modeloDispositivo.updateMany({
-      where: { marcaId: id },
-      data: { 
-        // No necesitamos actualizar nada específico aquí ya que la relación se mantiene
-        // Solo actualizamos la marca y los modelos seguirán referenciando la misma marcaId
-      }
-    });
+    // En el esquema normalizado, no necesitamos actualizar modelos
+    // porque la relación se mantiene a través de MarcaModeloEquipo
 
     // Registrar actualización
     if (user) {
@@ -145,8 +139,8 @@ export async function DELETE(
       );
     }
 
-    // Verificar si hay modelos usando esta marca
-    const modelosConMarca = await prisma.modeloDispositivo.findFirst({
+    // Verificar si hay modelos usando esta marca (esquema normalizado)
+    const modelosConMarca = await prisma.marcaModeloEquipo.findFirst({
       where: { marcaId: id }
     });
 

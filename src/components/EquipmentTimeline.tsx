@@ -61,16 +61,35 @@ interface EquipmentTimelineProps {
       nombre: string;
       marca: { nombre: string };
     };
-    historial: Array<{
+    historial?: Array<{
       id: string;
       tipo: 'asignacion' | 'modificacion' | 'creacion';
       fecha: string;
       detalle: any;
     }>;
   };
+  // Nuevas props para filtros
+  showFilters?: boolean;
+  onFiltersChange?: (filters: any) => void;
+  externalHistorial?: Array<{
+    id: string;
+    tipo: 'asignacion' | 'modificacion' | 'creacion';
+    fecha: string;
+    actionType: string;
+    detalle: any;
+  }>;
+  loading?: boolean;
+  error?: string | null;
 }
 
-export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
+export function EquipmentTimeline({ 
+  equipo, 
+  showFilters = false, 
+  onFiltersChange,
+  externalHistorial,
+  loading = false,
+  error = null
+}: EquipmentTimelineProps) {
   // Función para generar mensajes inteligentes basados en el contexto
   const generateTimelineMessage = (entry: any, index: number) => {
     const { tipo, detalle, fecha } = entry;
@@ -101,9 +120,24 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
           : asig.targetDepartamento?.nombre || 'N/A';
         
         const isAssignment = asig.actionType === 'Assignment';
-        const isStatusChange = asig.actionType === 'Status Change';
+        const isStatusChange = asig.actionType === 'CAMBIO_ESTADO';
         const isReturn = asig.actionType === 'Return';
         const isEdit = asig.actionType === 'Edit';
+        const isCreation = asig.actionType === 'CREACION';
+        
+        if (isCreation) {
+          return {
+            icon: <Package className="h-4 w-4 text-green-500" />,
+            title: 'Creación de Equipo',
+            message: `Equipo creado el ${fechaFormateada}`,
+            color: 'green',
+            badge: 'Creado',
+            details: [
+              asig.ubicacion?.nombre && `Ubicación inicial: ${asig.ubicacion.nombre}`,
+              asig.notes && `Detalles: ${asig.notes}`
+            ].filter(Boolean)
+          };
+        }
         
         if (isEdit) {
           return {
@@ -344,7 +378,7 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
 
   const currentStatus = generateCurrentStatusMessage();
 
-  // Crear entrada de creación del equipo
+  // Crear entrada de creación del equipo (elemento fijo)
   const creacionEntry = {
     id: 'creacion',
     tipo: 'creacion' as const,
@@ -352,12 +386,14 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
     detalle: {}
   };
 
-  // Combinar historial con entrada de creación
-  const historialCompleto = [creacionEntry, ...equipo.historial]
-    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  // Usar historial externo si está disponible y no está vacío, sino usar el historial del equipo
+  const historialCompleto = (externalHistorial !== undefined && externalHistorial.length > 0)
+    ? externalHistorial 
+    : [creacionEntry, ...(equipo.historial || [])]
+        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
       {/* Estado actual */}
       <div className="flex items-start space-x-4">
         <div className="flex flex-col items-center">
@@ -391,16 +427,44 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
       </div>
 
       {/* Historial */}
-      {historialCompleto && historialCompleto.length > 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#167DBA] mx-auto"></div>
+            <p className="text-sm text-gray-600 mt-2">Cargando historial...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        </div>
+      ) : historialCompleto && historialCompleto.length > 0 ? (
         historialCompleto.map((entry, index) => {
           const isLast = index === historialCompleto.length - 1;
-          const message = generateTimelineMessage(entry, index);
+          
+          // Generar mensaje especial para la entrada de creación
+          const message = entry.id === 'creacion' ? {
+            icon: <Package className="h-4 w-4 text-green-600" />,
+            title: 'Equipo Creado',
+            message: 'El equipo fue registrado en el sistema',
+            badge: 'Creación',
+            color: 'green',
+            details: [
+              `Serial: ${equipo.serial}`,
+              `Código: ${equipo.codigoImgc}`
+            ]
+          } : generateTimelineMessage(entry, index);
 
           return (
             <div key={entry.id} className="flex items-start space-x-4">
               {/* Timeline decorator */}
               <div className="flex flex-col items-center">
-                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-300">
+                <div className={`w-8 h-8 bg-white rounded-full flex items-center justify-center border ${
+                  entry.id === 'creacion' ? 'border-green-300' : 'border-gray-300'
+                }`}>
                   {message.icon}
                 </div>
                 {!isLast && <div className="w-px h-24 bg-gray-200 mt-2"></div>}
@@ -408,26 +472,48 @@ export function EquipmentTimeline({ equipo }: EquipmentTimelineProps) {
 
               {/* Contenido de la tarjeta */}
               <div className="flex-1 min-w-0 pt-1">
-                <Card className="bg-gray-50 border-gray-200">
+                <Card className={`${
+                  entry.id === 'creacion' 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-800 flex items-center">
+                      <h3 className={`text-sm font-medium flex items-center ${
+                        entry.id === 'creacion' ? 'text-green-800' : 'text-gray-800'
+                      }`}>
                         {message.icon}
                         <span className="ml-2">{message.title}</span>
                       </h3>
                       <div className="flex items-center space-x-2">
-                        <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
-                        <Badge className={`${getBadgeColor(message.color)} text-xs`}>
+                        <p className={`text-xs ${
+                          entry.id === 'creacion' ? 'text-green-600' : 'text-gray-600'
+                        }`}>
+                          {formatDate(entry.fecha)}
+                        </p>
+                        <Badge className={`${
+                          entry.id === 'creacion' 
+                            ? 'bg-green-100 text-green-800' 
+                            : getBadgeColor(message.color)
+                        } text-xs`}>
                           {message.badge}
                         </Badge>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-700 mb-2">{message.message}</p>
+                    <p className={`text-sm mb-2 ${
+                      entry.id === 'creacion' ? 'text-green-700' : 'text-gray-700'
+                    }`}>
+                      {message.message}
+                    </p>
                     {message.details && message.details.length > 0 && (
-                      <div className="text-xs text-gray-600 space-y-1 bg-white/50 rounded p-2">
+                      <div className={`text-xs space-y-1 bg-white/50 rounded p-2 ${
+                        entry.id === 'creacion' ? 'text-green-600' : 'text-gray-600'
+                      }`}>
                         {message.details.map((detail, detailIndex) => (
                           <div key={detailIndex} className="flex items-center">
-                            <Hash className="h-3 w-3 mr-1 text-gray-400" />
+                            <Hash className={`h-3 w-3 mr-1 ${
+                              entry.id === 'creacion' ? 'text-green-400' : 'text-gray-400'
+                            }`} />
                             {detail}
                           </div>
                         ))}

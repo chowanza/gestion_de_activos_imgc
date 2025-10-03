@@ -7,9 +7,11 @@ import type { ComputadorFormData } from "@/components/ComputadorForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { showToast } from "nextjs-toast-notify";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function NuevoComputadorPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const handleCreateComputador = async (data: ComputadorFormData) => {
         try {
@@ -24,9 +26,17 @@ export default function NuevoComputadorPage() {
                 throw new Error(errorData.message || "Error al crear el computador");
             }
             
+            const newComputador = await response.json();
+            
+            // Invalidar cache del dashboard para reflejar el nuevo computador
+            await queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+            await queryClient.invalidateQueries({ queryKey: ['computador', 'lista'] });
+            
             showToast.success("Computador creado con éxito");
-            router.push('/computadores'); // Redirigir a la lista
-            router.refresh(); // Opcional: para forzar la actualización de datos en la página de lista
+            
+            // Redirigir a la página de detalles del computador recién creado
+            router.push(`/computadores/${newComputador.id}/details`);
+            router.refresh();
         } catch (error: any) {
             showToast.error(`Error: ${error.message}`);
         }

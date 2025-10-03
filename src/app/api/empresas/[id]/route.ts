@@ -15,85 +15,89 @@ export async function GET(
     const empresa = await prisma.empresa.findUnique({
       where: { id },
       include: {
-        departamentos: {
+        empresaDepartamentos: {
           include: {
-            gerente: {
-              select: {
-                id: true,
-                nombre: true,
-                apellido: true,
-                ced: true,
-                cargo: {
-                  select: {
-                    nombre: true
-                  }
-                }
-              }
-            },
-            empleados: {
-              select: {
-                id: true,
-                nombre: true,
-                apellido: true,
-                ced: true,
-                fechaIngreso: true,
-                cargo: {
-                  select: {
-                    nombre: true
-                  }
-                },
-                computadores: {
-                  select: {
-                    id: true,
-                    serial: true,
-                    estado: true,
-                    modelo: {
+            departamento: {
+              include: {
+                gerencias: {
+                  where: {
+                    activo: true
+                  },
+                  include: {
+                    gerente: {
                       select: {
+                        id: true,
                         nombre: true,
-                        marca: {
-                          select: {
-                            nombre: true
-                          }
-                        }
+                        apellido: true,
+                        ced: true
                       }
                     }
                   }
                 },
-                dispositivos: {
-                  select: {
-                    id: true,
-                    serial: true,
-                    estado: true,
-                    modelo: {
+                empleadoOrganizaciones: {
+                  where: {
+                    activo: true
+                  },
+                  include: {
+                    empleado: {
                       select: {
+                        id: true,
                         nombre: true,
-                        marca: {
-                          select: {
-                            nombre: true
+                        apellido: true,
+                        ced: true,
+                        fechaIngreso: true,
+                        asignacionesComoTarget: {
+                          where: {
+                            activo: true
+                          },
+                          include: {
+                            computador: {
+                              select: {
+                                id: true,
+                                serial: true,
+                                estado: true
+                              }
+                            },
+                            dispositivo: {
+                              select: {
+                                id: true,
+                                serial: true,
+                                estado: true
+                              }
+                            }
                           }
                         }
                       }
+                    },
+                    cargo: {
+                      select: {
+                        nombre: true
+                      }
+                    }
+                  },
+                  orderBy: {
+                    empleado: {
+                      nombre: 'asc'
                     }
                   }
+                },
+                _count: {
+                  select: {
+                    empleadoOrganizaciones: true
+                  }
                 }
-              },
-              orderBy: {
-                nombre: 'asc'
-              }
-            },
-            _count: {
-              select: {
-                empleados: true
               }
             }
           },
           orderBy: {
-            nombre: 'asc'
+            departamento: {
+              nombre: 'asc'
+            }
           }
         },
         _count: {
           select: {
-            departamentos: true
+            empresaDepartamentos: true
           }
         }
       }
@@ -251,11 +255,17 @@ export async function DELETE(
     const existingEmpresa = await prisma.empresa.findUnique({
       where: { id },
       include: {
-        departamentos: {
+        empresaDepartamentos: {
           include: {
-            empleados: true,
-            computadores: true,
-            dispositivos: true,
+            departamento: {
+              include: {
+                empleadoOrganizaciones: {
+                  where: {
+                    activo: true
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -269,7 +279,7 @@ export async function DELETE(
     }
 
     // Verificar si la empresa tiene departamentos asociados
-    if (existingEmpresa.departamentos.length > 0) {
+    if (existingEmpresa.empresaDepartamentos.length > 0) {
       return NextResponse.json(
         { error: 'No se puede eliminar la empresa porque tiene departamentos asociados' },
         { status: 400 }

@@ -71,7 +71,7 @@ export default function EditarDispositivoPage() {
             }
 
             showToast.success("Dispositivo eliminado exitosamente");
-            router.push("/dispositivos");
+            router.push("/equipos");
         } catch (error: any) {
             showToast.error(error.message);
         }

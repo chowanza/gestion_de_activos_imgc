@@ -35,80 +35,37 @@ interface EmpresaDetails {
   nombre: string;
   descripcion?: string;
   logo?: string;
-  departamentos: Array<{
+  empresaDepartamentos: Array<{
+    departamento: {
     id: string;
     nombre: string;
-    gerente?: {
+      gerencias: Array<{
+        gerente: {
       id: string;
       nombre: string;
       apellido: string;
       ced: string;
-      cargo: {
-        nombre: string;
       };
-    } | null;
-    empleados: Array<{
+      }>;
+      empleadoOrganizaciones: Array<{
+        empleado: {
       id: string;
       nombre: string;
       apellido: string;
       ced: string;
       fechaIngreso?: string;
+        };
       cargo: {
         nombre: string;
-      };
-      computadores: Array<{
-        id: string;
-        serial: string;
-        estado: string;
-        modelo: {
-          nombre: string;
-          marca: {
-            nombre: string;
-          };
         };
       }>;
-      dispositivos: Array<{
-        id: string;
-        serial: string;
-        estado: string;
-        modelo: {
-          nombre: string;
-          marca: {
-            nombre: string;
-          };
-        };
-      }>;
-    }>;
-    computadores: Array<{
-      id: string;
-      serial: string;
-      estado: string;
-      modelo: {
-        nombre: string;
-        marca: {
-          nombre: string;
-        };
-      };
-    }>;
-    dispositivos: Array<{
-      id: string;
-      serial: string;
-      estado: string;
-      modelo: {
-        nombre: string;
-        marca: {
-          nombre: string;
+      _count: {
+        empleadoOrganizaciones: number;
         };
       };
     }>;
     _count: {
-      empleados: number;
-      computadores: number;
-      dispositivos: number;
-    };
-  }>;
-  _count: {
-    departamentos: number;
+    empresaDepartamentos: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -170,20 +127,20 @@ export default function EmpresaDetailsPage() {
   };
 
   const getTotalEmpleados = () => {
-    return empresa?.departamentos.reduce((total, depto) => total + depto._count.empleados, 0) || 0;
+    return empresa?.empresaDepartamentos.reduce((total, ed) => total + ed.departamento._count.empleadoOrganizaciones, 0) || 0;
   };
 
   const getTotalComputadores = () => {
-    if (!empresa?.departamentos) return 0;
+    if (!empresa?.empresaDepartamentos) return 0;
     
     let total = 0;
-    empresa.departamentos.forEach(depto => {
-      // Computadores asignados directamente al departamento
-      total += depto._count.computadores;
-      
-      // Computadores asignados a empleados del departamento
-      depto.empleados?.forEach(empleado => {
-        total += empleado.computadores?.length || 0;
+    empresa.empresaDepartamentos.forEach(ed => {
+      ed.departamento.empleadoOrganizaciones?.forEach(empOrg => {
+        empOrg.empleado.asignacionesComoTarget?.forEach(asignacion => {
+          if (asignacion.computador && asignacion.activo) {
+            total++;
+          }
+        });
       });
     });
     
@@ -191,16 +148,16 @@ export default function EmpresaDetailsPage() {
   };
 
   const getTotalDispositivos = () => {
-    if (!empresa?.departamentos) return 0;
+    if (!empresa?.empresaDepartamentos) return 0;
     
     let total = 0;
-    empresa.departamentos.forEach(depto => {
-      // Dispositivos asignados directamente al departamento
-      total += depto._count.dispositivos;
-      
-      // Dispositivos asignados a empleados del departamento
-      depto.empleados?.forEach(empleado => {
-        total += empleado.dispositivos?.length || 0;
+    empresa.empresaDepartamentos.forEach(ed => {
+      ed.departamento.empleadoOrganizaciones?.forEach(empOrg => {
+        empOrg.empleado.asignacionesComoTarget?.forEach(asignacion => {
+          if (asignacion.dispositivo && asignacion.activo) {
+            total++;
+          }
+        });
       });
     });
     
@@ -209,27 +166,35 @@ export default function EmpresaDetailsPage() {
 
   // Función para obtener computadores de un departamento (incluyendo empleados)
   const getComputadoresDepartamento = (departamento: any) => {
-    let total = departamento._count.computadores;
-    departamento.empleados?.forEach((empleado: any) => {
-      total += empleado.computadores?.length || 0;
+    let total = 0;
+    departamento.empleadoOrganizaciones?.forEach((empOrg: any) => {
+      empOrg.empleado.asignacionesComoTarget?.forEach((asignacion: any) => {
+        if (asignacion.computador && asignacion.activo) {
+          total++;
+        }
+      });
     });
     return total;
   };
 
   // Función para obtener dispositivos de un departamento (incluyendo empleados)
   const getDispositivosDepartamento = (departamento: any) => {
-    let total = departamento._count.dispositivos;
-    departamento.empleados?.forEach((empleado: any) => {
-      total += empleado.dispositivos?.length || 0;
+    let total = 0;
+    departamento.empleadoOrganizaciones?.forEach((empOrg: any) => {
+      empOrg.empleado.asignacionesComoTarget?.forEach((asignacion: any) => {
+        if (asignacion.dispositivo && asignacion.activo) {
+          total++;
+        }
+      });
     });
     return total;
   };
 
   // Función para filtrar departamentos según el filtro activo y nombre
   const getDepartamentosFiltrados = () => {
-    if (!empresa?.departamentos) return [];
+    if (!empresa?.empresaDepartamentos) return [];
     
-    let departamentosFiltrados = empresa.departamentos;
+    let departamentosFiltrados = empresa.empresaDepartamentos.map(ed => ed.departamento);
     
     // Aplicar filtro por tipo de equipo
     switch (filtroActivo) {
@@ -260,7 +225,7 @@ export default function EmpresaDetailsPage() {
       case 'dispositivos':
         return `Departamentos con Dispositivos (${departamentosFiltrados.length})`;
       default:
-        return `Departamentos (${empresa?.departamentos?.length || 0})`;
+        return `Departamentos (${empresa?.empresaDepartamentos?.length || 0})`;
     }
   };
 
@@ -300,7 +265,7 @@ export default function EmpresaDetailsPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateEmpresa = async (data: { nombre: string; descripcion?: string; logo?: File | null }) => {
+  const handleUpdateEmpresa = async (data: { nombre: string; descripcion?: string; logo?: File | string | null }) => {
     try {
       const formData = new FormData();
       formData.append('nombre', data.nombre);
@@ -415,7 +380,7 @@ export default function EmpresaDetailsPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Departamentos</label>
-              <p className="text-lg font-semibold">{empresa._count.departamentos} departamento{empresa._count.departamentos !== 1 ? 's' : ''}</p>
+              <p className="text-lg font-semibold">{empresa._count.empresaDepartamentos} departamento{empresa._count.empresaDepartamentos !== 1 ? 's' : ''}</p>
             </div>
           </div>
           
@@ -433,7 +398,7 @@ export default function EmpresaDetailsPage() {
               <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2">
                 <Briefcase className="h-6 w-6 text-green-600" />
               </div>
-              <p className="text-2xl font-bold">{empresa._count.departamentos}</p>
+              <p className="text-2xl font-bold">{empresa._count.empresaDepartamentos}</p>
               <p className="text-sm text-gray-600">Departamentos</p>
             </div>
             <div className="text-center">
@@ -445,11 +410,11 @@ export default function EmpresaDetailsPage() {
                     : 'hover:bg-purple-50'
                 }`}
               >
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
-                  <Monitor className="h-6 w-6 text-purple-600" />
-                </div>
-                <p className="text-2xl font-bold">{getTotalComputadores()}</p>
-                <p className="text-sm text-gray-600">Computadores</p>
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
+                <Monitor className="h-6 w-6 text-purple-600" />
+              </div>
+              <p className="text-2xl font-bold">{getTotalComputadores()}</p>
+              <p className="text-sm text-gray-600">Computadores</p>
                 {filtroActivo === 'computadores' && (
                   <p className="text-xs text-purple-600 mt-1">Filtrado activo</p>
                 )}
@@ -464,11 +429,11 @@ export default function EmpresaDetailsPage() {
                     : 'hover:bg-orange-50'
                 }`}
               >
-                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2">
-                  <Smartphone className="h-6 w-6 text-orange-600" />
-                </div>
-                <p className="text-2xl font-bold">{getTotalDispositivos()}</p>
-                <p className="text-sm text-gray-600">Dispositivos</p>
+              <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2">
+                <Smartphone className="h-6 w-6 text-orange-600" />
+              </div>
+              <p className="text-2xl font-bold">{getTotalDispositivos()}</p>
+              <p className="text-sm text-gray-600">Dispositivos</p>
                 {filtroActivo === 'dispositivos' && (
                   <p className="text-xs text-orange-600 mt-1">Filtrado activo</p>
                 )}
@@ -484,7 +449,7 @@ export default function EmpresaDetailsPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
-              <Building2 className="h-5 w-5 mr-2" />
+            <Building2 className="h-5 w-5 mr-2" />
               {getTituloFiltro()}
             </div>
             <div className="flex items-center space-x-2">
@@ -548,17 +513,17 @@ export default function EmpresaDetailsPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="text-lg font-semibold">{departamento.nombre}</h3>
-                      {departamento.gerente && (
+                      {departamento.gerencias && departamento.gerencias.length > 0 && (
                         <p className="text-sm text-gray-600">
-                          Gerente: {departamento.gerente.nombre} {departamento.gerente.apellido} 
+                          Gerente: {departamento.gerencias[0].gerente.nombre} {departamento.gerencias[0].gerente.apellido} 
                           <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {departamento.gerente.cargo.nombre}
+                            Gerente
                           </span>
                         </p>
                       )}
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">{departamento._count.empleados} empleados</Badge>
+                      <Badge variant="secondary">{departamento._count.empleadoOrganizaciones} empleados</Badge>
                       {getComputadoresDepartamento(departamento) > 0 && (
                         <Badge variant="outline" className="text-purple-600 border-purple-300">
                           {getComputadoresDepartamento(departamento)} PC
@@ -579,38 +544,29 @@ export default function EmpresaDetailsPage() {
                   </div>
                   
                   {/* Empleados del departamento */}
-                  {departamento.empleados && departamento.empleados.length > 0 && (
+                  {departamento.empleadoOrganizaciones && departamento.empleadoOrganizaciones.length > 0 && (
                     <div className="mt-3">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Empleados:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {departamento.empleados.slice(0, 4).map((empleado) => (
-                          <div key={empleado.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        {departamento.empleadoOrganizaciones.slice(0, 4).map((empOrg) => (
+                          <div key={empOrg.empleado.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                             <div className="flex items-center space-x-2">
                               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                 <User className="h-4 w-4 text-blue-600" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium">{empleado.nombre} {empleado.apellido}</p>
-                                <p className="text-xs text-gray-600">{empleado.cargo.nombre}</p>
+                                <p className="text-sm font-medium">{empOrg.empleado.nombre} {empOrg.empleado.apellido}</p>
+                                <p className="text-xs text-gray-600">{empOrg.cargo.nombre}</p>
                               </div>
                             </div>
                             <div className="flex space-x-1">
-                              {empleado.computadores && empleado.computadores.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {empleado.computadores.length} PC
-                                </Badge>
-                              )}
-                              {empleado.dispositivos && empleado.dispositivos.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {empleado.dispositivos.length} Disp
-                                </Badge>
-                              )}
+                              {/* Los equipos ahora están en asignaciones */}
                             </div>
                           </div>
                         ))}
-                        {departamento.empleados && departamento.empleados.length > 4 && (
+                        {departamento.empleadoOrganizaciones && departamento.empleadoOrganizaciones.length > 4 && (
                           <div className="p-2 text-center text-sm text-gray-500">
-                            +{departamento.empleados.length - 4} empleados más
+                            +{departamento.empleadoOrganizaciones.length - 4} empleados más
                           </div>
                         )}
                       </div>
@@ -650,7 +606,7 @@ export default function EmpresaDetailsPage() {
         initialData={empresa ? {
           nombre: empresa.nombre,
           descripcion: empresa.descripcion || '',
-          logo: empresa.logo || null
+          logo: null
         } : null}
       />
     </div>

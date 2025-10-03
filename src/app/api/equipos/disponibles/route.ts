@@ -14,50 +14,122 @@ export async function GET(request: NextRequest) {
     let equipos;
 
     if (tipo === 'computador') {
+      // Buscar computadores que no tengan asignaciones activas
+      const computadoresConAsignaciones = await prisma.asignacionesEquipos.findMany({
+        where: {
+          activo: true,
+          computadorId: { not: null }
+        },
+        select: {
+          computadorId: true
+        }
+      });
+
+      const computadoresAsignados = computadoresConAsignaciones.map(a => a.computadorId).filter(Boolean);
+
       equipos = await prisma.computador.findMany({
         where: {
-          estado: {
-            in: [ESTADOS_EQUIPO.OPERATIVO, ESTADOS_EQUIPO.EN_MANTENIMIENTO]
-          },
-          empleadoId: null, // No asignado a ningún empleado
+          estado: ESTADOS_EQUIPO.OPERATIVO,
+          id: {
+            notIn: computadoresAsignados
+          }
         },
         include: {
-          modelo: {
+          computadorModelos: {
             include: {
-              marca: true,
-            },
-          },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
         orderBy: {
+          serial: 'asc'
+        }
+      });
+
+      // Mapear a formato esperado por el frontend
+      equipos = equipos.map(computador => {
+        const modelo = computador.computadorModelos[0]?.modeloEquipo;
+        const marca = modelo?.marcaModelos[0]?.marca;
+        
+        return {
+          id: computador.id,
+          serial: computador.serial,
+          estado: computador.estado,
+          codigoImgc: computador.codigoImgc,
           modelo: {
+            nombre: modelo?.nombre || 'Sin modelo',
             marca: {
-              nombre: 'asc',
-            },
-          },
-        },
+              nombre: marca?.nombre || 'Sin marca'
+            }
+          }
+        };
       });
     } else {
+      // Buscar dispositivos que no tengan asignaciones activas
+      const dispositivosConAsignaciones = await prisma.asignacionesEquipos.findMany({
+        where: {
+          activo: true,
+          dispositivoId: { not: null }
+        },
+        select: {
+          dispositivoId: true
+        }
+      });
+
+      const dispositivosAsignados = dispositivosConAsignaciones.map(a => a.dispositivoId).filter(Boolean);
+
       equipos = await prisma.dispositivo.findMany({
         where: {
-          estado: {
-            in: [ESTADOS_EQUIPO.OPERATIVO, ESTADOS_EQUIPO.EN_MANTENIMIENTO]
-          },
-          empleadoId: null, // No asignado a ningún empleado
+          estado: ESTADOS_EQUIPO.OPERATIVO,
+          id: {
+            notIn: dispositivosAsignados
+          }
         },
         include: {
-          modelo: {
+          dispositivoModelos: {
             include: {
-              marca: true,
-            },
-          },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
         orderBy: {
+          serial: 'asc'
+        }
+      });
+
+      // Mapear a formato esperado por el frontend
+      equipos = equipos.map(dispositivo => {
+        const modelo = dispositivo.dispositivoModelos[0]?.modeloEquipo;
+        const marca = modelo?.marcaModelos[0]?.marca;
+        
+        return {
+          id: dispositivo.id,
+          serial: dispositivo.serial,
+          estado: dispositivo.estado,
+          codigoImgc: dispositivo.codigoImgc,
           modelo: {
+            nombre: modelo?.nombre || 'Sin modelo',
             marca: {
-              nombre: 'asc',
-            },
-          },
-        },
+              nombre: marca?.nombre || 'Sin marca'
+            }
+          }
+        };
       });
     }
 

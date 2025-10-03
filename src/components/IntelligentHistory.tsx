@@ -309,3 +309,12 @@ export function IntelligentHistory({ historial, equipoActual }: IntelligentHisto
 
 
 
+
+
+
+
+
+
+
+
+

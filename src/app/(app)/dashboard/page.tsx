@@ -321,28 +321,54 @@ export default function InventoryDashboard() {
   if (isError) {
     return <ErrorDisplay message={error.message} />;
   }
-  console.log(dashboardData.totalUsers, dashboardData.totalDevices, dashboardData.totalComputers);
+  console.log('Dashboard Data:', {
+    totalUsers: dashboardData.totalUsers,
+    totalDevices: dashboardData.totalDevices, 
+    totalComputers: dashboardData.totalComputers,
+    assignedEquipos: dashboardData.assignedEquipos,
+    totalEquipos: dashboardData.totalEquipos,
+    equiposOperativos: dashboardData.equiposOperativos
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800 relative overflow-hidden">
       <div className="container mx-auto p-4 relative z-10">
-        {/* Dashboard Title */}
-        <h1 className="text-sm text-gray-400 mb-6">Dashboard</h1>
+        {/* Dashboard Header with System Time */}
+        <div className="flex justify-between items-start mb-6">
+          <h1 className="text-sm text-gray-400">Dashboard</h1>
+          
+          {/* System Time Card - Single Line */}
+          <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-sm font-mono text-[#167DBA]">{formatTime(currentTime)}</div>
+                    <div className="text-xs text-gray-600">{formatDate(currentTime)}</div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-xs text-gray-500"></div>
+                    <div className="text-xs text-gray-600">Online</div>
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         
         {/* Main Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <StatCard
             title="Equipos Totales"
             value={dashboardData.totalEquipos}
-            trend={dashboardData.trends.equipos}
             icon={Monitor}
             color="blue"
             description="Todos los equipos"
           />
           <StatCard
             title="Equipos Asignados"
-            value={dashboardData.assignedComputers}
-            trend={dashboardData.trends.asignados}
+            value={dashboardData.assignedEquipos}
             icon={UserCheck}
             color="green"
             description="En uso activo"
@@ -350,7 +376,6 @@ export default function InventoryDashboard() {
           <StatCard
             title="Equipos en Resguardo"
             value={dashboardData.equiposEnResguardo}
-            trend={dashboardData.trends.resguardo}
             icon={Shield}
             color="amber"
             description="Equipos resguardados"
@@ -358,7 +383,6 @@ export default function InventoryDashboard() {
           <StatCard
             title="Equipos Operativos"
             value={dashboardData.equiposOperativos}
-            trend={dashboardData.trends.operativos}
             icon={Activity}
             color="purple"
             description="Equipos en operación"
@@ -366,7 +390,6 @@ export default function InventoryDashboard() {
           <StatCard
             title="Equipos de Baja"
             value={dashboardData.equiposDeBaja}
-            trend={dashboardData.trends.baja}
             icon={XCircle}
             color="red"
             description="Equipos dados de baja"
@@ -374,7 +397,6 @@ export default function InventoryDashboard() {
           <StatCard
             title="En Mantenimiento"
             value={dashboardData.equiposEnMantenimiento}
-            trend={dashboardData.trends.mantenimiento}
             icon={Wrench}
             color="orange"
             description="Equipos en reparación"
@@ -423,7 +445,7 @@ export default function InventoryDashboard() {
                     />
                   </div>
                   
-                  {/* Bottom Section - Activity, Time and Summary */}
+                  {/* Bottom Section - Activity and Summary */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Recent Activity */}
                     <Card className="bg-white border-gray-200 shadow-lg lg:col-span-2">
@@ -476,85 +498,65 @@ export default function InventoryDashboard() {
                     </CardContent>
                   </Card>
 
-                    {/* System Time and Summary */}
-                    <div className="space-y-4">
-                      {/* System Time */}
-                      <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
-                        <CardContent className="p-0">
-                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 border-b border-gray-200">
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 mb-1 font-mono">TIEMPO DEL SISTEMA</div>
-                              <div className="text-lg font-mono text-[#167DBA] mb-1">{formatTime(currentTime)}</div>
-                              <div className="text-xs text-gray-600">{formatDate(currentTime)}</div>
-                            </div>
+                  {/* Resumen General */}
+                  <Card className="bg-white border-gray-200 shadow-lg">
+                    <CardHeader className="border-b border-gray-200 pb-2">
+                      <CardTitle className="text-gray-900 flex items-center text-sm">
+                        <Users className="mr-2 h-4 w-4 text-[#167DBA]" />
+                        Resumen General
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xs font-medium text-gray-800">Empresas Activas</h3>
+                            <p className="text-xs text-gray-600">
+                              {dashboardData.empresaStats?.length || 0} empresas registradas
+                            </p>
                           </div>
-                          <div className="p-3">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Última Actualización</div>
-                                <div className="text-xs font-mono text-gray-800">Hace 2 min</div>
+                          <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                            {dashboardData.empresaStats?.length || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xs font-medium text-gray-800">Ubicaciones</h3>
+                            <p className="text-xs text-gray-600">
+                              {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
+                            </p>
+                          </div>
+                          <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                            {dashboardData.ubicacionStats?.length || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xs font-medium text-gray-800">Departamentos</h3>
+                            <p className="text-xs text-gray-600">
+                              {dashboardData.totalDepartamentos} departamentos
+                            </p>
+                          </div>
+                          <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                            {dashboardData.totalDepartamentos}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xs font-medium text-gray-800">Empleados</h3>
+                            <p className="text-xs text-gray-600">
+                              {dashboardData.totalEmpleados} empleados registrados
+                            </p>
+                          </div>
+                          <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
+                            {dashboardData.totalEmpleados}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  </div>
                 </div>
-                              <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Estado</div>
-                      <div className="flex items-center">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
-                                  <div className="text-xs font-mono text-gray-800">Online</div>
-                                </div>
-                              </div>
-                      </div>
-                      </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Quick Stats Summary */}
-                      <Card className="bg-white border-gray-200 shadow-lg">
-                        <CardHeader className="border-b border-gray-200 pb-2">
-                          <CardTitle className="text-gray-900 flex items-center text-sm">
-                            <Users className="mr-2 h-4 w-4 text-[#167DBA]" />
-                            Resumen General
-                    </CardTitle>
-                  </CardHeader>
-                        <CardContent className="p-3">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-xs font-medium text-gray-800">Empresas Activas</h3>
-                                <p className="text-xs text-gray-600">
-                                  {dashboardData.empresaStats?.length || 0} empresas registradas
-                                </p>
-                              </div>
-                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                                {dashboardData.empresaStats?.length || 0}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-xs font-medium text-gray-800">Ubicaciones</h3>
-                                <p className="text-xs text-gray-600">
-                                  {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
-                                </p>
-                              </div>
-                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                                {dashboardData.ubicacionStats?.length || 0}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-xs font-medium text-gray-800">Departamentos</h3>
-                                <p className="text-xs text-gray-600">
-                                  {dashboardData.departmentStats?.length || 0} departamentos
-                                </p>
-                              </div>
-                              <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                                {dashboardData.departmentStats?.length || 0}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                                    </div>
-                                  </div>
-                                </div>
               </TabsContent>
               <TabsContent value="empresas" className="mt-0">
                 <div className="grid gap-6">
@@ -616,6 +618,7 @@ export default function InventoryDashboard() {
                              "Solo dispositivos"} por empresa`}
                     showPercentage={true}
                     maxValue={Math.max(...dashboardData.empresaStats.map((e: any) => e.total))}
+                    equipmentTypeFilter={equipmentTypeFilter}
                     onBarClick={(barData) => {
                       setSelectedEmpresaForDetails(barData.name);
                     }}
@@ -731,89 +734,6 @@ export default function InventoryDashboard() {
           </div>
           </div>
 
-        {/* Cards debajo del gráfico cuando hay empresa seleccionada */}
-        {selectedEmpresaForDetails && (
-          <div className="grid grid-cols-12 gap-6 mt-6">
-          <div className="col-span-12 lg:col-span-4">
-              <div className="space-y-4">
-              {/* System Time */}
-              <Card className="bg-white border-gray-200 shadow-lg overflow-hidden">
-                <CardContent className="p-0">
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 border-b border-gray-200">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1 font-mono">TIEMPO DEL SISTEMA</div>
-                        <div className="text-lg font-mono text-[#167DBA] mb-1">{formatTime(currentTime)}</div>
-                        <div className="text-xs text-gray-600">{formatDate(currentTime)}</div>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
-                        <div className="text-xs text-gray-500 mb-1">Última Actualización</div>
-                          <div className="text-xs font-mono text-gray-800">Hace 2 min</div>
-                      </div>
-                        <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
-                        <div className="text-xs text-gray-500 mb-1">Estado</div>
-                        <div className="flex items-center">
-                            <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
-                            <div className="text-xs font-mono text-gray-800">Online</div>
-                          </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Stats Summary */}
-              <Card className="bg-white border-gray-200 shadow-lg">
-                  <CardHeader className="border-b border-gray-200 pb-2">
-                    <CardTitle className="text-gray-900 flex items-center text-sm">
-                      <Users className="mr-2 h-4 w-4 text-[#167DBA]" />
-                    Resumen General
-                  </CardTitle>
-                </CardHeader>
-                  <CardContent className="p-3">
-                    <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                          <h3 className="text-xs font-medium text-gray-800">Empresas Activas</h3>
-                        <p className="text-xs text-gray-600">
-                          {dashboardData.empresaStats?.length || 0} empresas registradas
-                        </p>
-                      </div>
-                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                        {dashboardData.empresaStats?.length || 0}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                          <h3 className="text-xs font-medium text-gray-800">Ubicaciones</h3>
-                        <p className="text-xs text-gray-600">
-                          {dashboardData.ubicacionStats?.length || 0} ubicaciones configuradas
-                        </p>
-                      </div>
-                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                        {dashboardData.ubicacionStats?.length || 0}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                          <h3 className="text-xs font-medium text-gray-800">Departamentos</h3>
-                        <p className="text-xs text-gray-600">
-                          {dashboardData.departmentStats?.length || 0} departamentos
-                        </p>
-                      </div>
-                        <Badge className="bg-[#167DBA]/20 text-[#167DBA] border-[#167DBA]/50 text-xs">
-                        {dashboardData.departmentStats?.length || 0}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-        )}
       </div>
     </div>
   )
@@ -830,7 +750,7 @@ function StatCard({
 }: {
   title: string
   value: number
-  trend: number
+  trend?: number
   icon: any
   color: string
   description: string

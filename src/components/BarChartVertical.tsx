@@ -22,6 +22,7 @@ interface BarChartVerticalProps {
   maxValue?: number;
   showPercentage?: boolean;
   onBarClick?: (barData: BarData) => void;
+  equipmentTypeFilter?: string;
 }
 
 export function BarChartVertical({ 
@@ -30,7 +31,8 @@ export function BarChartVertical({
   subtitle, 
   maxValue, 
   showPercentage = true,
-  onBarClick
+  onBarClick,
+  equipmentTypeFilter = "todos"
 }: BarChartVerticalProps) {
   const [hoveredBar, setHoveredBar] = useState<string | null>(null);
   const [selectedBar, setSelectedBar] = useState<string | null>(null);
@@ -157,15 +159,31 @@ export function BarChartVertical({
               <div key={index} className="p-3 bg-white rounded border border-gray-100">
                 <div className="flex items-center justify-between mb-2">
                   <h5 className="font-medium text-gray-800 text-sm">{dept.name}</h5>
-                  <span className="text-xs text-gray-600">{dept.percentage}%</span>
+                  <span className="text-xs text-gray-600">
+                    {isNaN(dept.percentage) ? '0%' : `${dept.percentage}%`}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-4 text-xs text-gray-600">
+                  {equipmentTypeFilter === "todos" && (
+                    <span className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                      {dept.computers + dept.devices} equipos
+                    </span>
+                  )}
+                  {equipmentTypeFilter === "computadores" && (
+                    <span className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                      {dept.computers} computadores
+                    </span>
+                  )}
+                  {equipmentTypeFilter === "dispositivos" && (
+                    <span className="flex items-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                      {dept.devices} dispositivos
+                    </span>
+                  )}
                   <span className="flex items-center">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                    {dept.computers} equipos
-                  </span>
-                  <span className="flex items-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
                     {dept.users} empleados
                   </span>
                 </div>

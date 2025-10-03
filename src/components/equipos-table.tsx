@@ -20,13 +20,14 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useRouter } from "next/navigation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import TableRowSkeleton from "@/utils/loading";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export const dispositivoSchema = z.object({
   id: z.string().optional(), // Es buena idea tener el id en el schema para la lógica unificada
   serial: z.string().min(1, "El serial es requerido"),
   modeloId: z.string().min(1, "El Modelo es Requerido"),
-  estado: z.string().min(1, "El estado es requerido"),
+  estado: z.string().optional(), // El estado se asigna automáticamente como OPERATIVO
   codigoImgc: z.string().min(1, "El Código IMGC es requerido"), // codigoImgc - OBLIGATORIO
   ubicacionId: z.string().nullable(),
   mac: z.string().nullable(),
@@ -34,7 +35,7 @@ export const dispositivoSchema = z.object({
   fechaCompra: z.string().nullable(),
   numeroFactura: z.string().nullable(),
   proveedor: z.string().nullable(),
-  monto: z.number().nullable(),
+  monto: z.string().transform((val) => val === '' ? null : parseFloat(val)).nullable(),
   // Campo para empleado asignado
   empleado: z.object({
     id: z.string(),
@@ -47,21 +48,39 @@ export type DispositivoFormData = z.infer<typeof dispositivoSchema>;
 
 
 
-// Type for Modelo objects from API (assuming it includes an 'id' and 'marca' might be an object)
+// Type for Dispositivo objects from API
 export interface Dispositivo {
-  id?: string;
-  modeloId: string; // Or number, depending on your API
+  id: string;
   serial: string;
   estado: string;
-  codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
-  ubicacion?: { id: string; nombre: string; descripcion?: string; direccion?: string; piso?: string; sala?: string };
-  mac?: string; // Optional, as it might not be present in all devices
-  modelo: { id: string; nombre: string; img?: string; marca?: { nombre?: string } }; // Added img and marca properties
-  // Nuevos campos de compra
+  codigoImgc: string;
+  mac?: string;
+  ip?: string;
   fechaCompra?: string;
   numeroFactura?: string;
   proveedor?: string;
-  monto?: number;
+  monto?: string;
+  modelo: { 
+    id: string; 
+    nombre: string; 
+    img?: string; 
+    marca: { nombre: string } 
+  } | null;
+  ubicacion?: { 
+    id: string; 
+    nombre: string; 
+    descripcion?: string; 
+    direccion?: string; 
+    piso?: string; 
+    sala?: string 
+  } | null;
+  empleado?: {
+    id: string;
+    nombre: string;
+    apellido: string;
+    departamento: string;
+    empresa: string;
+  } | null;
 }
 
 export interface DispositivoFormProps {
@@ -78,7 +97,7 @@ export interface DispositivoFormProps {
     fechaCompra: string | null;
     numeroFactura: string | null;
     proveedor: string | null;
-    monto: number | null;
+    monto: string | null;
   };
 }
 
@@ -100,6 +119,7 @@ export function DispositivoTable({}: DispositivoTableProps) {
   const [isLoading, setIsLoading] = React.useState(true); 
   const isAdmin = useIsAdmin();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
   const [currentImage, setCurrentImage] = React.useState<string | null>(null);
 
@@ -127,6 +147,18 @@ const columns: ColumnDef<Dispositivo>[] = [
     accessorKey: "serial",
     header: "Serial",
     cell: ({ row }) => <div>{row.getValue("serial")}</div>,
+  },
+  {
+    accessorKey: "codigoImgc",
+    header: "Código IMGC",
+    cell: ({ row }) => {
+      const codigo = row.getValue("codigoImgc") as string;
+      return (
+        <div className="font-mono text-sm bg-gray-50 text-gray-700 px-2 py-1 rounded">
+          {codigo}
+        </div>
+      );
+    },
   },
 {
   accessorFn: (row) => row.modelo?.marca?.nombre ?? "Sin marca",
@@ -374,6 +406,27 @@ const columns: ColumnDef<Dispositivo>[] = [
     },
   },
   {
+    accessorKey: "empleado",
+    header: "Asignado a",
+    cell: ({ row }) => {
+      const empleado = row.original.empleado;
+      return (
+        <div className="flex items-center">
+          {empleado ? (
+            <div>
+              <div className="font-medium">{empleado.nombre} {empleado.apellido}</div>
+              <div className="text-xs text-muted-foreground">
+                {empleado.departamento} - {empleado.empresa}
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground italic">Sin asignar</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const dispositivo = row.original
@@ -414,7 +467,11 @@ const columns: ColumnDef<Dispositivo>[] = [
                       Editar equipo
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">Eliminar equipo</DropdownMenuItem>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        Eliminar equipo
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
                   </>
                 )}
               </DropdownMenuContent>
@@ -423,7 +480,7 @@ const columns: ColumnDef<Dispositivo>[] = [
               <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                  Esta acción no se puede deshacer. Esto eliminará permanentemente el departamento
+                  Esta acción no se puede deshacer. Esto eliminará permanentemente el dispositivo
                   y borrará sus datos de nuestros servidores.
                   </AlertDialogDescription>
               </AlertDialogHeader>
@@ -471,14 +528,19 @@ const columns: ColumnDef<Dispositivo>[] = [
           });
   
           if (!response.ok) {
-          throw new Error('Error al eliminar el depto.');
+            if (response.status === 404) {
+              showToast.warning("El dispositivo ya no existe. Actualizando la lista...");
+              await fetchAllData();
+              return;
+            }
+            throw new Error('Error al eliminar el dispositivo.');
           }
   
-          showToast.success("Departamento eliminado correctamente.");
-          fetchAllData();
+          showToast.success("Dispositivo eliminado correctamente.");
+          await fetchAllData();
       } catch (error) {
           console.error(error);
-          showToast.error("No se pudo eliminar el depto.");
+          showToast.error("No se pudo eliminar el dispositivo.");
       } finally {
           setIsLoading(false);
       }
@@ -566,19 +628,27 @@ const columns: ColumnDef<Dispositivo>[] = [
         throw new Error(errorData.message || `Error en la operación: ${response.statusText}`);
       }
 
+      // Invalidar cache del dashboard para reflejar el nuevo dispositivo
+      await queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+      await queryClient.invalidateQueries({ queryKey: ['dispositivo', 'lista'] });
+
       showToast.success(`Dispositivo ${isEditing ? 'actualizado' : 'creado'} correctamente ${isEditing ? '✨' : '👍'}`, {
         position: "top-right",
       });
 
-      // Cerramos el modal correspondiente y refrescamos los datos
+      // Cerramos el modal correspondiente
       if (isEditing) {
         setIsEditModalOpen(false);
         setEditingDispositivo(null);
+        // Para edición, refrescamos los datos
+        await fetchAllData();
       } else {
         setIsCreateModalOpen(false);
+        // Para creación, obtenemos el dispositivo creado y redirigimos a sus detalles
+        const newDispositivo = await response.json();
+        // Redirigir a la página de detalles del dispositivo recién creado
+        window.location.href = `/dispositivos/${newDispositivo.id}/details`;
       }
-      
-      await fetchAllData();
 
     } catch (error: any) {
       showToast.error("Error al guardar el Dispositivo: " + error.message, {
@@ -633,7 +703,9 @@ return (
                                 ? "Estado"
                                 : column.id === "Modelo"
                                   ? "Modelo"
-                                      : column.id}
+                                      : column.id === "ubicacion.nombre"
+                                          ? "Ubicación"
+                                              : column.id}
                         </DropdownMenuCheckboxItem>
                       )
                     })}

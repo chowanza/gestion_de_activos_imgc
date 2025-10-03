@@ -33,8 +33,9 @@ import {
   Plus
 } from "lucide-react";
 import EmpleadoStatusModal from "@/components/EmpleadoStatusModal";
-import AsignarEquipoModal from "@/components/AsignarEquipoModal";
+import AsignarEquipoUnificadoModal from "@/components/AsignarEquipoUnificadoModal";
 import { EmployeeAssignmentHistory } from "@/components/EmployeeAssignmentHistory";
+import { EmployeeTimeline } from "@/components/EmployeeTimeline";
 import Link from "next/link";
 
 interface EmpleadoDetails {
@@ -49,21 +50,56 @@ interface EmpleadoDetails {
   fechaIngreso?: string;
   fechaDesincorporacion?: string;
   fotoPerfil?: string;
-  departamento: {
-    id: string;
-    nombre: string;
+  organizaciones?: Array<{
     empresa: {
       id: string;
       nombre: string;
       descripcion?: string;
       logo?: string;
     };
-  };
-  cargo: {
+    departamento: {
+      id: string;
+      nombre: string;
+    };
+    cargo: {
+      id: string;
+      nombre: string;
+      descripcion?: string;
+    };
+  }>;
+  asignacionesComoTarget?: Array<{
     id: string;
-    nombre: string;
-    descripcion?: string;
-  };
+    computador?: {
+      id: string;
+      serial: string;
+      estado: string;
+      computadorModelos?: Array<{
+        modeloEquipo: {
+          nombre: string;
+          marcaModelos?: Array<{
+            marca: {
+              nombre: string;
+            };
+          }>;
+        };
+      }>;
+    };
+    dispositivo?: {
+      id: string;
+      serial: string;
+      estado: string;
+      dispositivoModelos?: Array<{
+        modeloEquipo: {
+          nombre: string;
+          marcaModelos?: Array<{
+            marca: {
+              nombre: string;
+            };
+          }>;
+        };
+      }>;
+    };
+  }>;
   computadores: Array<{
     id: string;
     serial: string;
@@ -105,11 +141,7 @@ export default function EmpleadoDetailsPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
   const [loadingStatusHistory, setLoadingStatusHistory] = useState(false);
-  const [isAsignarComputadorModalOpen, setIsAsignarComputadorModalOpen] = useState(false);
-  const [isAsignarDispositivoModalOpen, setIsAsignarDispositivoModalOpen] = useState(false);
-  const [computadoresDisponibles, setComputadoresDisponibles] = useState<any[]>([]);
-  const [dispositivosDisponibles, setDispositivosDisponibles] = useState<any[]>([]);
-  const [loadingEquiposDisponibles, setLoadingEquiposDisponibles] = useState(false);
+  const [isAsignarEquipoModalOpen, setIsAsignarEquipoModalOpen] = useState(false);
 
   // Función para cargar historial de asignaciones
   const fetchHistorialAsignaciones = async () => {
@@ -216,31 +248,39 @@ export default function EmpleadoDetailsPage() {
   };
 
   const getComputadoresFiltrados = () => {
-    if (!empleado?.computadores) return [];
-    if (!searchComputadores) return empleado.computadores;
+    if (!empleado?.asignacionesComoTarget) return [];
+    if (!searchComputadores) return empleado.asignacionesComoTarget.filter(a => a.computador);
     
-    return empleado.computadores.filter(computador => {
+    return empleado.asignacionesComoTarget.filter(a => a.computador).filter(asignacion => {
+      const computador = asignacion.computador;
       const searchLower = searchComputadores.toLowerCase();
+      const modelo = computador?.computadorModelos?.[0]?.modeloEquipo;
+      const marca = modelo?.marcaModelos?.[0]?.marca;
+      
       return (
-        computador.serial.toLowerCase().includes(searchLower) ||
-        computador.estado.toLowerCase().includes(searchLower) ||
-        computador.modelo.nombre.toLowerCase().includes(searchLower) ||
-        computador.modelo.marca.nombre.toLowerCase().includes(searchLower)
+        computador?.serial?.toLowerCase().includes(searchLower) ||
+        computador?.estado?.toLowerCase().includes(searchLower) ||
+        modelo?.nombre?.toLowerCase().includes(searchLower) ||
+        marca?.nombre?.toLowerCase().includes(searchLower)
       );
     });
   };
 
   const getDispositivosFiltrados = () => {
-    if (!empleado?.dispositivos) return [];
-    if (!searchDispositivos) return empleado.dispositivos;
+    if (!empleado?.asignacionesComoTarget) return [];
+    if (!searchDispositivos) return empleado.asignacionesComoTarget.filter(a => a.dispositivo);
     
-    return empleado.dispositivos.filter(dispositivo => {
+    return empleado.asignacionesComoTarget.filter(a => a.dispositivo).filter(asignacion => {
+      const dispositivo = asignacion.dispositivo;
       const searchLower = searchDispositivos.toLowerCase();
+      const modelo = dispositivo?.dispositivoModelos?.[0]?.modeloEquipo;
+      const marca = modelo?.marcaModelos?.[0]?.marca;
+      
       return (
-        dispositivo.serial.toLowerCase().includes(searchLower) ||
-        dispositivo.estado.toLowerCase().includes(searchLower) ||
-        dispositivo.modelo.nombre.toLowerCase().includes(searchLower) ||
-        dispositivo.modelo.marca.nombre.toLowerCase().includes(searchLower)
+        dispositivo?.serial?.toLowerCase().includes(searchLower) ||
+        dispositivo?.estado?.toLowerCase().includes(searchLower) ||
+        modelo?.nombre?.toLowerCase().includes(searchLower) ||
+        marca?.nombre?.toLowerCase().includes(searchLower)
       );
     });
   };
@@ -302,7 +342,7 @@ export default function EmpleadoDetailsPage() {
     try {
       // Validación: No permitir desactivar empleados con equipos asignados
       if (accion === 'desactivar' && empleado) {
-        const totalEquipos = (empleado.computadores?.length || 0) + (empleado.dispositivos?.length || 0);
+        const totalEquipos = (empleado.asignacionesComoTarget?.filter(a => a.computador).length || 0) + (empleado.asignacionesComoTarget?.filter(a => a.dispositivo).length || 0);
         
         if (totalEquipos > 0) {
           showToast.error(
@@ -354,29 +394,9 @@ export default function EmpleadoDetailsPage() {
     }
   };
 
-  // Función para cargar equipos disponibles
-  const loadEquiposDisponibles = async (tipo: 'computador' | 'dispositivo') => {
-    try {
-      setLoadingEquiposDisponibles(true);
-      const response = await fetch(`/api/equipos/disponibles?tipo=${tipo}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (tipo === 'computador') {
-          setComputadoresDisponibles(data);
-        } else {
-          setDispositivosDisponibles(data);
-        }
-      }
-    } catch (error) {
-      console.error(`Error al cargar ${tipo}s disponibles:`, error);
-      showToast.error(`Error al cargar ${tipo}s disponibles`);
-    } finally {
-      setLoadingEquiposDisponibles(false);
-    }
-  };
 
   // Función para asignar equipo
-  const handleAsignarEquipo = async (equipoId: string, motivo: string, tipoEquipo: 'computador' | 'dispositivo') => {
+  const handleAsignarEquipo = async (equipoId: string, motivo: string, tipoEquipo: 'computador' | 'dispositivo', ubicacionId?: string) => {
     try {
       const response = await fetch('/api/equipos/asignar', {
         method: 'POST',
@@ -388,6 +408,7 @@ export default function EmpleadoDetailsPage() {
           equipoId,
           tipoEquipo,
           motivo,
+          ubicacionId,
         }),
       });
 
@@ -406,11 +427,7 @@ export default function EmpleadoDetailsPage() {
         fetchHistorialAsignaciones();
         
         // Cerrar modal
-        if (tipoEquipo === 'computador') {
-          setIsAsignarComputadorModalOpen(false);
-        } else {
-          setIsAsignarDispositivoModalOpen(false);
-        }
+        setIsAsignarEquipoModalOpen(false);
       } else {
         const errorData = await response.json();
         showToast.error(errorData.message || 'Error al asignar equipo');
@@ -422,13 +439,8 @@ export default function EmpleadoDetailsPage() {
   };
 
   // Función para abrir modal de asignación
-  const openAsignarModal = async (tipo: 'computador' | 'dispositivo') => {
-    await loadEquiposDisponibles(tipo);
-    if (tipo === 'computador') {
-      setIsAsignarComputadorModalOpen(true);
-    } else {
-      setIsAsignarDispositivoModalOpen(true);
-    }
+  const openAsignarModal = () => {
+    setIsAsignarEquipoModalOpen(true);
   };
 
   if (loading) {
@@ -622,18 +634,18 @@ export default function EmpleadoDetailsPage() {
             <div>
               <label className="text-sm font-medium text-gray-500">Cargo</label>
               <div className="flex items-center space-x-2">
-                <p className="text-lg font-semibold">{empleado.cargo?.nombre || 'Sin cargo asignado'}</p>
-                {empleado.cargo?.descripcion && (
-                  <Badge variant="outline">{empleado.cargo.descripcion}</Badge>
+                <p className="text-lg font-semibold">{empleado.organizaciones?.[0]?.cargo?.nombre || 'Sin cargo asignado'}</p>
+                {empleado.organizaciones?.[0]?.cargo?.descripcion && (
+                  <Badge variant="outline">{empleado.organizaciones[0].cargo.descripcion}</Badge>
                 )}
               </div>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Departamento</label>
               <div className="flex items-center space-x-2">
-                <p className="text-lg font-semibold">{empleado.departamento?.nombre || 'Sin departamento asignado'}</p>
-                {empleado.departamento?.id && (
-                  <Link href={`/departamentos/${empleado.departamento.id}`}>
+                <p className="text-lg font-semibold">{empleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento asignado'}</p>
+                {empleado.organizaciones?.[0]?.departamento?.id && (
+                  <Link href={`/departamentos/${empleado.organizaciones[0].departamento.id}`}>
                     <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-1" />
                       Ver Departamento
@@ -649,20 +661,20 @@ export default function EmpleadoDetailsPage() {
           <div>
             <label className="text-sm font-medium text-gray-500">Empresa</label>
             <div className="flex items-center space-x-4 mt-2">
-              {empleado.departamento.empresa.logo && (
+              {empleado.organizaciones?.[0]?.empresa?.logo && (
                 <img
-                  src={empleado.departamento.empresa.logo}
-                  alt={`Logo de ${empleado.departamento.empresa.nombre}`}
+                  src={empleado.organizaciones[0].empresa.logo}
+                  alt={`Logo de ${empleado.organizaciones[0].empresa.nombre}`}
                   className="w-12 h-12 object-cover rounded-lg border border-gray-200"
                 />
               )}
               <div>
-                <p className="text-lg font-semibold">{empleado.departamento.empresa.nombre}</p>
-                {empleado.departamento.empresa.descripcion && (
-                  <p className="text-sm text-gray-600">{empleado.departamento.empresa.descripcion}</p>
+                <p className="text-lg font-semibold">{empleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'}</p>
+                {empleado.organizaciones?.[0]?.empresa?.descripcion && (
+                  <p className="text-sm text-gray-600">{empleado.organizaciones[0].empresa.descripcion}</p>
                 )}
               </div>
-              <Link href={`/empresas/${empleado.departamento.empresa.id}`}>
+              <Link href={`/empresas/${empleado.organizaciones?.[0]?.empresa?.id}`}>
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4 mr-1" />
                   Ver Empresa
@@ -686,8 +698,7 @@ export default function EmpleadoDetailsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => openAsignarModal('computador')}
-                disabled={loadingEquiposDisponibles}
+                onClick={openAsignarModal}
                 className="h-8 px-3"
               >
                 <Plus className="h-3 w-3 mr-1" />
@@ -711,31 +722,39 @@ export default function EmpleadoDetailsPage() {
             
             {getComputadoresFiltrados().length > 0 ? (
               <div className="space-y-3">
-                {getComputadoresFiltrados().map((computador) => (
-                  <div key={computador.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold">{computador.serial}</p>
-                        <p className="text-sm text-gray-600">
-                          {computador.modelo.marca.nombre} {computador.modelo.nombre}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getEstadoColor(computador.estado)}>
-                          {computador.estado}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/computadores/${computador.id}/details`)}
-                          className="h-8 px-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                {getComputadoresFiltrados().map((asignacion) => {
+                  const computador = asignacion.computador;
+                  if (!computador) return null;
+                  
+                  const modelo = computador.computadorModelos?.[0]?.modeloEquipo;
+                  const marca = modelo?.marcaModelos?.[0]?.marca;
+                  
+                  return (
+                    <div key={computador.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold">{computador.serial}</p>
+                          <p className="text-sm text-gray-600">
+                            {marca?.nombre || 'Sin marca'} {modelo?.nombre || 'Sin modelo'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getEstadoColor(computador.estado)}>
+                            {computador.estado}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/computadores/${computador.id}/details`)}
+                            className="h-8 px-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                  })}
               </div>
             ) : (
               <p className="text-gray-500 text-center py-4">No hay computadores asignados</p>
@@ -754,8 +773,7 @@ export default function EmpleadoDetailsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => openAsignarModal('dispositivo')}
-                disabled={loadingEquiposDisponibles}
+                onClick={openAsignarModal}
                 className="h-8 px-3"
               >
                 <Plus className="h-3 w-3 mr-1" />
@@ -779,31 +797,39 @@ export default function EmpleadoDetailsPage() {
             
             {getDispositivosFiltrados().length > 0 ? (
               <div className="space-y-3">
-                {getDispositivosFiltrados().map((dispositivo) => (
-                  <div key={dispositivo.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold">{dispositivo.serial}</p>
-                        <p className="text-sm text-gray-600">
-                          {dispositivo.modelo.marca.nombre} {dispositivo.modelo.nombre}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getEstadoColor(dispositivo.estado)}>
-                          {dispositivo.estado}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/dispositivos/${dispositivo.id}/details`)}
+                {getDispositivosFiltrados().map((asignacion) => {
+                  const dispositivo = asignacion.dispositivo;
+                  if (!dispositivo) return null;
+                  
+                  const modelo = dispositivo.dispositivoModelos?.[0]?.modeloEquipo;
+                  const marca = modelo?.marcaModelos?.[0]?.marca;
+                  
+                  return (
+                    <div key={dispositivo.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold">{dispositivo.serial}</p>
+                          <p className="text-sm text-gray-600">
+                            {marca?.nombre || 'Sin marca'} {modelo?.nombre || 'Sin modelo'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getEstadoColor(dispositivo.estado)}>
+                            {dispositivo.estado}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/dispositivos/${dispositivo.id}/details`)}
                           className="h-8 px-2"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                  })}
               </div>
             ) : (
               <p className="text-gray-500 text-center py-4">No hay dispositivos asignados</p>
@@ -826,21 +852,21 @@ export default function EmpleadoDetailsPage() {
               <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
                 <Users className="h-6 w-6 text-purple-600" />
               </div>
-              <p className="text-2xl font-bold">{(empleado.computadores?.length || 0) + (empleado.dispositivos?.length || 0)}</p>
+              <p className="text-2xl font-bold">{(empleado.asignacionesComoTarget?.filter(a => a.computador).length || 0) + (empleado.asignacionesComoTarget?.filter(a => a.dispositivo).length || 0)}</p>
               <p className="text-sm text-gray-600">Total Equipos</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2">
                 <Monitor className="h-6 w-6 text-blue-600" />
               </div>
-              <p className="text-2xl font-bold">{empleado.computadores?.length || 0}</p>
+              <p className="text-2xl font-bold">{empleado.asignacionesComoTarget?.filter(a => a.computador).length || 0}</p>
               <p className="text-sm text-gray-600">Computadores</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2">
                 <Smartphone className="h-6 w-6 text-green-600" />
               </div>
-              <p className="text-2xl font-bold">{empleado.dispositivos?.length || 0}</p>
+              <p className="text-2xl font-bold">{empleado.asignacionesComoTarget?.filter(a => a.dispositivo).length || 0}</p>
               <p className="text-sm text-gray-600">Dispositivos</p>
             </div>
           </div>
@@ -872,42 +898,11 @@ export default function EmpleadoDetailsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loadingStatusHistory ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="h-6 w-6 mr-2" />
-              <span>Cargando historial...</span>
-            </div>
-          ) : statusHistory.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No hay cambios de estado registrados</p>
-          ) : (
-            <div className="space-y-4">
-              {statusHistory.map((cambio, index) => (
-                <div key={cambio.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-3 h-3 rounded-full ${
-                      cambio.accion === 'activar' ? 'bg-green-500' : 'bg-red-500'
-                    }`} />
-                    <div>
-                      <p className="font-medium">
-                        {cambio.accion === 'activar' ? 'Reactivado' : 'Desactivado'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Fecha: {formatDate(cambio.fecha)}
-                      </p>
-                      {cambio.motivo && (
-                        <p className="text-sm text-gray-500">
-                          Motivo: {cambio.motivo}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {formatDate(cambio.createdAt)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <EmployeeTimeline 
+            empleado={empleado} 
+            statusHistory={statusHistory}
+            loading={loadingStatusHistory}
+          />
         </CardContent>
       </Card>
 
@@ -952,24 +947,12 @@ export default function EmpleadoDetailsPage() {
         />
       )}
 
-      {/* Modal para asignar computador */}
-      <AsignarEquipoModal
-        isOpen={isAsignarComputadorModalOpen}
-        onClose={() => setIsAsignarComputadorModalOpen(false)}
-        onConfirm={(equipoId, motivo) => handleAsignarEquipo(equipoId, motivo, 'computador')}
+      {/* Modal unificado para asignar equipos */}
+      <AsignarEquipoUnificadoModal
+        isOpen={isAsignarEquipoModalOpen}
+        onClose={() => setIsAsignarEquipoModalOpen(false)}
+        onConfirm={handleAsignarEquipo}
         empleadoId={id as string}
-        tipoEquipo="computador"
-        equiposDisponibles={computadoresDisponibles}
-      />
-
-      {/* Modal para asignar dispositivo */}
-      <AsignarEquipoModal
-        isOpen={isAsignarDispositivoModalOpen}
-        onClose={() => setIsAsignarDispositivoModalOpen(false)}
-        onConfirm={(equipoId, motivo) => handleAsignarEquipo(equipoId, motivo, 'dispositivo')}
-        empleadoId={id as string}
-        tipoEquipo="dispositivo"
-        equiposDisponibles={dispositivosDisponibles}
       />
     </div>
   );

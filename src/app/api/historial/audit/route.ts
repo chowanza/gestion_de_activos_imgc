@@ -9,8 +9,19 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const filterType = searchParams.get('filterType') || 'all';
     const filterAction = searchParams.get('filterAction') || 'all';
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     
     const skip = (page - 1) * limit;
+
+    // Construir filtros de fecha
+    const dateFilter = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.lte = new Date(endDate);
+    }
 
     // Obtener datos de las tres fuentes principales de auditoría
     const [historialMovimientos, asignaciones, historialModificaciones] = await Promise.all([
@@ -19,14 +30,15 @@ export async function GET(request: NextRequest) {
         where: {
           ...(search && {
             OR: [
-              { accion: { contains: search, mode: 'insensitive' } },
-              { entidad: { contains: search, mode: 'insensitive' } },
-              { descripcion: { contains: search, mode: 'insensitive' } },
-              { detalles: { contains: search, mode: 'insensitive' } }
+              { accion: { contains: search } },
+              { entidad: { contains: search } },
+              { descripcion: { contains: search } },
+              { detalles: { contains: search } }
             ]
           }),
           ...(filterAction !== 'all' && { accion: filterAction }),
-          ...(filterType !== 'all' && { entidad: filterType })
+          ...(filterType !== 'all' && { entidad: filterType }),
+          ...(Object.keys(dateFilter).length > 0 && { fecha: dateFilter })
         },
         include: {
           usuario: {
@@ -43,18 +55,19 @@ export async function GET(request: NextRequest) {
       }),
 
       // Asignaciones (movimientos de equipos)
-      prisma.asignaciones.findMany({
+      prisma.asignacionesEquipos.findMany({
         where: {
           ...(search && {
             OR: [
-              { actionType: { contains: search, mode: 'insensitive' } },
-              { motivo: { contains: search, mode: 'insensitive' } },
-              { notes: { contains: search, mode: 'insensitive' } },
-              { itemType: { contains: search, mode: 'insensitive' } }
+              { actionType: { contains: search } },
+              { motivo: { contains: search } },
+              { notes: { contains: search } },
+              { itemType: { contains: search } }
             ]
           }),
           ...(filterAction !== 'all' && { actionType: filterAction }),
-          ...(filterType !== 'all' && { itemType: filterType })
+          ...(filterType !== 'all' && { itemType: filterType }),
+          ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
         },
         include: {
           targetEmpleado: {
@@ -66,15 +79,16 @@ export async function GET(request: NextRequest) {
             }
           },
           computador: {
-            select: {
-              id: true,
-              serial: true,
-              modelo: {
-                select: {
-                  nombre: true,
-                  marca: {
-                    select: {
-                      nombre: true
+            include: {
+              computadorModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: {
+                          marca: true
+                        }
+                      }
                     }
                   }
                 }
@@ -82,15 +96,16 @@ export async function GET(request: NextRequest) {
             }
           },
           dispositivo: {
-            select: {
-              id: true,
-              serial: true,
-              modelo: {
-                select: {
-                  nombre: true,
-                  marca: {
-                    select: {
-                      nombre: true
+            include: {
+              dispositivoModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: {
+                          marca: true
+                        }
+                      }
                     }
                   }
                 }
@@ -108,34 +123,29 @@ export async function GET(request: NextRequest) {
         where: {
           ...(search && {
             OR: [
-              { campo: { contains: search, mode: 'insensitive' } },
-              { valorAnterior: { contains: search, mode: 'insensitive' } },
-              { valorNuevo: { contains: search, mode: 'insensitive' } }
+              { campo: { contains: search } },
+              { valorAnterior: { contains: search } },
+              { valorNuevo: { contains: search } }
             ]
           }),
           ...(filterAction !== 'all' && { campo: filterAction }),
-          ...(filterType !== 'all' && { computador: { isNot: null } })
+          ...(filterType !== 'all' && filterType === 'Computador' && { computador: { id: { not: null } } }),
+          ...(Object.keys(dateFilter).length > 0 && { fecha: dateFilter })
         },
         include: {
           computador: {
-            select: {
-              id: true,
-              serial: true,
-              modelo: {
-                select: {
-                  nombre: true,
-                  marca: {
-                    select: {
-                      nombre: true
+            include: {
+              computadorModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: {
+                          marca: true
+                        }
+                      }
                     }
                   }
-                }
-              },
-              empleado: {
-                select: {
-                  id: true,
-                  nombre: true,
-                  apellido: true
                 }
               }
             }
@@ -179,6 +189,24 @@ export async function GET(request: NextRequest) {
     // Procesar Asignaciones
     asignaciones.forEach(asig => {
       const equipo = asig.computador || asig.dispositivo;
+      let modeloInfo = 'Sin modelo';
+      
+      if (equipo) {
+        if (asig.computador) {
+          const modelo = asig.computador.computadorModelos?.[0]?.modeloEquipo;
+          const marca = modelo?.marcaModelos?.[0]?.marca;
+          if (marca && modelo) {
+            modeloInfo = `${marca.nombre} ${modelo.nombre}`;
+          }
+        } else if (asig.dispositivo) {
+          const modelo = asig.dispositivo.dispositivoModelos?.[0]?.modeloEquipo;
+          const marca = modelo?.marcaModelos?.[0]?.marca;
+          if (marca && modelo) {
+            modeloInfo = `${marca.nombre} ${modelo.nombre}`;
+          }
+        }
+      }
+
       auditLogs.push({
         id: `asig-${asig.id}`,
         fecha: asig.date,
@@ -194,7 +222,7 @@ export async function GET(request: NextRequest) {
         equipo: equipo ? {
           id: equipo.id,
           serial: equipo.serial,
-          modelo: `${equipo.modelo.marca.nombre} ${equipo.modelo.nombre}`
+          modelo: modeloInfo
         } : null,
         targetEmpleado: asig.targetEmpleado ? {
           id: asig.targetEmpleado.id,
@@ -209,28 +237,35 @@ export async function GET(request: NextRequest) {
 
     // Procesar Historial de Modificaciones
     historialModificaciones.forEach(mod => {
+      const computador = mod.computador;
+      let modeloInfo = 'Sin modelo';
+      
+      if (computador) {
+        const modelo = computador.computadorModelos?.[0]?.modeloEquipo;
+        const marca = modelo?.marcaModelos?.[0]?.marca;
+        if (marca && modelo) {
+          modeloInfo = `${marca.nombre} ${modelo.nombre}`;
+        }
+      }
+
       auditLogs.push({
         id: `mod-${mod.id}`,
         fecha: mod.fecha,
         tipo: 'Modificación',
         accion: `Modificación - ${mod.campo}`,
         entidad: 'Computador',
-        entidadId: mod.computador?.id || null,
+        entidadId: computador?.id || null,
         descripcion: `Campo '${mod.campo}' modificado`,
         detalles: `${mod.valorAnterior || 'N/A'} → ${mod.valorNuevo || 'N/A'}`,
         usuario: null,
         ipAddress: null,
         userAgent: null,
-        equipo: mod.computador ? {
-          id: mod.computador.id,
-          serial: mod.computador.serial,
-          modelo: `${mod.computador.modelo.marca.nombre} ${mod.computador.modelo.nombre}`
+        equipo: computador ? {
+          id: computador.id,
+          serial: computador.serial,
+          modelo: modeloInfo
         } : null,
-        targetEmpleado: mod.computador?.empleado ? {
-          id: mod.computador.empleado.id,
-          nombre: `${mod.computador.empleado.nombre} ${mod.computador.empleado.apellido}`,
-          ced: null
-        } : null,
+        targetEmpleado: null,
         campo: mod.campo,
         valorAnterior: mod.valorAnterior,
         valorNuevo: mod.valorNuevo

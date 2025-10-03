@@ -17,25 +17,41 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener historial de asignaciones del empleado
-    const historial = await prisma.asignaciones.findMany({
+    const historial = await prisma.asignacionesEquipos.findMany({
       where: {
         targetEmpleadoId: empleadoId,
       },
       include: {
         computador: {
           include: {
-            modelo: {
+            computadorModelos: {
               include: {
-                marca: true
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
         },
         dispositivo: {
           include: {
-            modelo: {
+            dispositivoModelos: {
               include: {
-                marca: true
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -46,8 +62,7 @@ export async function GET(request: NextRequest) {
             nombre: true,
             apellido: true
           }
-        },
-        ubicacion: true
+        }
       },
       orderBy: {
         date: 'desc'
@@ -60,20 +75,22 @@ export async function GET(request: NextRequest) {
       let itemType = 'Desconocido';
 
       if (asignacion.computador) {
+        const computadorModelo = asignacion.computador.computadorModelos[0];
         itemInfo = {
           id: asignacion.computador.id,
           serial: asignacion.computador.serial,
-          modelo: asignacion.computador.modelo.nombre,
-          marca: asignacion.computador.modelo.marca.nombre,
+          modelo: computadorModelo?.modeloEquipo?.nombre || 'Sin modelo',
+          marca: computadorModelo?.modeloEquipo?.marcaModelos[0]?.marca?.nombre || 'Sin marca',
           tipo: 'Computador'
         };
         itemType = 'Computador';
       } else if (asignacion.dispositivo) {
+        const dispositivoModelo = asignacion.dispositivo.dispositivoModelos[0];
         itemInfo = {
           id: asignacion.dispositivo.id,
           serial: asignacion.dispositivo.serial,
-          modelo: asignacion.dispositivo.modelo.nombre,
-          marca: asignacion.dispositivo.modelo.marca.nombre,
+          modelo: dispositivoModelo?.modeloEquipo?.nombre || 'Sin modelo',
+          marca: dispositivoModelo?.modeloEquipo?.marcaModelos[0]?.marca?.nombre || 'Sin marca',
           tipo: 'Dispositivo'
         };
         itemType = 'Dispositivo';
@@ -87,8 +104,8 @@ export async function GET(request: NextRequest) {
         notas: asignacion.notes,
         gerente: asignacion.gerenteEmpleado 
           ? `${asignacion.gerenteEmpleado.nombre} ${asignacion.gerenteEmpleado.apellido}`
-          : asignacion.gerente,
-        localidad: asignacion.ubicacion?.nombre || null,
+          : 'Sin gerente',
+        localidad: asignacion.ubicacionId || 'Sin ubicación',
         item: itemInfo,
         itemType: itemType,
         createdAt: asignacion.createdAt,

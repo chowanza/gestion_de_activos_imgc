@@ -220,6 +220,7 @@ export default function DispositivoForm({
                 <div className="space-y-2">
                     <Label>Modelo *</Label>
                     <Select
+                        instanceId="dispositivo-modeloId"
                         options={modeloOptions}
                         value={selectedModelValue}
                         onChange={handleSelectChange}
@@ -234,6 +235,7 @@ export default function DispositivoForm({
                 <div className="space-y-2">
                     <Label>Ubicación</Label>
                     <Select
+                        instanceId="dispositivo-ubicacionId"
                         options={ubicacionOptions}
                         value={selectedUbicacionValue}
                         onChange={handleUbicacionChange}

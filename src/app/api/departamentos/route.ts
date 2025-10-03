@@ -9,17 +9,28 @@ export async function GET(request: NextRequest) {
     
     const departamentos = await prisma.departamento.findMany({
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true
+              }
+            }
           }
         },
         _count: {
           select: {
-            empleados: true
+            empleadoOrganizaciones: true
           }
         }
       },
@@ -70,12 +81,15 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    let dataForDepartamento: any = {
-      nombre,
-      gerenteId: gerenteId || null,
-    };
+    // Crear el departamento
+    const newDepartamento = await prisma.departamento.create({
+      data: {
+        nombre,
+      }
+    });
 
     // Lógica para manejar la Empresa
+    let empresaIdFinal: string;
     if (empresaNombre) {
       // Caso 1: Se está creando una nueva empresa.
       const newEmpresa = await prisma.empresa.create({
@@ -84,52 +98,84 @@ export async function POST(request: NextRequest) {
           descripcion: null,
         },
       });
-      dataForDepartamento.empresaId = newEmpresa.id;
-
+      empresaIdFinal = newEmpresa.id;
     } else {
       // Caso 2: Se está conectando a una empresa existente.
-      dataForDepartamento.empresaId = empresaId;
+      empresaIdFinal = empresaId!;
     }
 
-    // Crear el departamento
-    const newDepartamento = await prisma.departamento.create({
-      data: dataForDepartamento,
+    // Crear la relación empresa-departamento
+    await prisma.empresaDepartamento.create({
+      data: {
+        empresaId: empresaIdFinal,
+        departamentoId: newDepartamento.id,
+        activo: true,
+        fechaAsignacion: new Date()
+      }
+    });
+
+    // Crear la relación gerente-departamento si se proporciona un gerente
+    if (gerenteId) {
+      await prisma.departamentoGerente.create({
+        data: {
+          departamentoId: newDepartamento.id,
+          gerenteId: gerenteId,
+          activo: true,
+          fechaAsignacion: new Date()
+        }
+      });
+    }
+
+    // Obtener el departamento completo con todas las relaciones
+    const departamentoCompleto = await prisma.departamento.findUnique({
+      where: { id: newDepartamento.id },
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true
+              }
+            }
           }
         },
         _count: {
           select: {
-            empleados: true
+            empleadoOrganizaciones: true
           }
         }
       }
     });
 
     // Auditoría - Registrar creación
-    if (user) {
+    if (user && departamentoCompleto) {
       await AuditLogger.logCreate(
         'departamento',
-        newDepartamento.id,
-        `Departamento "${nombre}" creado en la empresa "${newDepartamento.empresa.nombre}"`,
+        departamentoCompleto.id,
+        `Departamento "${nombre}" creado en la empresa "${departamentoCompleto.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa'}"`,
         user.id as string,
         {
           departamentoCreado: {
-            nombre: newDepartamento.nombre,
-            empresa: newDepartamento.empresa.nombre,
-            gerente: newDepartamento.gerente ? `${newDepartamento.gerente.nombre} ${newDepartamento.gerente.apellido}` : null,
-            empleados: newDepartamento._count.empleados
+            nombre: departamentoCompleto.nombre,
+            empresa: departamentoCompleto.empresaDepartamentos[0]?.empresa?.nombre,
+            gerente: departamentoCompleto.gerencias[0]?.gerente ? `${departamentoCompleto.gerencias[0].gerente.nombre} ${departamentoCompleto.gerencias[0].gerente.apellido}` : null,
+            empleados: departamentoCompleto._count.empleadoOrganizaciones
           }
         }
       );
     }
 
-    return NextResponse.json(newDepartamento, { status: 201 });
+    return NextResponse.json(departamentoCompleto, { status: 201 });
 
   } catch (error) {
     console.error("Error al crear departamento:", error);

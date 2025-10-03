@@ -14,90 +14,106 @@ export async function GET(
     const departamento = await prisma.departamento.findUnique({
       where: { id },
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            ced: true,
-            cargo: {
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
               select: {
-                nombre: true
+                id: true,
+                nombre: true,
+                apellido: true
               }
             }
           }
         },
-        empleados: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            ced: true,
-            fechaIngreso: true,
-            cargo: {
-              select: {
-                nombre: true
-              }
-            },
-            computadores: {
+        empleadoOrganizaciones: {
+          include: {
+            empleado: {
               select: {
                 id: true,
-                serial: true,
-                estado: true,
-                modelo: {
-                  select: {
-                    nombre: true,
-                    marca: {
-                      select: {
-                        nombre: true
+                nombre: true,
+                apellido: true,
+                ced: true,
+                fechaIngreso: true,
+                fotoPerfil: true,
+                asignacionesComoTarget: {
+                  where: {
+                    activo: true
+                  },
+                  include: {
+                    computador: {
+                      include: {
+                        computadorModelos: {
+                          include: {
+                            modeloEquipo: {
+                              include: {
+                                marcaModelos: {
+                                  include: {
+                                    marca: true
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    dispositivo: {
+                      include: {
+                        dispositivoModelos: {
+                          include: {
+                            modeloEquipo: {
+                              include: {
+                                marcaModelos: {
+                                  include: {
+                                    marca: true
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               }
             },
-            dispositivos: {
+            cargo: {
               select: {
                 id: true,
-                serial: true,
-                estado: true,
-                modelo: {
-                  select: {
-                    nombre: true,
-                    marca: {
-                      select: {
-                        nombre: true
-                      }
-                    }
-                  }
-                }
+                nombre: true
               }
             }
           },
           orderBy: {
-            nombre: 'asc'
+            empleado: {
+              nombre: 'asc'
+            }
           }
         },
-        cargos: {
-          select: {
-            id: true,
-            nombre: true,
-            descripcion: true,
-            _count: {
+        departamentoCargos: {
+          include: {
+            cargo: {
               select: {
-                empleados: true
+                id: true,
+                nombre: true,
+                descripcion: true
               }
             }
-          },
-          orderBy: {
-            nombre: 'asc'
           }
         },
         _count: {
           select: {
-            empleados: true,
-            cargos: true
+            empleadoOrganizaciones: true,
+            departamentoCargos: true
           }
         }
       }
@@ -147,12 +163,23 @@ export async function PUT(
     const departamentoActual = await prisma.departamento.findUnique({
       where: { id },
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true
+              }
+            }
           }
         }
       }
@@ -165,26 +192,83 @@ export async function PUT(
     // Preparar datos para actualización
     const updateData: any = {
       nombre,
-      empresaId: empresaId || departamentoActual.empresaId,
-      gerenteId: gerenteId || null,
     };
+
+    // Manejar asignación de gerente
+    if (gerenteId) {
+      // Desactivar gerente actual si existe
+      await prisma.departamentoGerente.updateMany({
+        where: {
+          departamentoId: id,
+          activo: true
+        },
+        data: {
+          activo: false,
+          fechaDesasignacion: new Date()
+        }
+      });
+
+      // Crear o actualizar asignación de gerente
+      await prisma.departamentoGerente.upsert({
+        where: {
+          departamentoId_gerenteId: {
+            departamentoId: id,
+            gerenteId: gerenteId
+          }
+        },
+        update: {
+          activo: true,
+          fechaAsignacion: new Date(),
+          fechaDesasignacion: null
+        },
+        create: {
+          departamentoId: id,
+          gerenteId: gerenteId,
+          activo: true,
+          fechaAsignacion: new Date()
+        }
+      });
+    }
 
     // Actualizar el departamento
     const departamentoActualizado = await prisma.departamento.update({
       where: { id },
       data: updateData,
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true
+              }
+            }
+          }
+        },
+        departamentoCargos: {
+          include: {
+            cargo: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true
+              }
+            }
           }
         },
         _count: {
           select: {
-            empleados: true
+            empleadoOrganizaciones: true,
+            departamentoCargos: true
           }
         }
       }
@@ -198,18 +282,26 @@ export async function PUT(
         cambios.push(`Nombre: "${departamentoActual.nombre}" → "${nombre}"`);
       }
       
-      if (departamentoActual.empresaId !== empresaId) {
-        const empresaAnterior = departamentoActual.empresa?.nombre || 'Sin empresa';
-        const empresaNueva = departamentoActualizado.empresa?.nombre || 'Sin empresa';
+      // Verificar cambios en empresa (comparar por ID de la primera empresa)
+      const empresaAnteriorId = departamentoActual.empresaDepartamentos[0]?.empresaId;
+      const empresaNuevaId = departamentoActualizado.empresaDepartamentos[0]?.empresaId;
+      
+      if (empresaAnteriorId !== empresaId) {
+        const empresaAnterior = departamentoActual.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa';
+        const empresaNueva = departamentoActualizado.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa';
         cambios.push(`Empresa: "${empresaAnterior}" → "${empresaNueva}"`);
       }
       
-      if (departamentoActual.gerenteId !== gerenteId) {
-        const gerenteAnterior = departamentoActual.gerente 
-          ? `${departamentoActual.gerente.nombre} ${departamentoActual.gerente.apellido}`
+      // Verificar cambios en gerente (comparar por ID del primer gerente activo)
+      const gerenteAnteriorId = departamentoActual.gerencias[0]?.gerenteId;
+      const gerenteNuevoId = departamentoActualizado.gerencias[0]?.gerenteId;
+      
+      if (gerenteAnteriorId !== gerenteId) {
+        const gerenteAnterior = departamentoActual.gerencias[0]?.gerente 
+          ? `${departamentoActual.gerencias[0].gerente.nombre} ${departamentoActual.gerencias[0].gerente.apellido}`
           : 'Sin gerente';
-        const gerenteNuevo = departamentoActualizado.gerente 
-          ? `${departamentoActualizado.gerente.nombre} ${departamentoActualizado.gerente.apellido}`
+        const gerenteNuevo = departamentoActualizado.gerencias[0]?.gerente 
+          ? `${departamentoActualizado.gerencias[0].gerente.nombre} ${departamentoActualizado.gerencias[0].gerente.apellido}`
           : 'Sin gerente';
         cambios.push(`Gerente: "${gerenteAnterior}" → "${gerenteNuevo}"`);
       }
@@ -224,13 +316,13 @@ export async function PUT(
             cambios,
             departamentoAnterior: {
               nombre: departamentoActual.nombre,
-              empresa: departamentoActual.empresa?.nombre,
-              gerente: departamentoActual.gerente ? `${departamentoActual.gerente.nombre} ${departamentoActual.gerente.apellido}` : null
+              empresa: departamentoActual.empresaDepartamentos[0]?.empresa?.nombre,
+              gerente: departamentoActual.gerencias[0]?.gerente ? `${departamentoActual.gerencias[0].gerente.nombre} ${departamentoActual.gerencias[0].gerente.apellido}` : null
             },
             departamentoActualizado: {
               nombre: departamentoActualizado.nombre,
-              empresa: departamentoActualizado.empresa?.nombre,
-              gerente: departamentoActualizado.gerente ? `${departamentoActualizado.gerente.nombre} ${departamentoActualizado.gerente.apellido}` : null
+              empresa: departamentoActualizado.empresaDepartamentos[0]?.empresa?.nombre,
+              gerente: departamentoActualizado.gerencias[0]?.gerente ? `${departamentoActualizado.gerencias[0].gerente.nombre} ${departamentoActualizado.gerencias[0].gerente.apellido}` : null
             }
           }
         );
@@ -260,20 +352,29 @@ export async function DELETE(
     const departamento = await prisma.departamento.findUnique({
       where: { id },
       include: {
-        empresa: true,
-        gerente: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
+        },
+        gerencias: {
+          where: {
+            activo: true
+          },
+          include: {
+            gerente: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true
+              }
+            }
           }
         },
         _count: {
           select: {
-            empleados: true,
-            computadores: true,
-            dispositivos: true,
-            cargos: true
+            empleadoOrganizaciones: true,
+            departamentoCargos: true
           }
         }
       }
@@ -284,19 +385,25 @@ export async function DELETE(
     }
 
     // Verificar si tiene empleados o equipos asignados
-    if (departamento._count.empleados > 0) {
+    if (departamento._count.empleadoOrganizaciones > 0) {
       return NextResponse.json(
         { message: 'No se puede eliminar un departamento que tiene empleados asignados' },
         { status: 400 }
       );
     }
 
-    if (departamento._count.computadores > 0 || departamento._count.dispositivos > 0) {
-      return NextResponse.json(
-        { message: 'No se puede eliminar un departamento que tiene equipos asignados' },
-        { status: 400 }
-      );
-    }
+    // Eliminar las relaciones primero
+    await prisma.empresaDepartamento.deleteMany({
+      where: { departamentoId: id }
+    });
+
+    await prisma.departamentoGerente.deleteMany({
+      where: { departamentoId: id }
+    });
+
+    await prisma.departamentoCargo.deleteMany({
+      where: { departamentoId: id }
+    });
 
     // Eliminar el departamento
     await prisma.departamento.delete({
@@ -308,17 +415,15 @@ export async function DELETE(
       await AuditLogger.logDelete(
         'departamento',
         id,
-        `Departamento "${departamento.nombre}" eliminado de la empresa "${departamento.empresa?.nombre}"`,
+        `Departamento "${departamento.nombre}" eliminado de la empresa "${departamento.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa'}"`,
         user.id as string,
         {
           departamentoEliminado: {
             nombre: departamento.nombre,
-            empresa: departamento.empresa?.nombre,
-            gerente: departamento.gerente ? `${departamento.gerente.nombre} ${departamento.gerente.apellido}` : null,
-            empleados: departamento._count.empleados,
-            computadores: departamento._count.computadores,
-            dispositivos: departamento._count.dispositivos,
-            cargos: departamento._count.cargos
+            empresa: departamento.empresaDepartamentos[0]?.empresa?.nombre,
+            gerente: departamento.gerencias[0]?.gerente ? `${departamento.gerencias[0].gerente.nombre} ${departamento.gerencias[0].gerente.apellido}` : null,
+            empleados: departamento._count.empleadoOrganizaciones,
+            cargos: departamento._count.departamentoCargos
           }
         }
       );

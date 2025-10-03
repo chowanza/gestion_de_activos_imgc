@@ -12,44 +12,102 @@ export async function GET(request: Request) {
   let where: Prisma.DispositivoWhereInput = {};
   
     if (asignado === 'false') {
-      // Si queremos los NO asignados, ambos campos de ID deben ser null
-      where = { empleadoId: null, departamentoId: null };
-    } else if (asignado === 'true') {
-      // Si queremos los SÍ asignados, al menos uno de los campos de ID NO debe ser null
+      // Si queremos los NO asignados, usar estados no asignados
       where = {
-        OR: [
-          { empleadoId: { not: null } },
-          { departamentoId: { not: null } },
-        ],
+        estado: {
+          in: ['OPERATIVO', 'EN_RESGUARDO', 'DE_BAJA']
+        }
+      };
+    } else if (asignado === 'true') {
+      // Si queremos los SÍ asignados, usar estados asignados
+      where = {
+        estado: {
+          in: ['ASIGNADO', 'EN_MANTENIMIENTO']
+        }
       };
     }
   try {
     const equipos = await prisma.dispositivo.findMany({
       where,
       include: {
-        modelo:{
+        dispositivoModelos: {
           include: {
-            marca: true, // Incluye la marca del modelo
-          }
-        },
-        empleado: {
-          include: {
-            departamento: {
+            modeloEquipo: {
               include: {
-                empresa: true
+                marcaModelos: {
+                  include: {
+                    marca: true
+                  }
+                }
               }
             }
           }
-        }, // Incluye el empleado asignado y su departamento
-        ubicacion: true, // Incluye la ubicación asignada (si existe)
+        },
+        asignaciones: {
+          where: { activo: true },
+          include: {
+            ubicacion: true,
+            targetEmpleado: {
+              include: {
+                organizaciones: {
+                  include: {
+                    departamento: {
+                      include: {
+                        empresaDepartamentos: {
+                          include: {
+                            empresa: true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       orderBy: {
-        modelo: {
-          nombre: 'asc'
-        }
+        serial: 'asc'
       }
     });
-    return NextResponse.json(equipos, { status: 200 });
+
+    // Transformar los datos para que coincidan con la interfaz del frontend
+    const equiposTransformados = equipos.map(dispositivo => {
+      const modeloEquipo = dispositivo.dispositivoModelos[0]?.modeloEquipo;
+      const marca = modeloEquipo?.marcaModelos[0]?.marca;
+      const asignacionActiva = dispositivo.asignaciones[0];
+      
+      return {
+        id: dispositivo.id,
+        serial: dispositivo.serial,
+        estado: dispositivo.estado,
+        codigoImgc: dispositivo.codigoImgc,
+        mac: dispositivo.mac,
+        ip: dispositivo.ip,
+        fechaCompra: dispositivo.fechaCompra,
+        numeroFactura: dispositivo.numeroFactura,
+        proveedor: dispositivo.proveedor,
+        monto: dispositivo.monto,
+        modelo: modeloEquipo ? {
+          id: modeloEquipo.id,
+          nombre: modeloEquipo.nombre,
+          tipo: modeloEquipo.tipo,
+          img: modeloEquipo.img,
+          marca: marca ? { nombre: marca.nombre } : { nombre: 'Sin marca' }
+        } : null,
+        ubicacion: asignacionActiva?.ubicacion || null,
+        empleado: asignacionActiva?.targetEmpleado ? {
+          id: asignacionActiva.targetEmpleado.id,
+          nombre: asignacionActiva.targetEmpleado.nombre,
+          apellido: asignacionActiva.targetEmpleado.apellido,
+          departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.nombre || 'Sin departamento',
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa'
+        } : null
+      };
+    });
+
+    return NextResponse.json(equiposTransformados, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: 'Error al obtener equipos' }, { status: 500 });
@@ -63,25 +121,49 @@ export async function POST(request: Request) {
     const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto } = body;
 
     // Validación
-    if (!modeloId || !serial || !estado || !codigoImgc) {
-        return NextResponse.json({ message: 'Modelo, Serial, Estado y Código IMGC son requeridos' }, { status: 400 });
+    if (!modeloId || !serial || !codigoImgc) {
+        return NextResponse.json({ message: 'Modelo, Serial y Código IMGC son requeridos' }, { status: 400 });
     }
 
+    // Crear el dispositivo primero
     const nuevoDispositivo = await prisma.dispositivo.create({
       data: {
-        modeloId,
         serial,
         codigoImgc,  // Campo obligatorio
-        estado,
-        ubicacionId: ubicacionId || null,
+        estado: estado || 'OPERATIVO', // Asignar OPERATIVO por defecto si no se proporciona
         mac: mac || null,
         // Nuevos campos de compra
         fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
         numeroFactura: numeroFactura || null,
         proveedor: proveedor || null,
-        monto: monto || null,
+        monto: monto && monto !== '' ? parseFloat(monto) : null,
       },
     });
+
+    // Crear la relación con el modelo
+    await prisma.dispositivoModeloEquipo.create({
+      data: {
+        dispositivoId: nuevoDispositivo.id,
+        modeloEquipoId: modeloId,
+      },
+    });
+
+    // Crear asignación de ubicación si se proporciona ubicacionId
+    if (ubicacionId && ubicacionId.trim() !== '') {
+      await prisma.asignacionesEquipos.create({
+        data: {
+          dispositivoId: nuevoDispositivo.id,
+          ubicacionId: ubicacionId,
+          date: new Date(),
+          actionType: 'CREACION',
+          targetType: 'UBICACION',
+          itemType: 'DISPOSITIVO',
+          activo: true,
+          notes: 'Ubicación asignada durante la creación del dispositivo'
+        },
+      });
+    }
+
     return NextResponse.json(nuevoDispositivo, { status: 201 });
   } catch (error) {
     console.error(error);

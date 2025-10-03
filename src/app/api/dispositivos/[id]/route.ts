@@ -19,17 +19,15 @@ export async function GET(request: NextRequest) {
     // --- PASO 2: LÓGICA REFORZADA ---
     // Un equipo NO está asignado si AMBOS campos son null o vacíos.
     where = {
-      AND: [
-        { empleadoId: null },
-        { departamentoId: null }
-      ]
+      estado: {
+        in: ['OPERATIVO', 'EN_RESGUARDO', 'DE_BAJA']
+      }
     };
   } else if (asignado === 'true') {
     where = {
-      OR: [
-        { empleadoId: { not: null } },
-        { departamentoId: { not: null } },
-      ],
+      estado: {
+        in: ['ASIGNADO', 'EN_MANTENIMIENTO']
+      }
     };
   }
   
@@ -40,26 +38,19 @@ export async function GET(request: NextRequest) {
         const dispositivo = await prisma.dispositivo.findUnique({
             where: { id },
             include: {
-                modelo: {         // Incluye el objeto 'modelo' relacionado
+                dispositivoModelos: {
                     include: {
-                        marca: true // Dentro de 'modelo', incluye también la 'marca'
+                        modeloEquipo: {
+                            include: {
+                                marcaModelos: {
+                                    include: {
+                                        marca: true
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                empleado: {
-                  select: {
-                    id: true,
-                    nombre: true,
-                    apellido: true,
-                    cargo: true,
-                    fotoPerfil: true,
-                    departamento: {
-                      include: {
-                        empresa: true
-                      }
-                    }
-                  }
-                },      // Incluye el objeto 'empleado' asignado (si existe)
-                ubicacion: true, // Incluye la ubicación asignada (si existe)
                 asignaciones: {
                   include: {
                     targetEmpleado: {
@@ -67,15 +58,18 @@ export async function GET(request: NextRequest) {
                         id: true,
                         nombre: true,
                         apellido: true,
-                        cargo: true,
                         fotoPerfil: true,
-                        departamento: {
+                        organizaciones: {
+                          where: { activo: true },
                           include: {
+                            cargo: true,
+                            departamento: true,
                             empresa: true
                           }
                         }
                       }
                     },
+                    ubicacion: true
                   },
                   orderBy: {
                     date: 'desc'
@@ -88,8 +82,35 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'dispositivo no encontrado' }, { status: 404 });
         }
 
+        // Mapear las nuevas relaciones al formato esperado por el frontend
+        const modeloEquipo = dispositivo.dispositivoModelos[0]?.modeloEquipo;
+        const marca = modeloEquipo?.marcaModelos[0]?.marca;
+        
+        // Mapear empleado de la asignación activa
+        const asignacionActiva = dispositivo.asignaciones.find(a => a.activo);
+        const empleadoMapeado = asignacionActiva?.targetEmpleado ? {
+          ...asignacionActiva.targetEmpleado,
+          cargo: asignacionActiva.targetEmpleado.organizaciones[0]?.cargo || null,
+          departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento || null,
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.empresa || null
+        } : null;
+
+        // Mapear asignaciones
+        const asignacionesMapeadas = dispositivo.asignaciones.map(a => ({
+          ...a,
+          targetEmpleado: a.targetEmpleado ? {
+            ...a.targetEmpleado,
+            cargo: a.targetEmpleado.organizaciones[0]?.cargo || null,
+            departamento: a.targetEmpleado.organizaciones[0]?.departamento || null,
+            empresa: a.targetEmpleado.organizaciones[0]?.empresa || null
+          } : null
+        }));
+
+        // Obtener ubicación de la asignación activa
+        const ubicacion = asignacionActiva?.ubicacion || null;
+
         // Solo historial de asignaciones para dispositivos
-        const historialDeAsignaciones = dispositivo.asignaciones.map(a => ({
+        const historialDeAsignaciones = asignacionesMapeadas.map(a => ({
             id: `asig-${a.id}`, // Prefijo para evitar colisión de IDs
             tipo: 'asignacion', // Tipo para identificarlo en el frontend
             fecha: a.date,
@@ -100,9 +121,17 @@ export async function GET(request: NextRequest) {
         const historialCombinado = historialDeAsignaciones
             .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
-        // Construimos el objeto de respuesta final
+        // Construimos el objeto de respuesta final con modeloId incluido
         const responseData = {
             ...dispositivo,      // Todos los datos del dispositivo
+            modelo: modeloEquipo ? {
+                ...modeloEquipo,
+                marca: marca
+            } : null,
+            empleado: empleadoMapeado,
+            ubicacion: ubicacion,
+            modeloId: dispositivo.dispositivoModelos[0]?.modeloEquipo?.id || null, // Agregar modeloId para el formulario
+            asignaciones: asignacionesMapeadas,
             historial: historialCombinado,          // El array de historial combinado
         };
 
@@ -129,12 +158,12 @@ export async function PUT(request: NextRequest) {
         const { serial, codigoImgc, estado, ubicacionId, mac, modeloId, fechaCompra, numeroFactura, proveedor, monto } = body;
 
         // Detectar cambios comparando con el estado actual
-        const modificaciones = [];
-        const camposAComparar = ['serial', 'codigoImgc', 'estado', 'ubicacionId', 'mac', 'modeloId', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'];
+        const modificaciones: Array<{campo: string, valorAnterior: string, valorNuevo: string}> = [];
+        const camposAComparar = ['serial', 'codigoImgc', 'estado', 'mac', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'];
         
         for (const campo of camposAComparar) {
-            const valorActual = equipoExistente[campo];
-            const valorNuevo = body[campo];
+            const valorActual = (equipoExistente as any)[campo];
+            const valorNuevo = (body as any)[campo];
             
             // Solo comparar si el campo existe en el body
             if (valorNuevo !== undefined) {
@@ -168,7 +197,7 @@ export async function PUT(request: NextRequest) {
         const updatedEquipo = await prisma.$transaction(async (tx) => {
             // Si hay modificaciones, registrar en Asignaciones para la línea de tiempo inteligente
             if (modificaciones.length > 0) {
-                await tx.asignaciones.create({
+                await tx.asignacionesEquipos.create({
                     data: {
                         date: new Date(),
                         actionType: 'Edit',
@@ -179,7 +208,8 @@ export async function PUT(request: NextRequest) {
                         dispositivoId: id,
                         motivo: `Edición de dispositivo ${equipoExistente.serial}`,
                         notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
-                        gerente: 'Sistema',
+                        gerenteId: null,
+                        activo: false, // IMPORTANTE: No debe interferir con asignaciones activas
                     },
                 });
             }
@@ -192,15 +222,29 @@ export async function PUT(request: NextRequest) {
                     codigoImgc,  // Campo obligatorio
                     estado,
                     mac,
-                    ubicacionId: ubicacionId || null,
-                    modeloId: modeloId || equipoExistente.modeloId,
                     // Nuevos campos de compra
                     fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
                     numeroFactura: numeroFactura || null,
                     proveedor: proveedor || null,
-                    monto: monto || null,
+                    monto: monto && monto !== '' ? parseFloat(monto) : null,
                 },
             });
+
+            // Si se proporciona un nuevo modeloId, actualizar la relación
+            if (modeloId) {
+                // Eliminar relaciones existentes con modelos
+                await tx.dispositivoModeloEquipo.deleteMany({
+                    where: { dispositivoId: id }
+                });
+
+                // Crear nueva relación con el modelo
+                await tx.dispositivoModeloEquipo.create({
+                    data: {
+                        dispositivoId: id,
+                        modeloEquipoId: modeloId,
+                    },
+                });
+            }
 
             return equipoActualizado;
         });
@@ -235,7 +279,12 @@ export async function DELETE(request: NextRequest) {
         // }
 
         // 3. Eliminar registros relacionados primero
-        await prisma.asignaciones.deleteMany({
+        await prisma.asignacionesEquipos.deleteMany({
+            where: { dispositivoId: id }
+        });
+
+        // Eliminar relaciones con modelos
+        await prisma.dispositivoModeloEquipo.deleteMany({
             where: { dispositivoId: id }
         });
 

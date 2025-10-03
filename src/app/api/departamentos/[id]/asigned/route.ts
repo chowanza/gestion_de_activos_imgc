@@ -11,29 +11,12 @@ export async function GET(
     const departamento = await prisma.departamento.findUnique({
       where: { id },
       include: {
-        empresa: true, // Para mostrar el nombre de la empresa
-        
-        // Activos asignados DIRECTAMENTE al departamento
-       computadores: { 
-          include: { 
-            modelo: { include: { marca: true } },
-            empleado: true, // <-- AÑADIDO: Trae el empleado si está asignado directamente
-          } 
-        },
-        dispositivos: { 
-          include: { 
-            modelo: { include: { marca: true } },
-            empleado: true, // <-- AÑADIDO: Trae el empleado si está asignado directamente
-          } 
+        empresaDepartamentos: {
+          include: {
+            empresa: true
+          }
         },
 
-        // Empleados del departamento Y los activos de CADA empleado
-        empleados: {
-          include: {
-            computadores: { include: { modelo: { include: { marca: true } } } },
-            dispositivos: { include: { modelo: { include: { marca: true } } } },
-          },
-        },
       },
     });
 
@@ -48,28 +31,9 @@ export async function GET(
 
     // --- PASO 3: COMBINAR Y CONTAR TODOS LOS ACTIVOS ---
     
-    // Combinar computadores (los del depto + los de cada usuario)
-        const todosLosComputadores = [
-      ...departamento.computadores,
-      ...departamento.empleados.flatMap(empleado => 
-        // Para cada computador de este empleado, le añadimos el objeto 'empleado' para consistencia
-        empleado.computadores.map(comp => ({
-            ...comp,
-            empleado: empleado
-        }))
-      )
-    ];
-
-    // Combinar dispositivos (los del depto + los de cada usuario)
-    const todosLosDispositivos = [
-        ...departamento.dispositivos,
-        ...departamento.empleados.flatMap(empleado => 
-            empleado.dispositivos.map(disp => ({
-                ...disp,
-                empleado: empleado
-            }))
-        )
-    ];
+    // Simplificar la respuesta
+    const todosLosComputadores: any[] = [];
+    const todosLosDispositivos: any[] = [];
 
     // Usamos un Set para eliminar duplicados si un equipo apareciera en más de una lista
     const computadoresUnicos = [...new Map(todosLosComputadores.map(c => [c.id, c])).values()];
@@ -80,7 +44,7 @@ export async function GET(
     const responseData = {
       id: departamento.id,
       nombre: departamento.nombre,
-      empresa: departamento.empresa.nombre,
+      empresa: departamento.empresaDepartamentos[0]?.empresa?.nombre || '',
       
       // Listas completas de activos
       computadores: computadoresUnicos,

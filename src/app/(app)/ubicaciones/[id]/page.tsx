@@ -31,12 +31,16 @@ interface Computador {
   id: string;
   serial: string;
   estado: string;
-  modelo: {
-    nombre: string;
-    marca: {
+  computadorModelos: Array<{
+    modeloEquipo: {
       nombre: string;
+      marcaModelos: Array<{
+        marca: {
+          nombre: string;
+        };
+      }>;
     };
-  };
+  }>;
   empleado?: {
     nombre: string;
     apellido: string;
@@ -53,12 +57,16 @@ interface Dispositivo {
   id: string;
   serial: string;
   estado: string;
-  modelo: {
-    nombre: string;
-    marca: {
+  dispositivoModelos: Array<{
+    modeloEquipo: {
       nombre: string;
+      marcaModelos: Array<{
+        marca: {
+          nombre: string;
+        };
+      }>;
     };
-  };
+  }>;
   empleado?: {
     nombre: string;
     apellido: string;
@@ -80,12 +88,59 @@ interface UbicacionDetails {
   sala?: string;
   createdAt: string;
   updatedAt: string;
-  computadores: Computador[];
-  dispositivos: Dispositivo[];
-  _count: {
-    computadores: number;
-    dispositivos: number;
-  };
+  asignacionesEquipos?: Array<{
+    id: string;
+    date: string;
+    notes?: string;
+    actionType: string;
+    motivo?: string;
+    targetType: string;
+    itemType: string;
+    activo: boolean;
+    computador?: {
+      id: string;
+      serial: string;
+      estado: string;
+      computadorModelos: Array<{
+        modeloEquipo: {
+          nombre: string;
+          marcaModelos: Array<{
+            marca: {
+              nombre: string;
+            };
+          }>;
+        };
+      }>;
+    };
+    dispositivo?: {
+      id: string;
+      serial: string;
+      estado: string;
+      dispositivoModelos: Array<{
+        modeloEquipo: {
+          nombre: string;
+          marcaModelos: Array<{
+            marca: {
+              nombre: string;
+            };
+          }>;
+        };
+      }>;
+    };
+    targetEmpleado?: {
+      id: string;
+      nombre: string;
+      apellido: string;
+      organizaciones: Array<{
+        departamento: {
+          nombre: string;
+        };
+        empresa: {
+          nombre: string;
+        };
+      }>;
+    };
+  }>;
 }
 
 export default function UbicacionDetailsPage() {
@@ -183,14 +238,55 @@ export default function UbicacionDetailsPage() {
           La ubicación que buscas no existe o ha sido eliminada.
         </p>
         <Button onClick={() => router.push('/ubicaciones')} className="mt-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver a Ubicaciones
+          <ArrowLeft className="h-4 w-4" />
         </Button>
       </div>
     );
   }
 
-  const totalEquipos = ubicacion._count.computadores + ubicacion._count.dispositivos;
+  const totalEquipos = ubicacion.asignacionesEquipos?.length || 0;
+  
+  // Funciones auxiliares para obtener equipos de las asignaciones
+  const getComputadores = () => {
+    if (!ubicacion.asignacionesEquipos) return [];
+    return ubicacion.asignacionesEquipos
+      .filter(asignacion => asignacion.computador)
+      .map(asignacion => ({
+        ...asignacion.computador!,
+        empleado: asignacion.targetEmpleado ? {
+          nombre: asignacion.targetEmpleado.nombre,
+          apellido: asignacion.targetEmpleado.apellido,
+          departamento: {
+            nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+            empresa: {
+              nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
+            }
+          }
+        } : undefined
+      }));
+  };
+
+  const getDispositivos = () => {
+    if (!ubicacion.asignacionesEquipos) return [];
+    return ubicacion.asignacionesEquipos
+      .filter(asignacion => asignacion.dispositivo)
+      .map(asignacion => ({
+        ...asignacion.dispositivo!,
+        empleado: asignacion.targetEmpleado ? {
+          nombre: asignacion.targetEmpleado.nombre,
+          apellido: asignacion.targetEmpleado.apellido,
+          departamento: {
+            nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+            empresa: {
+              nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
+            }
+          }
+        } : undefined
+      }));
+  };
+
+  const computadores = getComputadores();
+  const dispositivos = getDispositivos();
 
   return (
     <div className="space-y-6">
@@ -198,8 +294,7 @@ export default function UbicacionDetailsPage() {
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => router.push('/ubicaciones')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -283,14 +378,14 @@ export default function UbicacionDetailsPage() {
             <div className="text-center p-4 border rounded-lg">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Laptop className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">{ubicacion._count.computadores}</span>
+                <span className="text-2xl font-bold">{computadores.length}</span>
               </div>
               <p className="text-sm text-gray-600">Computadoras</p>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Printer className="h-5 w-5 text-green-600" />
-                <span className="text-2xl font-bold">{ubicacion._count.dispositivos}</span>
+                <span className="text-2xl font-bold">{dispositivos.length}</span>
               </div>
               <p className="text-sm text-gray-600">Dispositivos</p>
             </div>
@@ -306,12 +401,12 @@ export default function UbicacionDetailsPage() {
       </Card>
 
       {/* Computadoras */}
-      {ubicacion.computadores.length > 0 && (
+      {computadores.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Laptop className="h-5 w-5" />
-              Computadoras ({ubicacion.computadores.length})
+              Computadoras ({computadores.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -327,11 +422,11 @@ export default function UbicacionDetailsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ubicacion.computadores.map((computador) => (
+                {computadores.map((computador) => (
                   <TableRow key={computador.id}>
                     <TableCell className="font-mono">{computador.serial}</TableCell>
                     <TableCell>
-                      {computador.modelo.marca.nombre} {computador.modelo.nombre}
+                      {computador.computadorModelos[0]?.modeloEquipo?.marcaModelos[0]?.marca?.nombre} {computador.computadorModelos[0]?.modeloEquipo?.nombre}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getEstadoBadgeVariant(computador.estado)}>
@@ -372,7 +467,7 @@ export default function UbicacionDetailsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/empleados/${computador.empleado.id}`)}
+                            onClick={() => router.push(`/empleados?search=${computador.empleado?.nombre} ${computador.empleado?.apellido}`)}
                             className="h-8 w-8 p-0"
                           >
                             <User className="h-4 w-4" />
@@ -389,12 +484,12 @@ export default function UbicacionDetailsPage() {
       )}
 
       {/* Dispositivos */}
-      {ubicacion.dispositivos.length > 0 && (
+      {dispositivos.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" />
-              Dispositivos ({ubicacion.dispositivos.length})
+              Dispositivos ({dispositivos.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -410,11 +505,11 @@ export default function UbicacionDetailsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ubicacion.dispositivos.map((dispositivo) => (
+                {dispositivos.map((dispositivo) => (
                   <TableRow key={dispositivo.id}>
                     <TableCell className="font-mono">{dispositivo.serial}</TableCell>
                     <TableCell>
-                      {dispositivo.modelo.marca.nombre} {dispositivo.modelo.nombre}
+                      {dispositivo.dispositivoModelos[0]?.modeloEquipo?.marcaModelos[0]?.marca?.nombre} {dispositivo.dispositivoModelos[0]?.modeloEquipo?.nombre}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getEstadoBadgeVariant(dispositivo.estado)}>
@@ -455,7 +550,7 @@ export default function UbicacionDetailsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/empleados/${dispositivo.empleado.id}`)}
+                            onClick={() => router.push(`/empleados?search=${dispositivo.empleado?.nombre} ${dispositivo.empleado?.apellido}`)}
                             className="h-8 w-8 p-0"
                           >
                             <User className="h-4 w-4" />

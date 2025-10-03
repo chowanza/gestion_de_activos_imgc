@@ -14,52 +14,24 @@ interface ModeloDetails {
   nombre: string;
   tipo: string;
   img?: string;
-  marca: {
-    id: string;
-    nombre: string;
-  };
-  computadores: Array<{
-    id: string;
-    serial: string;
-    estado: string;
-    empleado?: {
+  marcaModelos: Array<{
+    marca: {
       id: string;
       nombre: string;
-      apellido: string;
-      departamento: {
-        nombre: string;
-        empresa: {
-          nombre: string;
-        };
-      };
-    };
-    departamento?: {
-      nombre: string;
-      empresa: {
-        nombre: string;
-      };
     };
   }>;
-  dispositivos: Array<{
-    id: string;
-    serial: string;
-    estado: string;
-    empleado?: {
+  computadorModelos: Array<{
+    computador: {
       id: string;
-      nombre: string;
-      apellido: string;
-      departamento: {
-        nombre: string;
-        empresa: {
-          nombre: string;
-        };
-      };
+      serial: string;
+      estado: string;
     };
-    departamento?: {
-      nombre: string;
-      empresa: {
-        nombre: string;
-      };
+  }>;
+  dispositivoModelos: Array<{
+    dispositivo: {
+      id: string;
+      serial: string;
+      estado: string;
     };
   }>;
 }
@@ -69,17 +41,19 @@ interface UsageStats {
   totalDispositivos: number;
   totalEquipos: number;
   estados: {
-    asignado: number;
-    resguardo: number;
-    reparacion: number;
-    deBaja: number;
-    operativo: number;
+    ASIGNADO: number;
+    OPERATIVO: number;
+    EN_MANTENIMIENTO: number;
+    DE_BAJA: number;
+    EN_RESGUARDO: number;
   };
   empresas: Array<{
+    id: string;
     nombre: string;
     count: number;
   }>;
   departamentos: Array<{
+    id: string;
     nombre: string;
     empresa: string;
     count: number;
@@ -93,6 +67,7 @@ interface UsageStats {
     count: number;
   }>;
   ubicaciones: Array<{
+    id: string;
     nombre: string;
     count: number;
   }>;
@@ -172,8 +147,7 @@ export default function ModeloDetailsPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Modelo no encontrado</h1>
           <Button asChild>
             <Link href="/catalogo">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Catálogo
+              <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -188,8 +162,7 @@ export default function ModeloDetailsPage() {
         <div className="flex items-center space-x-4">
           <Button variant="outline" asChild>
             <Link href="/catalogo">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al Catálogo
+              <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div>
@@ -246,7 +219,7 @@ export default function ModeloDetailsPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Marca</label>
-                  <p className="text-lg">{modelo.marca.nombre}</p>
+                  <p className="text-lg">{modelo.marcaModelos?.[0]?.marca?.nombre || 'Sin marca'}</p>
                 </div>
               </div>
             </CardContent>
@@ -314,14 +287,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Buscar el ID de la empresa en los datos del modelo
-                                const empresaData = modelo.computadores.find(c => c.empleado?.departamento?.empresa?.nombre === empresa.nombre)?.empleado?.departamento?.empresa ||
-                                                 modelo.dispositivos.find(d => d.empleado?.departamento?.empresa?.nombre === empresa.nombre)?.empleado?.departamento?.empresa;
-                                if (empresaData?.id) {
-                                  router.push(`/empresas/${empresaData.id}`);
-                                } else {
-                                  router.push(`/empresas?search=${empresa.nombre}`);
-                                }
+                                // Navegar a la página de empresas con búsqueda del nombre
+                                router.push(`/empresas?search=${encodeURIComponent(empresa.nombre)}`);
                               }}
                               className="h-8 w-8 p-0"
                             >
@@ -360,14 +327,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Buscar el ID del departamento en los datos del modelo
-                                const deptoData = modelo.computadores.find(c => c.empleado?.departamento?.nombre === depto.nombre && c.empleado?.departamento?.empresa?.nombre === depto.empresa)?.empleado?.departamento ||
-                                                modelo.dispositivos.find(d => d.empleado?.departamento?.nombre === depto.nombre && d.empleado?.departamento?.empresa?.nombre === depto.empresa)?.empleado?.departamento;
-                                if (deptoData?.id) {
-                                  router.push(`/departamentos/${deptoData.id}`);
-                                } else {
-                                  router.push(`/departamentos?search=${depto.nombre}`);
-                                }
+                                // Navegar a la página de departamentos con búsqueda del nombre
+                                router.push(`/departamentos?search=${encodeURIComponent(depto.nombre)}`);
                               }}
                               className="h-8 w-8 p-0"
                             >
@@ -440,14 +401,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Buscar el ID de la ubicación en los datos del modelo
-                                const ubicacionData = modelo.computadores.find(c => c.ubicacion?.nombre === ubicacion.nombre)?.ubicacion ||
-                                                    modelo.dispositivos.find(d => d.ubicacion?.nombre === ubicacion.nombre)?.ubicacion;
-                                if (ubicacionData?.id) {
-                                  router.push(`/ubicaciones/${ubicacionData.id}`);
-                                } else {
-                                  router.push(`/ubicaciones?search=${ubicacion.nombre}`);
-                                }
+                                // Navegar a la página de ubicaciones con búsqueda del nombre
+                                router.push(`/ubicaciones?search=${encodeURIComponent(ubicacion.nombre)}`);
                               }}
                               className="h-8 w-8 p-0"
                             >

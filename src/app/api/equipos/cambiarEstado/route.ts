@@ -36,24 +36,50 @@ export async function POST(request: NextRequest) {
       equipo = await prisma.computador.findUnique({
         where: { id: equipoId },
         include: {
-          modelo: {
+          computadorModelos: {
             include: {
-              marca: true,
-            },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
           },
-          empleado: true,
+          asignaciones: {
+            where: { activo: true },
+            include: {
+              targetEmpleado: true
+            }
+          }
         },
       });
     } else {
       equipo = await prisma.dispositivo.findUnique({
         where: { id: equipoId },
         include: {
-          modelo: {
+          dispositivoModelos: {
             include: {
-              marca: true,
-            },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
           },
-          empleado: true,
+          asignaciones: {
+            where: { activo: true },
+            include: {
+              targetEmpleado: true
+            }
+          }
         },
       });
     }
@@ -61,7 +87,7 @@ export async function POST(request: NextRequest) {
     console.log('Equipo encontrado:', equipo ? 'Sí' : 'No');
     if (equipo) {
       console.log('Estado actual:', equipo.estado);
-      console.log('Empleado asignado:', equipo.empleadoId);
+      console.log('Asignaciones activas:', equipo.asignaciones?.length || 0);
     }
 
     if (!equipo) {
@@ -72,8 +98,10 @@ export async function POST(request: NextRequest) {
     const estadoActual = equipo.estado;
     
     // Validaciones de lógica de negocio
+    const tieneEmpleadoAsignado = equipo.asignaciones?.some(a => a.targetEmpleado && a.activo);
+    
     // Si se quiere cambiar a ASIGNADO, debe tener empleado (actual o nuevo)
-    if (nuevoEstado === 'ASIGNADO' && !equipo.empleadoId && !targetEmpleadoId) {
+    if (nuevoEstado === 'ASIGNADO' && !tieneEmpleadoAsignado && !targetEmpleadoId) {
       return NextResponse.json({ 
         message: 'No se puede cambiar a estado ASIGNADO sin tener un empleado asignado.' 
       }, { status: 400 });
@@ -81,29 +109,15 @@ export async function POST(request: NextRequest) {
 
     // Si se quiere cambiar a un estado no asignado y está asignado, permitir el cambio
     // (esto desasignará implícitamente el equipo)
-    if (nuevoEstado !== 'ASIGNADO' && equipo.empleadoId) {
+    if (nuevoEstado !== 'ASIGNADO' && tieneEmpleadoAsignado) {
       console.log(`Cambiando equipo de ASIGNADO a ${nuevoEstado} - esto desasignará el empleado`);
     }
 
     // Preparar datos de actualización
     const updateData: any = { estado: nuevoEstado };
     
-    // Manejar asignación de empleado
-    if (nuevoEstado === 'ASIGNADO') {
-      // Si se proporciona un empleado específico, asignarlo
-      if (targetEmpleadoId) {
-        updateData.empleadoId = targetEmpleadoId;
-      }
-      // Si no se proporciona empleado pero ya tiene uno, mantenerlo
-    } else {
-      // Si el nuevo estado no es ASIGNADO, desasignar el empleado
-      updateData.empleadoId = null;
-    }
-
-    // Manejar cambio de ubicación si se proporciona
-    if (ubicacionId) {
-      updateData.ubicacionId = ubicacionId;
-    }
+    // Las asignaciones de empleado y ubicación se manejan en AsignacionesEquipos
+    // No se actualizan directamente en el equipo
 
     console.log('Datos de actualización:', updateData);
 
@@ -116,14 +130,6 @@ export async function POST(request: NextRequest) {
         equipoActualizado = await prisma.computador.update({
           where: { id: equipoId },
           data: updateData,
-          include: {
-            modelo: {
-              include: {
-                marca: true,
-              },
-            },
-            empleado: true,
-          },
         });
         console.log('Computador actualizado exitosamente');
       } else {
@@ -131,14 +137,6 @@ export async function POST(request: NextRequest) {
         equipoActualizado = await prisma.dispositivo.update({
           where: { id: equipoId },
           data: updateData,
-          include: {
-            modelo: {
-              include: {
-                marca: true,
-              },
-            },
-            empleado: true,
-          },
         });
         console.log('Dispositivo actualizado exitosamente');
       }
@@ -168,35 +166,55 @@ export async function POST(request: NextRequest) {
 
     // Crear registro en Asignaciones para cambios de estado
     console.log('Creando registro de asignación...');
+    console.log('Estado actual:', estadoActual);
+    console.log('Nuevo estado:', nuevoEstado);
+    console.log('Target empleado ID:', targetEmpleadoId);
+    console.log('Tiene empleado asignado actualmente:', tieneEmpleadoAsignado);
     try {
-      let actionType = 'Assignment';
-      let targetType = 'Usuario';
-      let targetEmpleadoIdFinal = targetEmpleadoId;
-      let notes = `Asignación automática por cambio de estado a ${nuevoEstado}`;
+      let actionType = 'CAMBIO_ESTADO';
+      let targetType = 'SISTEMA';
+      let targetEmpleadoIdFinal = null;
+      let notes = `Cambio de estado de ${estadoActual} a ${nuevoEstado}`;
 
-      // Detectar si es una devolución (de ASIGNADO a otro estado)
-      if (estadoActual === 'ASIGNADO' && nuevoEstado !== 'ASIGNADO') {
-        actionType = 'Return';
-        targetType = 'Usuario';
-        targetEmpleadoIdFinal = equipo.empleadoId; // El empleado que tenía asignado el equipo
-        notes = `Devolución automática por cambio de estado de ${estadoActual} a ${nuevoEstado}`;
-      }
-      // Si es una nueva asignación
-      else if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
+      // PRIORIDAD 1: Si es una nueva asignación (independientemente del estado actual)
+      if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
+        console.log('Detectada nueva asignación');
         actionType = 'Assignment';
         targetType = 'Usuario';
         targetEmpleadoIdFinal = targetEmpleadoId;
         notes = `Asignación automática por cambio de estado a ${nuevoEstado}`;
+        
+        // Desactivar asignaciones anteriores si las hay
+        console.log('Desactivando asignaciones anteriores...');
+        await prisma.asignacionesEquipos.updateMany({
+          where: {
+            [tipoEquipo === 'computador' ? 'computadorId' : 'dispositivoId']: equipoId,
+            activo: true
+          },
+          data: { activo: false }
+        });
+        console.log('Asignaciones anteriores desactivadas');
       }
-      // Si no es ni asignación ni devolución, es un cambio de estado
+      // PRIORIDAD 2: Detectar si es una devolución (de ASIGNADO a otro estado)
+      else if (estadoActual === 'ASIGNADO' && nuevoEstado !== 'ASIGNADO' && !targetEmpleadoId) {
+        console.log('Detectada devolución');
+        actionType = 'Return';
+        targetType = 'Usuario';
+        // Obtener el empleado asignado de las asignaciones activas
+        const empleadoAsignado = equipo.asignaciones?.find(a => a.targetEmpleado && a.activo)?.targetEmpleado;
+        targetEmpleadoIdFinal = empleadoAsignado?.id || null;
+        notes = `Devolución automática por cambio de estado de ${estadoActual} a ${nuevoEstado}`;
+      }
+      // PRIORIDAD 3: Si no es ni asignación ni devolución, es un cambio de estado
       else {
-        actionType = 'Status Change';
-        targetType = 'Sistema';
+        console.log('Detectado cambio de estado general');
+        actionType = 'CAMBIO_ESTADO';
+        targetType = 'SISTEMA';
         targetEmpleadoIdFinal = null;
         notes = `Cambio de estado de ${estadoActual} a ${nuevoEstado}`;
       }
 
-      await prisma.asignaciones.create({
+      const nuevaAsignacion = await prisma.asignacionesEquipos.create({
         data: {
           date: new Date(),
           actionType: actionType,
@@ -207,10 +225,18 @@ export async function POST(request: NextRequest) {
           dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
           motivo: motivo,
           notes: notes,
-          gerente: 'Sistema',
+          ubicacionId: ubicacionId || null, // Agregar ubicación
+          activo: actionType === 'Assignment' ? true : false, // Solo las asignaciones están activas
         },
       });
       console.log('Registro de asignación creado exitosamente');
+      console.log('Nueva asignación:', {
+        id: nuevaAsignacion.id,
+        actionType: nuevaAsignacion.actionType,
+        targetType: nuevaAsignacion.targetType,
+        targetEmpleadoId: nuevaAsignacion.targetEmpleadoId,
+        activo: nuevaAsignacion.activo
+      });
     } catch (asignacionError) {
       console.error('Error creando registro de asignación:', asignacionError);
       // No fallar por error de asignación, solo logear

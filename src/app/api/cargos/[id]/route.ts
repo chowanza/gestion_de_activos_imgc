@@ -13,14 +13,14 @@ export async function GET(
     const cargo = await prisma.cargo.findUnique({
       where: { id },
       include: {
-        departamento: {
-          include: {
-            empresa: true
-          }
-        },
-        empleados: {
+        departamentoCargos: {
           include: {
             departamento: true
+          }
+        },
+        empleadoOrganizaciones: {
+          include: {
+            empleado: true
           }
         }
       }
@@ -67,9 +67,9 @@ export async function PUT(
         descripcion: descripcion || null
       },
       include: {
-        departamento: {
+        departamentoCargos: {
           include: {
-            empresa: true
+            departamento: true
           }
         }
       }
@@ -117,7 +117,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Verificar si el cargo tiene empleados asignados
-    const empleadosCount = await prisma.empleado.count({
+    const empleadosCount = await prisma.empleadoEmpresaDepartamentoCargo.count({
       where: { cargoId: id }
     });
 
@@ -131,7 +131,7 @@ export async function DELETE(
     // Obtener datos del cargo antes de eliminarlo para auditoría
     const cargo = await prisma.cargo.findUnique({
       where: { id },
-      select: { nombre: true, departamento: { select: { nombre: true } } }
+      select: { nombre: true }
     });
 
     await prisma.cargo.delete({
@@ -142,7 +142,7 @@ export async function DELETE(
     await AuditLogger.logDelete(
       'cargo',
       id,
-      `Cargo "${cargo?.nombre}" eliminado de ${cargo?.departamento.nombre}`,
+      `Cargo "${cargo?.nombre}" eliminado`,
       undefined // TODO: Obtener userId del token/sesión
     );
 

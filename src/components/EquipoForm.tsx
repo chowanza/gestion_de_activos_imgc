@@ -73,7 +73,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   id: undefined, // <-- Añade esto
   modeloId: '',
   serial: '',
-  estado: '',
+  estado: 'OPERATIVO', // Estado por defecto
   codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
   mac: null,
   ubicacionId: null,
@@ -115,7 +115,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
           id: undefined,
           modeloId: '',
           serial: '',
-          estado: '',
+          estado: 'OPERATIVO', // Estado por defecto
           codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
           mac: null,
           ubicacionId: null,
@@ -205,7 +205,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Dispositivo' : 'Agregar Nuevo Dispositivo'}
@@ -214,7 +214,10 @@ const [formData, setFormData] = useState<DispositivoFormData>({
             {isEditing ? 'Modifique los detalles del dispositivo.' : 'Complete los detalles para el nuevo dispositivo.'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+        
+        {/* Contenido scrollable del formulario */}
+        <div className="flex-1 overflow-y-auto pr-2">
+          <form id="dispositivo-form" onSubmit={handleSubmit} className="grid gap-4 py-4">
           
           {/* Selector de Modelo */}
           <div className="grid gap-2">
@@ -316,16 +319,18 @@ const [formData, setFormData] = useState<DispositivoFormData>({
               </div>
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-              {isEditing ? 'Guardar Cambios' : 'Guardar Equipo'}
-            </Button>
-          </DialogFooter>
         </form>
+        </div>
+        
+        {/* Footer fijo fuera del área scrollable */}
+        <DialogFooter className="flex-shrink-0 border-t pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="dispositivo-form" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+            {isEditing ? 'Guardar Cambios' : 'Guardar Equipo'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

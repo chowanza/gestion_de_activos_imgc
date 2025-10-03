@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
   if (asignado === 'false') {
     // Un equipo NO está asignado si no tiene empleado asignado
     where = {
-      empleadoId: null
+      estado: 'OPERATIVO'
     };
   } else if (asignado === 'true') {
     where = {
-      empleadoId: { not: null }
+      estado: 'ASIGNADO'
     };
   }
   
@@ -32,9 +32,17 @@ export async function GET(request: NextRequest) {
         const computador = await prisma.computador.findUnique({
             where: { id },
             include: {
-                modelo: {         // Incluye el objeto 'modelo' relacionado
+                computadorModelos: {
                     include: {
-                        marca: true // Dentro de 'modelo', incluye también la 'marca'
+                        modeloEquipo: {
+                            include: {
+                                marcaModelos: {
+                                    include: {
+                                        marca: true
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 asignaciones: {
@@ -44,35 +52,23 @@ export async function GET(request: NextRequest) {
                         id: true,
                         nombre: true,
                         apellido: true,
-                        cargo: true,
                         fotoPerfil: true,
-                        departamento: {
+                        organizaciones: {
+                          where: { activo: true },
                           include: {
+                            cargo: true,
+                            departamento: true,
                             empresa: true
                           }
                         }
                       }
-                    }
+                    },
+                    ubicacion: true
                   }
                 },
-                empleado: {
-                  select: {
-                    id: true,
-                    nombre: true,
-                    apellido: true,
-                    cargo: true,
-                    fotoPerfil: true,
-                    departamento: {
-                      include: {
-                        empresa: true // Incluye la empresa del departamento del empleado
-                      }
-                    }
-                  }
-                },      // Incluye el objeto 'empleado' asignado (si existe)
-                ubicacion: true, // Incluye la ubicación asignada (si existe)
                 historialModificaciones: {
                   orderBy: {
-                      fecha: 'desc' // Ordenar por fecha, el más reciente primero
+                      fecha: 'desc'
                   }
               }
             }
@@ -82,7 +78,47 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'Computador no encontrado' }, { status: 404 });
         }
 
-      const historialDeAsignaciones = computador.asignaciones.map(a => ({
+        // Mapear las nuevas relaciones al formato esperado por el frontend
+        const modeloEquipo = computador.computadorModelos[0]?.modeloEquipo;
+        const marca = modeloEquipo?.marcaModelos[0]?.marca;
+        
+        // Mapear empleado de la asignación activa
+        const asignacionActiva = computador.asignaciones.find(a => a.activo);
+        const empleadoMapeado = asignacionActiva?.targetEmpleado ? {
+          ...asignacionActiva.targetEmpleado,
+          cargo: asignacionActiva.targetEmpleado.organizaciones[0]?.cargo || null,
+          departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento || null,
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.empresa || null
+        } : null;
+
+        // Mapear asignaciones
+        const asignacionesMapeadas = computador.asignaciones.map(a => ({
+          ...a,
+          targetEmpleado: a.targetEmpleado ? {
+            ...a.targetEmpleado,
+            cargo: a.targetEmpleado.organizaciones[0]?.cargo || null,
+            departamento: a.targetEmpleado.organizaciones[0]?.departamento || null,
+            empresa: a.targetEmpleado.organizaciones[0]?.empresa || null
+          } : null
+        }));
+
+        // Obtener ubicación de la asignación activa
+        const ubicacion = asignacionActiva?.ubicacion || null;
+
+        // Crear objeto computador mapeado
+        const computadorMapeado = {
+          ...computador,
+          modeloId: modeloEquipo?.id || '', // Agregar modeloId para el formulario
+          modelo: modeloEquipo ? {
+            ...modeloEquipo,
+            marca: marca
+          } : null,
+          empleado: empleadoMapeado,
+          ubicacion: ubicacion,
+          asignaciones: asignacionesMapeadas
+        };
+
+      const historialDeAsignaciones = computadorMapeado.asignaciones.map(a => ({
       id: `asig-${a.id}`, // Prefijo para evitar colisión de IDs
       tipo: 'asignacion', // Tipo para identificarlo en el frontend
       fecha: a.date,
@@ -102,7 +138,7 @@ export async function GET(request: NextRequest) {
 
         // Construimos el objeto de respuesta final
         const responseData = {
-            ...computador,      // Todos los datos del computador
+            ...computadorMapeado,      // Todos los datos del computador mapeado
             historial: historialCombinado,          // El array de historial que consultamos por separado
          // El objeto simplificado del último movimiento
         };
@@ -132,8 +168,8 @@ export async function PUT(request: NextRequest) {
 
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
     const camposAComparar: Array<keyof typeof computadorActual> = [
-      'ram', 'almacenamiento', 'procesador', 'estado',
-      'host', 'ubicacionId', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk'
+      'serial', 'codigoImgc', 'ram', 'almacenamiento', 'procesador', 'estado',
+      'host', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk'
     ];
 
     // --- PASO 2: COMPARAR VALORES Y PREPARAR HISTORIAL ---
@@ -156,8 +192,8 @@ export async function PUT(request: NextRequest) {
           data: modificaciones,
         });
 
-        // También registrar en Asignaciones para la línea de tiempo inteligente
-        await tx.asignaciones.create({
+        // También registrar en AsignacionesEquipos para la línea de tiempo inteligente
+        await tx.asignacionesEquipos.create({
           data: {
             date: new Date(),
             actionType: 'Edit',
@@ -168,7 +204,8 @@ export async function PUT(request: NextRequest) {
             dispositivoId: null,
             motivo: `Edición de computador ${computadorActual.serial}`,
             notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
-            gerente: 'Sistema',
+            gerenteId: null,
+            activo: false, // IMPORTANTE: No debe interferir con asignaciones activas
           },
         });
       }
@@ -178,6 +215,7 @@ export async function PUT(request: NextRequest) {
         where: { id },
         data: {
             serial: body.serial,
+            codigoImgc: body.codigoImgc,
             estado: body.estado,
             host: body.host,
             sisOperativo: body.sisOperativo,
@@ -187,9 +225,6 @@ export async function PUT(request: NextRequest) {
             procesador: body.procesador,
             officeVersion: body.officeVersion,
             anydesk: body.anydesk,
-            modelo: body.modeloId ? { connect: { id: body.modeloId } } : undefined,
-            empleado: body.empleadoId ? { connect: { id: body.empleadoId } } : { disconnect: true },
-            ubicacion: body.ubicacionId ? { connect: { id: body.ubicacionId } } : { disconnect: true }
         },
       });
 
@@ -223,7 +258,7 @@ export async function DELETE(request: NextRequest) {
     // Obtener datos del computador antes de eliminarlo para auditoría
     const computador = await prisma.computador.findUnique({
       where: { id },
-      select: { serial: true, modelo: { select: { nombre: true } } }
+      select: { serial: true }
     });
 
     if (!computador) {
@@ -235,7 +270,12 @@ export async function DELETE(request: NextRequest) {
       where: { computadorId: id }
     });
 
-    await prisma.asignaciones.deleteMany({
+    await prisma.asignacionesEquipos.deleteMany({
+      where: { computadorId: id }
+    });
+
+    // Eliminar relaciones con modelos
+    await prisma.computadorModeloEquipo.deleteMany({
       where: { computadorId: id }
     });
 
@@ -248,7 +288,7 @@ export async function DELETE(request: NextRequest) {
     await AuditLogger.logDelete(
       'computador',
       id,
-      `Computador ${computador.serial} (${computador.modelo.nombre}) eliminado`,
+      `Computador ${computador.serial} eliminado`,
       undefined // TODO: Obtener userId del token/sesión
     );
 

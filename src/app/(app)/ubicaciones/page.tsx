@@ -45,9 +45,18 @@ interface Ubicacion {
   sala?: string;
   createdAt: string;
   updatedAt: string;
+  asignacionesEquipos?: Array<{
+    id: string;
+    activo: boolean;
+    computador?: {
+      id: string;
+    };
+    dispositivo?: {
+      id: string;
+    };
+  }>;
   _count: {
-    computadores: number;
-    dispositivos: number;
+    asignacionesEquipos: number;
   };
 }
 
@@ -57,6 +66,7 @@ export default function UbicacionesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUbicacion, setEditingUbicacion] = useState<Ubicacion | null>(null);
+  // Removido equiposCounts - ahora se calcula directamente de los datos
   const router = useRouter();
 
   const fetchUbicaciones = async () => {
@@ -119,6 +129,13 @@ export default function UbicacionesPage() {
     (ubicacion.descripcion && ubicacion.descripcion.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (ubicacion.direccion && ubicacion.direccion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  // Función auxiliar para obtener conteos de equipos por ubicación
+  const getEquiposCount = (ubicacion: Ubicacion) => {
+    const computadores = ubicacion.asignacionesEquipos?.filter((asignacion: any) => asignacion.computador)?.length || 0;
+    const dispositivos = ubicacion.asignacionesEquipos?.filter((asignacion: any) => asignacion.dispositivo)?.length || 0;
+    return { computadores, dispositivos };
+  };
 
   if (loading) {
     return (
@@ -245,21 +262,28 @@ export default function UbicacionesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {ubicacion._count.computadores > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Laptop className="h-3 w-3 mr-1" />
-                            {ubicacion._count.computadores}
-                          </Badge>
-                        )}
-                        {ubicacion._count.dispositivos > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Printer className="h-3 w-3 mr-1" />
-                            {ubicacion._count.dispositivos}
-                          </Badge>
-                        )}
-                        {ubicacion._count.computadores === 0 && ubicacion._count.dispositivos === 0 && (
-                          <span className="text-gray-400 italic text-sm">Sin equipos</span>
-                        )}
+                        {(() => {
+                          const counts = getEquiposCount(ubicacion);
+                          return (
+                            <>
+                              {counts.computadores > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Laptop className="h-3 w-3 mr-1" />
+                                  {counts.computadores}
+                                </Badge>
+                              )}
+                              {counts.dispositivos > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Printer className="h-3 w-3 mr-1" />
+                                  {counts.dispositivos}
+                                </Badge>
+                              )}
+                              {counts.computadores === 0 && counts.dispositivos === 0 && (
+                                <span className="text-gray-400 italic text-sm">Sin equipos</span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell>

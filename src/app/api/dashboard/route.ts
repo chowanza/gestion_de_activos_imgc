@@ -1,381 +1,465 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-/**
- * GET /api/dashboard/stats
- *
- * Endpoint unificado para obtener todas las estadísticas necesarias para el dashboard de inventario.
- */
-export async function GET() {
+// Función para obtener actividad reciente
+async function getRecentActivity() {
   try {
-    // --- 1. CONTEOS GLOBALES (TARJETAS PRINCIPALES) ---
-    // Usamos Promise.all para ejecutar todas las consultas de conteo en paralelo para mayor eficiencia.
-    const [
-      totalUsers,
-      totalDevices, // Total de Dispositivos (Monitores, Impresoras, etc.)
-      totalComputers,
-      assignedComputers,
-      storedComputers,
-      storedDevices, // Dispositivos en resguardo
-    ] = await Promise.all([
-      prisma.empleado.count(),
-      prisma.dispositivo.count(),
-      prisma.computador.count(),
-      // Un computador está "Asignado" si su estado es "Asignado"
-      prisma.computador.count({
-        where: {
-          estado: "Asignado",
-        },
-      }),
-      // Equipos en resguardo (guardados pero no operativos)
-      prisma.computador.count({
-        where: {
-          estado: "En resguardo",
-        },
-      }),
-      // Dispositivos en resguardo
-      prisma.dispositivo.count({
-        where: {
-          estado: "En resguardo",
-        },
-      }),
-    ]);
-
-    // Calcular equipos operativos (disponibles para uso)
-    const equiposOperativos = await Promise.all([
-      prisma.computador.count({
-        where: {
-          estado: "Operativo",
-        },
-      }),
-      prisma.dispositivo.count({
-        where: {
-          estado: "Operativo",
-        },
-      }),
-    ]);
-
-    // Calcular equipos de baja
-    const equiposDeBaja = await Promise.all([
-      prisma.computador.count({
-        where: {
-          estado: "DE_BAJA",
-        },
-      }),
-      prisma.dispositivo.count({
-        where: {
-          estado: "DE_BAJA",
-        },
-      }),
-    ]);
-
-    // Calcular equipos en mantenimiento
-    const equiposEnMantenimiento = await Promise.all([
-      prisma.computador.count({
-        where: {
-          estado: "EN_MANTENIMIENTO",
-        },
-      }),
-      prisma.dispositivo.count({
-        where: {
-          estado: "EN_MANTENIMIENTO",
-        },
-      }),
-    ]);
-
-    // Calcular equipos totales y equipos en resguardo
-    const totalEquipos = totalComputers + totalDevices;
-    const equiposEnResguardo = storedComputers + storedDevices;
-    const totalEquiposOperativos = equiposOperativos[0] + equiposOperativos[1];
-    const totalEquiposDeBaja = equiposDeBaja[0] + equiposDeBaja[1];
-    const totalEquiposEnMantenimiento = equiposEnMantenimiento[0] + equiposEnMantenimiento[1];
-
-    // --- 2. ESTADÍSTICAS POR DEPARTAMENTO ---
-    // Obtenemos todos los departamentos y contamos sus computadores y usuarios asociados.
-    // El uso de `_count` es mucho más performante que traer los arrays completos.
-    const deptsData = await prisma.departamento.findMany({
+    const recentActivities = await prisma.asignacionesEquipos.findMany({
+      take: 10,
+      orderBy: { date: 'desc' },
       include: {
-        _count: {
-          select: {
-            empleados: true,
-          },
-        },
-      },
-    });
-
-    // Mapeamos los datos para darles el formato que el frontend espera.
-    const departmentStats = deptsData.map((dept) => ({
-      name: dept.nombre,
-      computers: 0, // Se calculará por separado a través de empleados
-      users: dept._count.empleados,
-      percentage: 0, // Se calculará después
-    }));
-
-    // --- 2.1. ESTADÍSTICAS POR EMPRESA ---
-    // Obtenemos todas las empresas con sus departamentos y contamos computadores y usuarios.
-    const empresasData = await prisma.empresa.findMany({
-      include: {
-        departamentos: {
+        computador: {
           include: {
-            _count: {
-              select: {
-                empleados: true,
-              },
-            },
-            empleados: {
+            computadorModelos: {
               include: {
-                _count: {
-                  select: {
-                    computadores: true,
-                    dispositivos: true,
-                  },
-                },
-              },
-            },
-          },
+                modeloEquipo: true
+              }
+            }
+          }
         },
-      },
+        dispositivo: {
+          include: {
+            dispositivoModelos: {
+              include: {
+                modeloEquipo: true
+              }
+            }
+          }
+        },
+        targetEmpleado: true,
+        ubicacion: true
+      }
     });
 
-    // Mapeamos los datos de empresas con sus departamentos.
-    const empresaStats = empresasData.map((empresa) => {
-      // Computadores asignados a empleados de la empresa
-      const computersByEmployees = empresa.departamentos.reduce(
-        (sum, dept) => sum + dept.empleados.reduce(
-          (empSum, emp) => empSum + emp._count.computadores,
-          0
-        ),
-        0
-      );
+    return recentActivities.map(activity => {
+      const equipo = activity.computador || activity.dispositivo;
+      const modelo = activity.computador?.computadorModelos?.[0]?.modeloEquipo || 
+                    activity.dispositivo?.dispositivoModelos?.[0]?.modeloEquipo;
       
-      // Dispositivos asignados a empleados de la empresa
-      const devicesByEmployees = empresa.departamentos.reduce(
-        (sum, dept) => sum + dept.empleados.reduce(
-          (empSum, emp) => empSum + emp._count.dispositivos,
-          0
-        ),
-        0
-      );
-      
-      const totalComputersEmpresa = computersByEmployees;
-      const totalDevicesEmpresa = devicesByEmployees;
-      
-      const totalUsersEmpresa = empresa.departamentos.reduce(
-        (sum, dept) => sum + dept._count.empleados,
-        0
-      );
-
       return {
-        name: empresa.nombre,
-        computers: totalComputersEmpresa,
-        devices: totalDevicesEmpresa,
-        total: totalComputersEmpresa + totalDevicesEmpresa,
-        users: totalUsersEmpresa,
-        departamentos: empresa.departamentos.map((dept) => {
-          // Computadores de empleados del departamento
-          const deptComputers = dept.empleados.reduce(
-            (sum, emp) => sum + emp._count.computadores,
-            0
-          );
-          
-          // Dispositivos de empleados del departamento
-          const deptDevices = dept.empleados.reduce(
-            (sum, emp) => sum + emp._count.dispositivos,
-            0
-          );
-          
-          return {
-            name: dept.nombre,
-            computers: deptComputers,
-            devices: deptDevices,
-            total: deptComputers + deptDevices,
-            users: dept._count.empleados,
-          };
-        }),
+        id: activity.id,
+        type: getActivityType(activity.actionType),
+        action: getActivityDescription(activity),
+        device: `${modelo?.nombre || 'Equipo'} - ${equipo?.serial || 'N/A'}`,
+        user: activity.targetEmpleado ? 
+              `${activity.targetEmpleado.nombre} ${activity.targetEmpleado.apellido}` : 
+              'Sistema',
+        time: formatTimeAgo(activity.date)
       };
     });
+  } catch (error) {
+    console.error('Error obteniendo actividad reciente:', error);
+    return [];
+  }
+}
 
-    // --- 2.2. ESTADÍSTICAS POR UBICACIÓN ---
-    // Obtenemos todas las ubicaciones y contamos sus computadores y dispositivos.
-    const ubicacionesData = await prisma.ubicacion.findMany({
-      include: {
-        _count: {
-          select: {
-            computadores: true,
-            dispositivos: true,
-          },
+// Función auxiliar para determinar el tipo de actividad
+function getActivityType(actionType: string) {
+  switch (actionType) {
+    case 'ASIGNACION': return 'assignment';
+    case 'DEVOLUCION': return 'return';
+    case 'CAMBIO_ESTADO': return 'maintenance';
+    case 'CREACION': return 'registration';
+    case 'EDICION': return 'user';
+    default: return 'registration';
+  }
+}
+
+// Función auxiliar para generar descripción de actividad
+function getActivityDescription(activity: any) {
+  const equipo = activity.computador || activity.dispositivo;
+  const tipoEquipo = activity.computador ? 'Computador' : 'Dispositivo';
+  
+  switch (activity.actionType) {
+    case 'ASIGNACION':
+      return `Asignado ${tipoEquipo} a ${activity.targetEmpleado?.nombre || 'empleado'}`;
+    case 'DEVOLUCION':
+      return `Devuelto ${tipoEquipo} por ${activity.targetEmpleado?.nombre || 'empleado'}`;
+    case 'CAMBIO_ESTADO':
+      return `Cambio de estado del ${tipoEquipo}`;
+    case 'CREACION':
+      return `Creado ${tipoEquipo} nuevo`;
+    case 'EDICION':
+      return `Editado ${tipoEquipo}`;
+    default:
+      return `Acción en ${tipoEquipo}`;
+  }
+}
+
+// Función auxiliar para formatear tiempo
+function formatTimeAgo(date: Date) {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - new Date(date).getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return 'Hace un momento';
+  if (diffInSeconds < 3600) return `Hace ${Math.floor(diffInSeconds / 60)} min`;
+  if (diffInSeconds < 86400) return `Hace ${Math.floor(diffInSeconds / 3600)} h`;
+  return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
+}
+
+// Función para obtener estadísticas de empresas
+async function getEmpresaStats(empresas: any[]) {
+  try {
+    const empresaStats = await Promise.all(empresas.map(async (empresa) => {
+      // Contar empleados activos por empresa
+      const empleadosCount = await prisma.empleado.count({
+        where: {
+          fechaDesincorporacion: null,
+          organizaciones: {
+            some: {
+              activo: true,
+              departamento: {
+                empresaDepartamentos: {
+                  some: {
+                    empresaId: empresa.id
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Contar computadores asignados a empleados de esta empresa
+      const computadoresCount = await prisma.computador.count({
+        where: {
+          estado: 'ASIGNADO',
+          asignaciones: {
+            some: {
+              activo: true,
+              targetEmpleado: {
+                fechaDesincorporacion: null,
+                organizaciones: {
+                  some: {
+                    activo: true,
+                    departamento: {
+                      empresaDepartamentos: {
+                        some: {
+                          empresaId: empresa.id
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Contar dispositivos asignados a empleados de esta empresa
+      const dispositivosCount = await prisma.dispositivo.count({
+        where: {
+          estado: 'ASIGNADO',
+          asignaciones: {
+            some: {
+              activo: true,
+              targetEmpleado: {
+                fechaDesincorporacion: null,
+                organizaciones: {
+                  some: {
+                    activo: true,
+                    departamento: {
+                      empresaDepartamentos: {
+                        some: {
+                          empresaId: empresa.id
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Obtener departamentos de esta empresa con sus estadísticas
+      const departamentos = await prisma.departamento.findMany({
+        where: {
+          empresaDepartamentos: {
+            some: {
+              empresaId: empresa.id
+            }
+          }
         },
-      },
-    });
-
-    // Mapeamos los datos de ubicaciones.
-    const ubicacionStats = ubicacionesData.map((ubicacion) => ({
-      name: ubicacion.nombre,
-      computers: ubicacion._count.computadores,
-      devices: ubicacion._count.dispositivos,
-      total: ubicacion._count.computadores + ubicacion._count.dispositivos,
-    }));
-
-    // --- 2.3. ESTADÍSTICAS POR EMPLEADO ---
-    // Obtenemos todos los empleados con sus equipos asignados
-    const empleadosData = await prisma.empleado.findMany({
-      include: {
-        _count: {
-          select: {
-            computadores: true,
-            dispositivos: true,
-          },
-        },
-        departamento: {
-          select: {
-            nombre: true,
-            empresa: {
-              select: {
-                nombre: true,
-              },
+        include: {
+          empleadoOrganizaciones: {
+            where: {
+              activo: true
             },
-          },
-        },
-      },
-    });
+            include: {
+              empleado: {
+                include: {
+                  asignacionesComoTarget: {
+                    where: {
+                      activo: true
+                    },
+                    include: {
+                      computador: true,
+                      dispositivo: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
 
-    // Mapeamos los datos de empleados
-    const empleadoStats = empleadosData.map((empleado) => ({
-      name: `${empleado.nombre} ${empleado.apellido}`,
-      computers: empleado._count.computadores,
-      devices: empleado._count.dispositivos,
-      total: empleado._count.computadores + empleado._count.dispositivos,
-      departamento: empleado.departamento?.nombre || 'Sin departamento',
-      empresa: empleado.departamento?.empresa?.nombre || 'Sin empresa',
+      // Calcular estadísticas por departamento
+      const departamentosStats = departamentos.map(dept => {
+        const empleadosActivos = dept.empleadoOrganizaciones.length;
+        
+        let computadoresAsignados = 0;
+        let dispositivosAsignados = 0;
+        
+        dept.empleadoOrganizaciones.forEach(org => {
+          if (org.empleado.fechaDesincorporacion === null) {
+            org.empleado.asignacionesComoTarget.forEach(asig => {
+              if (asig.activo) {
+                if (asig.computador) computadoresAsignados++;
+                if (asig.dispositivo) dispositivosAsignados++;
+              }
+            });
+          }
+        });
+
+        const totalEquipos = computadoresAsignados + dispositivosAsignados;
+        const totalEmpresa = computadoresCount + dispositivosCount;
+        const porcentaje = totalEmpresa > 0 
+          ? parseFloat(((totalEquipos / totalEmpresa) * 100).toFixed(1))
+          : 0;
+
+        return {
+          name: dept.nombre,
+          computers: computadoresAsignados,
+          devices: dispositivosAsignados,
+          users: empleadosActivos,
+          percentage: porcentaje
+        };
+      });
+
+      return {
+        id: empresa.id,
+        name: empresa.nombre,
+        computers: computadoresCount,
+        devices: dispositivosCount,
+        total: computadoresCount + dispositivosCount,
+        users: empleadosCount,
+        departamentos: departamentosStats
+      };
     }));
 
-    // --- 3. ESTADÍSTICAS POR ESTADO ---
-    // Obtenemos la distribución de estados para computadores y dispositivos
+    return empresaStats;
+  } catch (error) {
+    console.error('Error obteniendo estadísticas de empresas:', error);
+    return empresas.map(empresa => ({
+      id: empresa.id,
+      name: empresa.nombre,
+      computers: 0,
+      devices: 0,
+      total: 0,
+      users: 0,
+      departamentos: []
+    }));
+  }
+}
+
+// Función para obtener estadísticas de ubicaciones
+async function getUbicacionStats(ubicaciones: any[]) {
+  try {
+    const ubicacionStats = await Promise.all(ubicaciones.map(async (ubicacion) => {
+      // Contar TODOS los computadores en esta ubicación (no solo ASIGNADO)
+      const computadoresCount = await prisma.computador.count({
+        where: {
+          asignaciones: {
+            some: {
+              activo: true,
+              ubicacionId: ubicacion.id
+            }
+          }
+        }
+      });
+
+      // Contar TODOS los dispositivos en esta ubicación (no solo ASIGNADO)
+      const dispositivosCount = await prisma.dispositivo.count({
+        where: {
+          asignaciones: {
+            some: {
+              activo: true,
+              ubicacionId: ubicacion.id
+            }
+          }
+        }
+      });
+
+      return {
+        id: ubicacion.id,
+        name: ubicacion.nombre,
+        computers: computadoresCount,
+        devices: dispositivosCount,
+        total: computadoresCount + dispositivosCount
+      };
+    }));
+
+    return ubicacionStats;
+  } catch (error) {
+    console.error('Error obteniendo estadísticas de ubicaciones:', error);
+    return ubicaciones.map(ubicacion => ({
+      id: ubicacion.id,
+      name: ubicacion.nombre,
+      computers: 0,
+      devices: 0,
+      total: 0
+    }));
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    console.log('🔍 Obteniendo estadísticas del dashboard...');
+
+    // --- 1. ESTADÍSTICAS BÁSICAS ---
+    const [
+      totalComputadores,
+      totalDispositivos,
+      totalEmpleados,
+      totalEmpresas,
+      totalDepartamentos,
+      totalUbicaciones
+    ] = await Promise.all([
+      prisma.computador.count(),
+      prisma.dispositivo.count(),
+      prisma.empleado.count(),
+      prisma.empresa.count(),
+      prisma.departamento.count(),
+      prisma.ubicacion.count()
+    ]);
+
+    // --- 2. ESTADÍSTICAS POR ESTADO ---
     const [computadorEstados, dispositivoEstados] = await Promise.all([
       prisma.computador.groupBy({
         by: ['estado'],
-        _count: {
-          estado: true,
-        },
+        _count: { estado: true },
       }),
       prisma.dispositivo.groupBy({
         by: ['estado'],
-        _count: {
-          estado: true,
-        },
+        _count: { estado: true },
       }),
     ]);
 
-    // Estados definidos en el sistema (nueva lógica: asignado/no asignado con subestados)
-    const estadosDefinidos = [
-      "ASIGNADO",       // Asignado a empleado (PRIMERO)
-      "OPERATIVO",      // No asignado - operativo
-      "EN_MANTENIMIENTO", // No asignado - en mantenimiento
-      "EN_RESGUARDO",   // No asignado - en resguardo
-      "DE_BAJA"         // No asignado - de baja
-    ];
+    // --- 3. DATOS BÁSICOS ---
+    const departamentos = await prisma.departamento.findMany();
+    const empresas = await prisma.empresa.findMany();
+    const ubicaciones = await prisma.ubicacion.findMany();
+    const empleados = await prisma.empleado.findMany();
 
-    // Mapeamos los datos de estados para computadores, incluyendo estados con 0
-    const computadorEstadoStats = estadosDefinidos.map((estado) => {
-      const estadoData = computadorEstados.find(item => item.estado === estado);
-      const count = estadoData ? estadoData._count.estado : 0;
-      return {
-        estado,
-        count,
-        percentage: totalComputers > 0 
-          ? parseFloat(((count / totalComputers) * 100).toFixed(1))
-          : 0,
-      };
-    });
+    // Mapear datos básicos
+    const departmentStats = departamentos.map(dept => ({
+      name: dept.nombre,
+      computers: 0,
+      users: 0,
+      percentage: 0,
+    }));
 
-    // Mapeamos los datos de estados para dispositivos, incluyendo estados con 0
-    const dispositivoEstadoStats = estadosDefinidos.map((estado) => {
-      const estadoData = dispositivoEstados.find(item => item.estado === estado);
-      const count = estadoData ? estadoData._count.estado : 0;
-      return {
-        estado,
-        count,
-        percentage: totalDevices > 0 
-          ? parseFloat(((count / totalDevices) * 100).toFixed(1))
-          : 0,
-      };
-    });
+    const empresaStats = await getEmpresaStats(empresas);
 
-    // --- 4. ACTIVIDAD RECIENTE ---
-    // Obtenemos las últimas 5 asignaciones/movimientos registrados.
-    const recentActivityRaw = await prisma.asignaciones.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        // Incluimos los datos necesarios para describir la actividad.
-        targetEmpleado: { select: { nombre: true, apellido: true } },
-        computador: { select: { serial: true, modelo: { select: { nombre: true } } } },
-        dispositivo: { select: { serial: true, modelo: { select: { nombre: true } } } },
-      },
-    });
+    const ubicacionStats = await getUbicacionStats(ubicaciones);
+
+    const empleadoStats = empleados.map(empleado => ({
+      name: `${empleado.nombre} ${empleado.apellido}`,
+      computers: 0,
+      devices: 0,
+      total: 0,
+      departamento: 'Sin departamento',
+      empresa: 'Sin empresa',
+    }));
+
+    // --- 4. CALCULAR ESTADÍSTICAS ADICIONALES ---
+    const totalAsignados = (computadorEstados.find(e => e.estado === 'ASIGNADO')?._count.estado || 0) +
+                          (dispositivoEstados.find(e => e.estado === 'ASIGNADO')?._count.estado || 0);
     
-    // Mapeamos los datos crudos a un formato más amigable para el frontend.
-    const recentActivity = recentActivityRaw.map(activity => {
-        let deviceName = "N/A";
-        if (activity.itemType === "Computador" && activity.computador) {
-            deviceName = `${activity.computador.modelo.nombre} (S/N: ${activity.computador.serial})`;
-        } else if (activity.itemType === "Dispositivo" && activity.dispositivo) {
-            deviceName = `${activity.dispositivo.modelo.nombre} (S/N: ${activity.dispositivo.serial})`;
-        }
+    const totalOperativos = (computadorEstados.find(e => e.estado === 'OPERATIVO')?._count.estado || 0) +
+                           (dispositivoEstados.find(e => e.estado === 'OPERATIVO')?._count.estado || 0);
+    
+    const totalDeBaja = (computadorEstados.find(e => e.estado === 'DE_BAJA')?._count.estado || 0) +
+                       (dispositivoEstados.find(e => e.estado === 'DE_BAJA')?._count.estado || 0);
+    
+    const totalEnMantenimiento = (computadorEstados.find(e => e.estado === 'EN_MANTENIMIENTO')?._count.estado || 0) +
+                                (dispositivoEstados.find(e => e.estado === 'EN_MANTENIMIENTO')?._count.estado || 0);
+    
+    const totalEnResguardo = (computadorEstados.find(e => e.estado === 'EN_RESGUARDO')?._count.estado || 0) +
+                            (dispositivoEstados.find(e => e.estado === 'EN_RESGUARDO')?._count.estado || 0);
 
-        return {
-            id: activity.id,
-            action: activity.actionType, // Ej: "Asignación", "Devolución"
-            device: deviceName,
-            user: activity.targetEmpleado ? `${activity.targetEmpleado.nombre} ${activity.targetEmpleado.apellido}` : 'Sistema',
-            time: activity.createdAt.toISOString(), // Enviamos fecha en formato ISO, el frontend la formatea.
-            type: activity.actionType.toLowerCase().includes('asigna') ? 'assignment' : 'registration', // Lógica simple para el ícono
-        }
-    });
-
-    // --- 4. DATOS DE TENDENCIAS (PLACEHOLDER) ---
-    // Calcular tendencias reales requiere comparar con datos de un período anterior (ej. últimos 30 días).
-    // Por ahora, devolvemos un objeto estático para que el frontend no falle.
-    const trends = {
-      equipos: 8.5, // Tendencia para equipos totales
-      asignados: 11.4, // Tendencia para equipos asignados
-      resguardo: -1.2, // Tendencia para equipos en resguardo
-      operativos: 6.8, // Tendencia para equipos operativos
-      baja: 2.1, // Tendencia para equipos de baja
-      mantenimiento: -0.5, // Tendencia para equipos en mantenimiento
-    };
-
-    // --- 5. RESPUESTA FINAL ---
-    // Unimos todos los datos en un solo objeto JSON.
-    return NextResponse.json({
-      totalUsers,
-      totalDevices,
-      totalComputers,
-      assignedComputers,
-      storedComputers,
-      totalEquipos, // Equipos totales
-      equiposEnResguardo, // Equipos en resguardo
-      equiposOperativos: totalEquiposOperativos, // Equipos operativos
-      equiposDeBaja: totalEquiposDeBaja, // Equipos de baja
-      equiposEnMantenimiento: totalEquiposEnMantenimiento, // Equipos en mantenimiento
-      trends,
+    // --- 5. CONSTRUIR RESPUESTA ---
+    const dashboardData = {
+      // Estadísticas básicas
+      totalComputadores,
+      totalDispositivos,
+      totalEmpleados,
+      totalEmpresas,
+      totalDepartamentos,
+      totalUbicaciones,
+      
+      // Alias para compatibilidad
+      totalEquipos: totalComputadores + totalDispositivos,
+      totalComputers: totalComputadores,
+      totalDevices: totalDispositivos,
+      totalUsers: totalEmpleados,
+      
+      // Estadísticas por estado (combinadas de computadores y dispositivos)
+      computadorEstados: computadorEstados.map(estado => ({
+        estado: estado.estado,
+        count: estado._count.estado,
+      })),
+      dispositivoEstados: dispositivoEstados.map(estado => ({
+        estado: estado.estado,
+        count: estado._count.estado,
+      })),
+      
+      // Estadísticas detalladas
       departmentStats,
       empresaStats,
       ubicacionStats,
       empleadoStats,
-      computadorEstadoStats,
-      dispositivoEstadoStats,
-      recentActivity,
-    });
+      
+      // Estadísticas adicionales (basadas en datos reales)
+      equiposOperativos: totalOperativos,
+      equiposDeBaja: totalDeBaja,
+      equiposEnMantenimiento: totalEnMantenimiento,
+      equiposEnResguardo: totalEnResguardo,
+      assignedEquipos: totalAsignados,
+      
+      // Estadísticas de estado para gráficos
+      computadorEstadoStats: computadorEstados.map(estado => ({
+        estado: estado.estado,
+        count: estado._count.estado,
+      })),
+      dispositivoEstadoStats: dispositivoEstados.map(estado => ({
+        estado: estado.estado,
+        count: estado._count.estado,
+      })),
+      
+      // Trends (simplificados)
+      computadoresTrend: 0,
+      dispositivosTrend: 0,
+      empleadosTrend: 0,
+      bajaTrend: 0,
+      mantenimientoTrend: 0,
+      
+      // Actividad reciente (obtenida de AsignacionesEquipos)
+      recentActivity: await getRecentActivity(),
+    };
+
+    console.log('✅ Dashboard data generado exitosamente');
+    return NextResponse.json(dashboardData, { status: 200 });
 
   } catch (error) {
-    console.error("Error al obtener las estadísticas del dashboard:", error);
-    // En caso de un error en la base de datos, devolvemos una respuesta de error 500.
-    return new NextResponse(
-      JSON.stringify({ message: "Error interno del servidor." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    console.error('❌ Error al obtener estadísticas del dashboard:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
     );
   }
 }

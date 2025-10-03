@@ -34,12 +34,19 @@ export async function POST(request: Request) {
             imagePath = `/uploads/modelos/${fileName}`;
         }
 
-        const nuevoModelo = await prisma.modeloDispositivo.create({
+        const nuevoModelo = await prisma.modeloEquipo.create({
             data: {
                 nombre,
-                marcaId,
                 tipo,
                 img: imagePath,
+            },
+        });
+
+        // Crear la relación marca-modelo
+        await prisma.marcaModeloEquipo.create({
+            data: {
+                marcaId,
+                modeloEquipoId: nuevoModelo.id,
             },
         });
 
@@ -54,12 +61,26 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const modelos = await prisma.modeloDispositivo.findMany({
+    const modelos = await prisma.modeloEquipo.findMany({
       include: {
-        marca: true,
+        marcaModelos: {
+          include: {
+            marca: true,
+          },
+        },
       },
     });
-    return NextResponse.json(modelos, { status: 200 });
+
+    // Transformar los datos para que coincidan con la interfaz esperada
+    const modelosTransformados = modelos.map(modelo => ({
+      id: modelo.id,
+      nombre: modelo.nombre,
+      tipo: modelo.tipo,
+      img: modelo.img ? modelo.img.replace('/img/equipos/', '/uploads/modelos/') : null,
+      marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
+    }));
+
+    return NextResponse.json(modelosTransformados, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: 'Error al obtener modelos' }, { status: 500 });

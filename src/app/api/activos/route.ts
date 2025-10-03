@@ -20,8 +20,24 @@ export async function GET(request: Request) {
             
             // Primero, encontramos todos los activos que coinciden con el modelo.
             const [computadores, dispositivos] = await Promise.all([
-                prisma.computador.findMany({ where: { modeloId } }),
-                prisma.dispositivo.findMany({ where: { modeloId } }),
+                prisma.computador.findMany({ 
+                    where: { 
+                        computadorModelos: {
+                            some: {
+                                modeloEquipoId: modeloId
+                            }
+                        }
+                    } 
+                }),
+                prisma.dispositivo.findMany({ 
+                    where: { 
+                        dispositivoModelos: {
+                            some: {
+                                modeloEquipoId: modeloId
+                            }
+                        }
+                    } 
+                }),
             ]);
 
             const activosDelModelo = [
@@ -36,7 +52,7 @@ export async function GET(request: Request) {
             }
 
             // Ahora, buscamos la última acción SOLO para esos activos.
-            const ultimasAcciones = await prisma.asignaciones.findMany({
+            const ultimasAcciones = await prisma.asignacionesEquipos.findMany({
                 where: {
                     OR: [
                         { computadorId: { in: idsActivosDelModelo } },
@@ -74,8 +90,40 @@ export async function GET(request: Request) {
         if (estado && (estado.toLowerCase() === "asignado" || estado.toLowerCase() === "disponible")) {
             console.log(`[Bloque 3] Filtrando todos los activos por estado: ${estado}`);
             
-            const computadores = await prisma.computador.findMany({ include: { modelo: { include: { marca: true } } } });
-            const dispositivos = await prisma.dispositivo.findMany({ include: { modelo: { include: { marca: true } } } });
+            const computadores = await prisma.computador.findMany({ 
+                include: { 
+                    computadorModelos: {
+                        include: {
+                            modeloEquipo: {
+                                include: {
+                                    marcaModelos: {
+                                        include: {
+                                            marca: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } 
+            });
+            const dispositivos = await prisma.dispositivo.findMany({ 
+                include: { 
+                    dispositivoModelos: {
+                        include: {
+                            modeloEquipo: {
+                                include: {
+                                    marcaModelos: {
+                                        include: {
+                                            marca: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } 
+            });
 
             const todosLosActivos = [
                 ...computadores.map(c => ({ ...c, itemType: "Computador" as const })),
@@ -85,7 +133,7 @@ export async function GET(request: Request) {
             const idsActivos = todosLosActivos.map(a => a.id);
 
             // ¡¡ESTA ES LA CONSULTA CRÍTICA A DEPURAR!!
-            const ultimasAcciones = await prisma.asignaciones.findMany({
+            const ultimasAcciones = await prisma.asignacionesEquipos.findMany({
                 where: {
                     OR: [
                         { computadorId: { in: idsActivos } },
@@ -95,8 +143,7 @@ export async function GET(request: Request) {
                 orderBy: { date: "desc" },
                 distinct: ["computadorId", "dispositivoId"],
                 include: {
-                    targetEmpleado: true,
-                    targetDepartamento: true
+                    targetEmpleado: true
                 }
             });
             
@@ -125,11 +172,15 @@ export async function GET(request: Request) {
                     // Construimos el string de a quién fue asignado.
                     const asignadoA = accion.targetType === "Usuario"
                         ? `${accion.targetEmpleado?.nombre} ${accion.targetEmpleado?.apellido}`
-                        : accion.targetDepartamento?.nombre;
+                        : 'Departamento';
 
                     // Construimos la etiqueta descriptiva del activo.
                     // AGREGAMOS "?." (optional chaining) para evitar errores si un modelo o marca es null.
-                    const label = `${activo.modelo?.marca?.nombre ?? 'Marca Desconocida'} ${activo.modelo?.nombre ?? 'Modelo Desconocido'} (Serial: ${activo.serial})`;
+                    const modelo = activo.itemType === "Computador" 
+                        ? activo.computadorModelos?.[0]?.modeloEquipo
+                        : activo.dispositivoModelos?.[0]?.modeloEquipo;
+                    const marca = modelo?.marcaModelos?.[0]?.marca;
+                    const label = `${marca?.nombre ?? 'Marca Desconocida'} ${modelo?.nombre ?? 'Modelo Desconocido'} (Serial: ${activo.serial})`;
 
                     // Devolvemos el objeto con la estructura que el frontend espera.
                     return {

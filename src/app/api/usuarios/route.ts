@@ -26,26 +26,49 @@ export async function GET(request: NextRequest) {
     
     const empleados = await prisma.empleado.findMany({
       include: {
-        departamento: {
+        organizaciones: {
+          where: { activo: true },
           include: {
-            empresa: true
+            empresa: true,
+            departamento: true,
+            cargo: true
           }
         },
-        cargo: true,
-        computadores: {
+        asignacionesComoTarget: {
+          where: { activo: true },
           include: {
-            modelo: {
+            computador: {
               include: {
-                marca: true
+                computadorModelos: {
+                  include: {
+                    modeloEquipo: {
+                      include: {
+                        marcaModelos: {
+                          include: {
+                            marca: true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
-            }
-          }
-        },
-        dispositivos: {
-          include: {
-            modelo: {
+            },
+            dispositivo: {
               include: {
-                marca: true
+                dispositivoModelos: {
+                  include: {
+                    modeloEquipo: {
+                      include: {
+                        marcaModelos: {
+                          include: {
+                            marca: true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -57,17 +80,40 @@ export async function GET(request: NextRequest) {
     });
 
     // Mapear campos de la API al formato esperado por el frontend
-    const mappedEmpleados = empleados.map(empleado => ({
-      ...empleado,
-      cedula: empleado.ced, // Mapear ced a cedula
-      fechaNacimiento: empleado.fechaNacimiento, // Mantener formato original
-      fechaIngreso: empleado.fechaIngreso, // Mantener formato original
-      fechaDesincorporacion: empleado.fechaDesincorporacion, // Incluir fecha de desincorporación
-      fotoPerfil: empleado.fotoPerfil, // Incluir foto de perfil
-      departamentoId: empleado.departamentoId, // Incluir departamentoId para filtrado
-      // Calcular estado basado en fechaDesincorporacion
-      estado: empleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
-    }));
+    const mappedEmpleados = empleados.map(empleado => {
+      // Obtener la organización activa (primera si hay múltiples)
+      const organizacionActiva = empleado.organizaciones[0];
+      
+      // Mapear equipos asignados
+      const computadores = empleado.asignacionesComoTarget
+        .filter(a => a.computador && a.actionType === 'Assignment')
+        .map(a => a.computador);
+      
+      const dispositivos = empleado.asignacionesComoTarget
+        .filter(a => a.dispositivo && a.actionType === 'Assignment')
+        .map(a => a.dispositivo);
+      
+      return {
+        ...empleado,
+        cedula: empleado.ced, // Mapear ced a cedula
+        fechaNacimiento: empleado.fechaNacimiento, // Mantener formato original
+        fechaIngreso: empleado.fechaIngreso, // Mantener formato original
+        fechaDesincorporacion: empleado.fechaDesincorporacion, // Incluir fecha de desincorporación
+        fotoPerfil: empleado.fotoPerfil, // Incluir foto de perfil
+        // Mapear relaciones normalizadas a formato esperado por el frontend
+        departamento: organizacionActiva?.departamento || null,
+        cargo: organizacionActiva?.cargo || null,
+        empresa: organizacionActiva?.empresa || null,
+        departamentoId: organizacionActiva?.departamentoId || null,
+        cargoId: organizacionActiva?.cargoId || null,
+        empresaId: organizacionActiva?.empresaId || null,
+        // Mapear equipos asignados
+        computadores: computadores,
+        dispositivos: dispositivos,
+        // Calcular estado basado en fechaDesincorporacion
+        estado: empleado.fechaDesincorporacion ? 'Inactivo' : 'Activo',
+      };
+    });
 
     // Registrar acceso a la lista de usuarios
     if (user) {
@@ -129,20 +175,39 @@ export async function POST(request: NextRequest) {
 
 
 
+    // Crear empleado sin relaciones directas
     const newEmpleado = await prisma.empleado.create({
       data: {
-        cargoId: cargoId || null,
-        departamentoId,
         ced: cedula || '', // Mapear cedula a ced, usar string vacío si no se proporciona
         ...processedData,
-      },
+      }
+    });
+
+    // Crear la relación organizacional si se proporcionan los datos
+    if (departamentoId && cargoId && empresaId) {
+      await prisma.empleadoEmpresaDepartamentoCargo.create({
+        data: {
+          empleadoId: newEmpleado.id,
+          empresaId: empresaId,
+          departamentoId: departamentoId,
+          cargoId: cargoId,
+          activo: true
+        }
+      });
+    }
+
+    // Obtener el empleado con sus relaciones para la respuesta
+    const empleadoCompleto = await prisma.empleado.findUnique({
+      where: { id: newEmpleado.id },
       include: {
-        departamento: {
+        organizaciones: {
+          where: { activo: true },
           include: {
-            empresa: true
+            empresa: true,
+            departamento: true,
+            cargo: true
           }
-        },
-        cargo: true
+        }
       }
     });
 
@@ -158,7 +223,29 @@ export async function POST(request: NextRequest) {
       user?.id as string
     );
 
-    return NextResponse.json(newEmpleado, { status: 201 });
+    // Registrar en historial de estado del empleado
+    await prisma.empleadoStatusHistory.create({
+      data: {
+        empleadoId: newEmpleado.id,
+        accion: 'Empleado Creado',
+        fecha: new Date().toISOString().split('T')[0],
+        motivo: `Empleado ${newEmpleado.nombre} ${newEmpleado.apellido} creado en el sistema`
+      }
+    });
+
+    // Mapear la respuesta al formato esperado por el frontend
+    const organizacionActiva = empleadoCompleto?.organizaciones[0];
+    const mappedResponse = {
+      ...empleadoCompleto,
+      departamento: organizacionActiva?.departamento || null,
+      cargo: organizacionActiva?.cargo || null,
+      empresa: organizacionActiva?.empresa || null,
+      departamentoId: organizacionActiva?.departamentoId || null,
+      cargoId: organizacionActiva?.cargoId || null,
+      empresaId: organizacionActiva?.empresaId || null,
+    };
+
+    return NextResponse.json(mappedResponse, { status: 201 });
   } catch (error: any) {
     console.error('Error creating usuario:', error);
     

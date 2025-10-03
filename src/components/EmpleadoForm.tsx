@@ -20,7 +20,12 @@ interface Empresa {
 interface Departamento {
     id: string;
     nombre: string;
-    empresaId: string;
+    empresaDepartamentos?: Array<{
+        empresa: {
+            id: string;
+            nombre: string;
+        };
+    }>;
 }
 
 interface Cargo {
@@ -223,6 +228,29 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
         }));
     };
 
+    // Recargar cargos cuando cambia el departamento
+    useEffect(() => {
+        const fetchCargosByDepartamento = async () => {
+            if (!formData.departamentoId) {
+                return;
+            }
+
+            setIsLoadingCargos(true);
+            try {
+                const response = await fetch(`/api/cargos?departamentoId=${formData.departamentoId}`);
+                if (!response.ok) throw new Error('Error al cargar cargos');
+                const data: Cargo[] = await response.json();
+                setCargos(data);
+            } catch (error) {
+                showToast.error("¡Error en Cargar Cargos!", { position: "top-right" });
+            } finally {
+                setIsLoadingCargos(false);
+            }
+        };
+
+        fetchCargosByDepartamento();
+    }, [formData.departamentoId]);
+
     const handleCreateCargo = async (inputValue: string) => {
         if (!formData.departamentoId) {
             showToast.warning("Debe seleccionar un departamento antes de crear un cargo", { position: "top-right" });
@@ -267,9 +295,11 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     // Preparar opciones para react-select
     const empresaOptions = empresas.map(empresa => ({ value: empresa.id, label: empresa.nombre }));
     const departamentoOptions = departamentos
-        .filter(departamento => !formData.empresaId || departamento.empresaId === formData.empresaId)
+        .filter(departamento => !formData.empresaId || departamento.empresaDepartamentos?.some(ed => ed.empresa.id === formData.empresaId))
         .map(departamento => ({ value: departamento.id, label: departamento.nombre }));
-    const cargoOptions = cargos.map(cargo => ({ value: cargo.id, label: cargo.nombre }));
+    const cargoOptions = cargos
+        .filter(cargo => !formData.departamentoId || cargo.departamentoCargos?.some(dc => dc.departamentoId === formData.departamentoId))
+        .map(cargo => ({ value: cargo.id, label: cargo.nombre }));
     
     const selectedEmpresaValue = empresaOptions.find(option => option.value === formData.empresaId) || null;
     const selectedDepartamentoValue = departamentoOptions.find(option => option.value === formData.departamentoId) || null;
@@ -282,6 +312,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                     <Label htmlFor="empresaId">Empresa <span className="text-destructive">*</span></Label>
                     <Select
                         id="empresaId"
+                        instanceId="empleado-empresaId"
                         value={selectedEmpresaValue}
                         onChange={handleEmpresaChange}
                         options={empresaOptions}
@@ -295,6 +326,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                     <Label htmlFor="departamentoId">Departamento <span className="text-destructive">*</span></Label>
                     <Select
                         id="departamentoId"
+                        instanceId="empleado-departamentoId"
                         options={departamentoOptions}
                         value={selectedDepartamentoValue}
                         onChange={handleDepartamentoChange}
@@ -332,17 +364,24 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                 <div className="grid gap-2">
                     <Label htmlFor="cargoId">Cargo</Label>
                     <CreatableSelect
+                        instanceId="empleado-cargoId"
                         value={cargoOptions.find(option => option.value === formData.cargoId) || null}
                         onChange={(option) => setFormData(prev => ({ ...prev, cargoId: option?.value ?? '' }))}
                         onCreateOption={handleCreateCargo}
                         options={cargoOptions}
-                        placeholder="Seleccionar o crear cargo"
+                        placeholder={!formData.departamentoId ? "Primero seleccione un departamento" : "Seleccionar o crear cargo"}
                         styles={reactSelectStyles}
                         isClearable
                         isLoading={isLoadingCargos}
                         isDisabled={!formData.departamentoId}
                         formatCreateLabel={(inputValue) => `Crear cargo: "${inputValue}"`}
+                        noOptionsMessage={() => !formData.departamentoId ? "Seleccione un departamento primero" : "No hay cargos disponibles"}
                     />
+                    {!formData.departamentoId && (
+                        <p className="text-sm text-muted-foreground">
+                            Seleccione un departamento para habilitar la selección de cargos
+                        </p>
+                    )}
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="cedula">Cédula</Label>

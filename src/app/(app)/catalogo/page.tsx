@@ -292,11 +292,23 @@ export default function CatalogoPage() {
                           </td>
                           <td className="p-3">
                             {modelo.img ? (
-                              <img 
-                                src={modelo.img} 
-                                alt={modelo.nombre}
-                                className="w-24 h-24 object-cover rounded border"
-                              />
+                              <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center relative">
+                                <img 
+                                  src={modelo.img} 
+                                  alt={modelo.nombre}
+                                  className="w-full h-full object-cover rounded"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (fallback) {
+                                      fallback.style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                                <div className="w-full h-full flex items-center justify-center absolute inset-0" style={{ display: 'none' }}>
+                                  <Laptop className="h-8 w-8 text-gray-400" />
+                                </div>
+                              </div>
                             ) : (
                               <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center">
                                 <Laptop className="h-8 w-8 text-gray-400" />
@@ -421,11 +433,23 @@ export default function CatalogoPage() {
                           </td>
                           <td className="p-3">
                             {modelo.img ? (
-                              <img 
-                                src={modelo.img} 
-                                alt={modelo.nombre}
-                                className="w-24 h-24 object-cover rounded border"
-                              />
+                              <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center relative">
+                                <img 
+                                  src={modelo.img} 
+                                  alt={modelo.nombre}
+                                  className="w-full h-full object-cover rounded"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (fallback) {
+                                      fallback.style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                                <div className="w-full h-full flex items-center justify-center absolute inset-0" style={{ display: 'none' }}>
+                                  <Monitor className="h-8 w-8 text-gray-400" />
+                                </div>
+                              </div>
                             ) : (
                               <div className="w-24 h-24 bg-gray-100 rounded border flex items-center justify-center">
                                 <Monitor className="h-8 w-8 text-gray-400" />

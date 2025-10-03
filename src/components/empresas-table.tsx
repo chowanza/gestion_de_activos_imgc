@@ -167,10 +167,10 @@ export function EmpresasTable() {
     ),
   },
   {
-    accessorKey: "_count.departamentos",
+    accessorKey: "_count.empresaDepartamentos",
     header: "Departamentos",
     cell: ({ row }) => {
-      const count = row.original._count?.departamentos || 0;
+      const count = row.original._count?.empresaDepartamentos || 0;
       return (
         <Badge variant={count > 0 ? "default" : "secondary"}>
           {count} departamento{count !== 1 ? 's' : ''}
@@ -395,7 +395,7 @@ export function EmpresasTable() {
                         >
                           {column.id === "descripcion" ? "Descripción" :
                            column.id === "logo" ? "Logo" :
-                           column.id === "_count.departamentos" ? "Departamentos" :
+                           column.id === "_count.empresaDepartamentos" ? "Departamentos" :
                            column.id}
                         </DropdownMenuCheckboxItem>
                       );

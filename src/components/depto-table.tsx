@@ -60,9 +60,13 @@ export type DepartamentoFormData = z.infer<typeof deptoSchema>;
 export interface Departamento {
     id: string;
     nombre: string;
-    empresa: { id: string; nombre: string };
-    gerente?: { id: string; nombre: string; apellido: string } | null;
-    _count: { empleados: number };
+    empresaDepartamentos: Array<{
+        empresa: { id: string; nombre: string };
+    }>;
+    gerencias: Array<{
+        gerente: { id: string; nombre: string; apellido: string };
+    }>;
+    _count: { empleadoOrganizaciones: number };
 }
 
 // Type for Empresa objects (used in form and for data fetching)
@@ -351,23 +355,30 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
             accessorKey: "empresa.nombre",
             header: "Empresa",
             cell: ({ row }) => {
-                const empresa = row.original.empresa;
-                return <div>{empresa?.nombre || "N/A"}</div>;
+                const empresas = row.original.empresaDepartamentos;
+                if (empresas && empresas.length > 0) {
+                    return <div>{empresas[0].empresa.nombre}</div>;
+                }
+                return <div>N/A</div>;
             },
         },
         {
             accessorKey: "gerente",
             header: "Gerente",
             cell: ({ row }) => {
-                const gerente = row.original.gerente;
-                return <div>{gerente ? `${gerente.nombre} ${gerente.apellido}` : "Sin asignar"}</div>;
+                const gerencias = row.original.gerencias;
+                if (gerencias && gerencias.length > 0) {
+                    const gerente = gerencias[0].gerente;
+                    return <div>{gerente ? `${gerente.nombre} ${gerente.apellido}` : "Sin asignar"}</div>;
+                }
+                return <div>Sin asignar</div>;
             },
         },
         {
-            accessorKey: "_count.empleados",
+            accessorKey: "_count.empleadoOrganizaciones",
             header: "Empleados",
             cell: ({ row }) => {
-                const count = row.original._count?.empleados || 0;
+                const count = row.original._count?.empleadoOrganizaciones || 0;
                 return (
                     <Badge variant={count > 0 ? "default" : "secondary"}>
                         {count} empleado{count !== 1 ? 's' : ''}
@@ -442,7 +453,9 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
         
         // Filtrar por empresa
         if (empresaFilter) {
-            filtered = filtered.filter(depto => depto.empresa.id === empresaFilter);
+            filtered = filtered.filter(depto => 
+                depto.empresaDepartamentos?.some(ed => ed.empresa.id === empresaFilter)
+            );
         }
         
         // Filtrar por búsqueda de nombre
@@ -500,6 +513,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
             const departamentosData: Departamento[] = await departamentosResponse.json();
             const empresasData: Empresa[] = await empresasResponse.json();
             const empleadosData: { id: string; nombre: string; apellido: string; }[] = await empleadosResponse.json();
+
 
             setDepartamentos(departamentosData);
             setEmpresas(empresasData);
@@ -708,7 +722,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                             >
                                                 {column.id === "empresa.nombre" ? "Empresa" :
                                                  column.id === "gerente" ? "Gerente" :
-                                                 column.id === "_count.empleados" ? "Empleados" :
+                                                 column.id === "_count.empleadoOrganizaciones" ? "Empleados" :
                                                  column.id}
                                             </DropdownMenuCheckboxItem>
                                         ))}
@@ -827,8 +841,8 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                     onSubmit={handleUpdateDepartamento}
                     initialData={{
                         nombre: editingDepartamento.nombre,
-                        empresaId: editingDepartamento.empresa.id,
-                        gerenteId: editingDepartamento.gerente?.id,
+                        empresaId: editingDepartamento.empresaDepartamentos[0]?.empresa?.id,
+                        gerenteId: editingDepartamento.gerencias[0]?.gerente?.id,
                         departamentoId: editingDepartamento.id,
                     }}
                     empresas={empresas}

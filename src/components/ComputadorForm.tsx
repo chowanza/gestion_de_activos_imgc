@@ -84,7 +84,7 @@ interface OptionType {
 const initialState: ComputadorFormData = {
     modeloId: '',
     serial: '',
-    estado: '',
+    estado: 'OPERATIVO',  // Valor por defecto válido
     codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
     host: '',
     sisOperativo: '',
@@ -111,7 +111,9 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     onCancel,
 }) => {
 
-    const [formData, setFormData] = useState<ComputadorFormData>(initialState);
+    const [formData, setFormData] = useState<ComputadorFormData>(
+        initialData || initialState
+    );
     const [modelos, setModelos] = useState<Modelo[]>([]);
     const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
     const [usuarios, setUsuarios] = useState<any[]>([]);
@@ -162,19 +164,27 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
             };
 
             fetchData();
-    
-           if (initialData) {
-            setFormData(initialData);
-            
-            // Pre-seleccionar empleado si el equipo está asignado
-            if (initialData.empleado && usuarios.length > 0) {
+        }, []); // Solo se ejecuta una vez al montar
+
+        // useEffect separado para manejar initialData
+        useEffect(() => {
+            if (initialData) {
+                setFormData({
+                    ...initialData,
+                    estado: initialData.estado || 'OPERATIVO'  // Asegurar que siempre tenga un estado válido
+                });
+            }
+        }, [initialData]);
+
+        // useEffect separado para pre-seleccionar empleado
+        useEffect(() => {
+            if (initialData?.empleado && usuarios.length > 0) {
                 const empleadoAsignado = usuarios.find(user => user.value === initialData.empleado.id);
                 if (empleadoAsignado) {
                     setSelectedTarget(empleadoAsignado);
                 }
             }
-        }
-    }, [initialData]); // Remover usuarios de las dependencias para evitar bucle infinito
+        }, [initialData?.empleado, usuarios]);
 
     // --- Handlers para los cambios en los inputs ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -199,9 +209,24 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!formData.modeloId || !formData.serial || !formData.codigoImgc) {
-            showToast.warning("Modelo, Serial y Código IMGC son obligatorios.", { position: "top-right" });
-            return;
+        
+        // Validación diferente para creación vs edición
+        if (isEditing) {
+            // En modo edición, solo validar que los campos críticos no estén completamente vacíos
+            if (!formData.serial?.trim()) {
+                showToast.warning("El serial es obligatorio.", { position: "top-right" });
+                return;
+            }
+            if (!formData.codigoImgc?.trim()) {
+                showToast.warning("El código IMGC es obligatorio.", { position: "top-right" });
+                return;
+            }
+        } else {
+            // En modo creación, validar todos los campos requeridos
+            if (!formData.modeloId || !formData.serial || !formData.codigoImgc) {
+                showToast.warning("Modelo, Serial y Código IMGC son obligatorios.", { position: "top-right" });
+                return;
+            }
         }
 
         // El estado del equipo se maneja desde "Gestionar Estado" en los detalles
@@ -239,6 +264,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                 <Label htmlFor="modeloId">Modelo</Label>
                                     <Select
                                         id="modeloId"
+                                        instanceId="modeloId"
                                         options={modeloOptions}
                                         value={selectedModelValue}
                                         onChange={handleSelectChange}
@@ -261,6 +287,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                     <Label htmlFor="ubicacionId">Ubicación</Label>
                                     <Select
                                         id="ubicacionId"
+                                        instanceId="ubicacionId"
                                         options={ubicacionOptions}
                                         value={selectedUbicacionValue}
                                         onChange={handleUbicacionChange}
@@ -273,7 +300,7 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="codigoImgc">Código IMGC <span className="text-destructive">*</span></Label>
-                                    <Input id="codigoImgc" value={formData.codigoImgc || ''} onChange={handleInputChange} placeholder="Código IMGC" required/>
+                                    <Input id="codigoImgc" value={formData.codigoImgc || ''} onChange={handleInputChange} placeholder="Código IMGC" required={!isEditing}/>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="host">Host (Opcional)</Label>

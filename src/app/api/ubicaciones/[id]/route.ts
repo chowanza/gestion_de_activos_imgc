@@ -11,46 +11,58 @@ export async function GET(
     const ubicacion = await prisma.ubicacion.findUnique({
       where: { id },
       include: {
-        computadores: {
+        asignacionesEquipos: {
+          where: {
+            activo: true
+          },
           include: {
-            modelo: {
+            computador: {
               include: {
-                marca: true
-              }
-            },
-            empleado: {
-              include: {
-                departamento: {
+                computadorModelos: {
                   include: {
-                    empresa: true
+                    modeloEquipo: {
+                      include: {
+                        marcaModelos: {
+                          include: {
+                            marca: true
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
-            }
-          }
-        },
-        dispositivos: {
-          include: {
-            modelo: {
-              include: {
-                marca: true
-              }
             },
-            empleado: {
+            dispositivo: {
               include: {
-                departamento: {
+                dispositivoModelos: {
                   include: {
-                    empresa: true
+                    modeloEquipo: {
+                      include: {
+                        marcaModelos: {
+                          include: {
+                            marca: true
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
+            },
+            targetEmpleado: {
+              include: {
+            organizaciones: {
+              where: {
+                activo: true
+              },
+              include: {
+                departamento: true,
+                empresa: true
+              }
             }
-          }
-        },
-        _count: {
-          select: {
-            computadores: true,
-            dispositivos: true
+              }
+            }
           }
         }
       }
@@ -153,11 +165,8 @@ export async function DELETE(
     const ubicacion = await prisma.ubicacion.findUnique({
       where: { id },
       include: {
-        _count: {
-          select: {
-            computadores: true,
-            dispositivos: true
-          }
+        asignacionesEquipos: {
+          where: { activo: true }
         }
       }
     });
@@ -170,7 +179,7 @@ export async function DELETE(
     }
 
     // Verificar si tiene equipos asignados
-    const totalEquipos = ubicacion._count.computadores + ubicacion._count.dispositivos;
+    const totalEquipos = ubicacion.asignacionesEquipos.length;
     if (totalEquipos > 0) {
       return NextResponse.json(
         { 

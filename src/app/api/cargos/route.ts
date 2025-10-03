@@ -8,19 +8,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const departamentoId = searchParams.get('departamentoId');
 
-    const where = departamentoId ? { departamentoId } : {};
+    const where = departamentoId ? { 
+      departamentoCargos: {
+        some: {
+          departamentoId
+        }
+      }
+    } : {};
 
     const cargos = await prisma.cargo.findMany({
       where,
       include: {
-        departamento: {
-          include: {
-            empresa: true
-          }
-        },
-        empleados: {
+        departamentoCargos: {
           include: {
             departamento: true
+          }
+        },
+        empleadoOrganizaciones: {
+          include: {
+            empleado: true
           }
         }
       },
@@ -55,23 +61,32 @@ export async function POST(request: NextRequest) {
     const cargo = await prisma.cargo.create({
       data: {
         nombre,
-        descripcion: descripcion || null,
-        departamentoId
+        descripcion: descripcion || null
       },
       include: {
-        departamento: {
+        departamentoCargos: {
           include: {
-            empresa: true
+            departamento: true
           }
         }
       }
     });
 
+    // Crear la relación con el departamento si se proporciona
+    if (departamentoId) {
+      await prisma.departamentoCargo.create({
+        data: {
+          departamentoId,
+          cargoId: cargo.id
+        }
+      });
+    }
+
     // Registrar en auditoría
     await AuditLogger.logCreate(
       'cargo',
       cargo.id,
-      `Cargo "${cargo.nombre}" creado en ${cargo.departamento.nombre}`,
+      `Cargo "${cargo.nombre}" creado`,
       undefined // TODO: Obtener userId del token/sesión
     );
 

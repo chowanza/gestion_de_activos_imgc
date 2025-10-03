@@ -40,14 +40,17 @@ export const computadorSchema = z.object({
 
 export type ComputadorFormData = z.infer<typeof computadorSchema>
 
-// Type for Modelo objects from API (assuming it includes an 'id' and 'marca' might be an object)
+// Type for Computador objects from API
 export interface Computador {
-    id: string; // Or number, depending on your API
+    id: string;
     serial: string;
     estado: string;
-    nsap?: string;
+    codigoImgc: string;
     host?: string;
-    ubicacion?: { id: string; nombre: string; descripcion?: string; direccion?: string; piso?: string; sala?: string };
+    fechaCompra?: string;
+    numeroFactura?: string;
+    proveedor?: string;
+    monto?: string;
     sisOperativo?: string;
     arquitectura?: string;
     macWifi?: string;
@@ -55,10 +58,30 @@ export interface Computador {
     ram?: string;
     almacenamiento?: string;
     procesador?: string;
-    sapVersion?: string;
     officeVersion?: string;
     anydesk?: string;
-   modelo: { id: string; nombre: string; img?: string; marca: { nombre: string } }; // Assuming 'marca' is an object in the fetched data
+    modelo: { 
+        id: string; 
+        nombre: string; 
+        tipo: string;
+        img?: string; 
+        marca: { nombre: string } 
+    } | null;
+    ubicacion?: { 
+        id: string; 
+        nombre: string; 
+        descripcion?: string; 
+        direccion?: string; 
+        piso?: string; 
+        sala?: string 
+    } | null;
+    empleado?: {
+        id: string;
+        nombre: string;
+        apellido: string;
+        departamento: string;
+        empresa: string;
+    } | null;
 }
 
 
@@ -104,6 +127,18 @@ const columns: ColumnDef<Computador>[] = [
     accessorKey: "serial",
     header: "Serial",
     cell: ({ row }) => <div>{row.getValue("serial")}</div>,
+  },
+  {
+    accessorKey: "codigoImgc",
+    header: "Código IMGC",
+    cell: ({ row }) => {
+      const codigo = row.getValue("codigoImgc") as string;
+      return (
+        <div className="font-mono text-sm bg-gray-50 text-gray-700 px-2 py-1 rounded">
+          {codigo}
+        </div>
+      );
+    },
   },  
 {
   accessorFn: (row) => row.modelo?.marca?.nombre ?? "Sin marca",
@@ -351,6 +386,27 @@ const columns: ColumnDef<Computador>[] = [
     },
   },
   {
+    accessorKey: "empleado",
+    header: "Asignado a",
+    cell: ({ row }) => {
+      const empleado = row.original.empleado;
+      return (
+        <div className="flex items-center">
+          {empleado ? (
+            <div>
+              <div className="font-medium">{empleado.nombre} {empleado.apellido}</div>
+              <div className="text-xs text-muted-foreground">
+                {empleado.departamento} - {empleado.empresa}
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground italic">Sin asignar</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "anydesk",
     header: "AnyDesk ID",
     cell: ({ row }) => {
@@ -573,8 +629,10 @@ return (
                                     : column.id === "host"
                                         ? "Host"
                                             : column.id === "sisOperativo"
-                                                ? "Sistema Operativo"    
-                                                    : column.id}
+                                                ? "Sistema Operativo"
+                                                    : column.id === "ubicacion.nombre"
+                                                        ? "Ubicación"
+                                                            : column.id}
                         </DropdownMenuCheckboxItem>
                       )
                     })}

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   Barcode,
@@ -52,6 +53,8 @@ import { showToast } from "nextjs-toast-notify"
 import { EquipmentTimeline } from "@/components/EquipmentTimeline"
 import { EquipmentUsersSection } from "@/components/EquipmentUsersSection"
 import NuevoEquipmentStatusModal from "@/components/NuevoEquipmentStatusModal"
+import { TimelineFilters } from "@/components/TimelineFilters"
+import { useTimelineFilters } from "@/hooks/useTimelineFilters"
 
 
 interface HistorialEntry {
@@ -81,7 +84,7 @@ interface DispositivoDetallado {
     fechaCompra?: string | null;
     numeroFactura?: string | null;
     proveedor?: string | null;
-    monto?: number | null;
+    monto?: string | null;
     ubicacion?: { 
         id: string; 
         nombre: string; 
@@ -105,7 +108,10 @@ interface DispositivoDetallado {
         id: string;
         nombre: string;
         apellido: string;
-        cargo: string;
+        cargo?: {
+          id: string;
+          nombre: string;
+        };
         departamento?: {
           id: string;
           nombre: string;
@@ -113,7 +119,11 @@ interface DispositivoDetallado {
             id: string;
             nombre: string;
           };
-        }
+        };
+        empresa?: {
+          id: string;
+          nombre: string;
+        };
     } | null;
     departamento?: { // El departamento es opcional
         id: string;
@@ -259,32 +269,42 @@ export default function EquipmentDetails() {
       const router = useRouter();
       const params = useParams();
       const { id } = params;
+      const queryClient = useQueryClient();
   
-      const [equipo, setEquipo] = useState<DispositivoDetallado| null>(null);
-      const [loading, setLoading] = useState(true);
       const [statusModalOpen, setStatusModalOpen] = useState(false);
-  
-  const loadEquipoData = async () => {
-    if (!id) return;
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/dispositivos/${id}`);
-      console.log('Recargando datos del dispositivo:', id);
-      if (!response.ok) throw new Error("No se pudo cargar el dispositivo.");
-      const data = await response.json();
-      setEquipo(data);
-    } catch (error: any) {
-      console.error('Error cargando dispositivo:', error);
-      showToast.error('Error al recargar los datos del equipo');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    loadEquipoData();
-  }, [id]);
+      // Hook de TanStack Query para cargar los datos del equipo
+      const {
+        data: equipo,
+        isLoading: loading,
+        error,
+        refetch: loadEquipoData
+      } = useQuery({
+        queryKey: ['dispositivo', id],
+        queryFn: async () => {
+          if (!id) throw new Error('ID no válido');
+          const response = await fetch(`/api/dispositivos/${id}`);
+          if (!response.ok) throw new Error("No se pudo cargar el dispositivo.");
+          return response.json();
+        },
+        enabled: !!id,
+        staleTime: 5 * 60 * 1000, // 5 minutos
+        gcTime: 10 * 60 * 1000, // 10 minutos
+      });
+
+      // Hook para filtros de timeline
+      const {
+        filters,
+        historial,
+        loading: timelineLoading,
+        error: timelineError,
+        handleFiltersChange,
+      } = useTimelineFilters({
+        itemId: id as string,
+        itemType: 'dispositivo',
+        initialHistorial: equipo?.historial || [],
+        equipo: equipo
+      });
 
   // Recargar datos cuando la página se enfoque (al volver de editar)
   useEffect(() => {
@@ -294,11 +314,11 @@ export default function EquipmentDetails() {
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+  }, [loadEquipoData]);
 
 const departamentoTag = (
-  (equipo?.estado === 'Asignado' || (equipo?.estado === 'Mantenimiento' && equipo?.empleado))
-    ? (equipo?.departamento?.nombre || equipo?.empleado?.departamento?.nombre || '—')
+  (equipo?.estado === 'ASIGNADO' || (equipo?.estado === 'EN_MANTENIMIENTO' && equipo?.empleado))
+    ? (equipo?.empleado?.departamento?.nombre || '—')
     : '—'
 );
 
@@ -375,8 +395,15 @@ const departamentoTag = (
 
       const result = await response.json();
       
-      // Recargar los datos completos del equipo
-      await loadEquipoData();
+      // Invalidar el cache de TanStack Query para forzar la actualización
+      await queryClient.invalidateQueries({ queryKey: ['dispositivo', id] });
+      
+      // También invalidar queries relacionadas si existen
+      await queryClient.invalidateQueries({ queryKey: ['dispositivo', 'lista'] });
+      await queryClient.invalidateQueries({ queryKey: ['equipos'] });
+      
+      // Invalidar cache del dashboard para reflejar cambios en métricas
+      await queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
 
       showToast.success(`Estado cambiado a ${newStatus} exitosamente`);
     } catch (error) {
@@ -404,7 +431,7 @@ const departamentoTag = (
 
       if (response.ok) {
         showToast.success('Dispositivo eliminado correctamente');
-        router.push('/dispositivos');
+        router.push('/equipos');
       } else {
         showToast.error('Error al eliminar el dispositivo');
       }
@@ -600,7 +627,7 @@ const departamentoTag = (
                         </div>
 
                         {/* Mostrar departamento y empresa si está asignado o en mantenimiento con empleado */}
-                        {(equipo.estado === 'Asignado' || (equipo.estado === 'Mantenimiento' && equipo.empleado)) && (
+                        {(equipo.estado === 'ASIGNADO' || (equipo.estado === 'EN_MANTENIMIENTO' && equipo.empleado)) && (
                           <>
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
@@ -615,7 +642,7 @@ const departamentoTag = (
                               <div className="flex items-center">
                                 <Building className="h-4 w-4 text-gray-600 mr-2" />
                                 <p className="text-sm text-gray-800">
-                                  {equipo.empleado?.departamento?.empresa?.nombre || "N/A"}
+                                  {equipo.empleado?.empresa?.nombre || "N/A"}
                                 </p>
                               </div>
                             </div>
@@ -728,7 +755,16 @@ const departamentoTag = (
                           </CardTitle>
                       </CardHeader>
                       <CardContent className="p-6">
-                          <EquipmentTimeline equipo={equipo} />
+                          <TimelineFilters 
+                            onFiltersChange={handleFiltersChange}
+                            initialFilters={filters}
+                          />
+                          <EquipmentTimeline 
+                            equipo={equipo} 
+                            externalHistorial={historial}
+                            loading={timelineLoading}
+                            error={timelineError}
+                          />
                       </CardContent>
                   </Card>
               </TabsContent>
@@ -757,13 +793,8 @@ const departamentoTag = (
               apellido: equipo.empleado.apellido,
               departamento: {
                 nombre: equipo.empleado.departamento?.nombre || '',
-                empresa: { nombre: equipo.empleado.departamento?.empresa?.nombre || '' }
+                empresa: { nombre: equipo.empleado.empresa?.nombre || '' }
               }
-            } : undefined,
-            departamento: equipo.departamento ? {
-              id: equipo.departamento.id,
-              nombre: equipo.departamento.nombre,
-              empresa: { nombre: equipo.departamento.empresa?.nombre || '' }
             } : undefined,
             ubicacion: equipo.ubicacion ? {
               id: equipo.ubicacion.id,

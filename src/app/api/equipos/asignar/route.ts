@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const user = await getServerUser(request);
 
   try {
-    const { empleadoId, equipoId, tipoEquipo, motivo } = await request.json();
+    const { empleadoId, equipoId, tipoEquipo, motivo, ubicacionId } = await request.json();
 
     if (!empleadoId || !equipoId || !tipoEquipo || !motivo) {
       return NextResponse.json({ message: 'Todos los campos son requeridos' }, { status: 400 });
@@ -18,10 +18,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Tipo de equipo inválido' }, { status: 400 });
     }
 
-    // Verificar que el empleado existe
+    // Verificar que el empleado existe y obtener su organización
     const empleado = await prisma.empleado.findUnique({
       where: { id: empleadoId },
-      select: { id: true, nombre: true, apellido: true }
+      include: {
+        organizaciones: {
+          where: { activo: true },
+          include: {
+            empresa: true,
+            departamento: true,
+            cargo: true
+          }
+        }
+      }
     });
 
     if (!empleado) {
@@ -31,26 +40,66 @@ export async function POST(request: NextRequest) {
     // Verificar que el equipo existe y está disponible
     let equipo;
     if (tipoEquipo === 'computador') {
+      // Verificar si ya tiene una asignación activa
+      const asignacionExistente = await prisma.asignacionesEquipos.findFirst({
+        where: {
+          computadorId: equipoId,
+          activo: true
+        }
+      });
+
+      if (asignacionExistente) {
+        return NextResponse.json({ message: 'El computador ya está asignado' }, { status: 400 });
+      }
+
       equipo = await prisma.computador.findUnique({
         where: { id: equipoId },
         include: {
-          modelo: {
+          computadorModelos: {
             include: {
-              marca: true,
-            },
-          },
-        },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
     } else {
+      // Verificar si ya tiene una asignación activa
+      const asignacionExistente = await prisma.asignacionesEquipos.findFirst({
+        where: {
+          dispositivoId: equipoId,
+          activo: true
+        }
+      });
+
+      if (asignacionExistente) {
+        return NextResponse.json({ message: 'El dispositivo ya está asignado' }, { status: 400 });
+      }
+
       equipo = await prisma.dispositivo.findUnique({
         where: { id: equipoId },
         include: {
-          modelo: {
+          dispositivoModelos: {
             include: {
-              marca: true,
-            },
-          },
-        },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
     }
 
@@ -62,69 +111,95 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'El equipo no está disponible para asignar' }, { status: 400 });
     }
 
-    if (equipo.empleadoId) {
-      return NextResponse.json({ message: 'El equipo ya está asignado' }, { status: 400 });
+    // Determinar la ubicación a usar
+    let ubicacionFinalId = null;
+    
+    if (ubicacionId) {
+      // Verificar que la ubicación proporcionada existe
+      const ubicacionVerificada = await prisma.ubicacion.findUnique({
+        where: { id: ubicacionId }
+      });
+      
+      if (ubicacionVerificada) {
+        ubicacionFinalId = ubicacionId;
+      }
+    }
+    
+    // Si no se proporcionó ubicación o no existe, usar la ubicación por defecto
+    if (!ubicacionFinalId) {
+      const ubicacionPorDefecto = await prisma.ubicacion.findFirst({
+        orderBy: {
+          nombre: 'asc'
+        }
+      });
+      ubicacionFinalId = ubicacionPorDefecto?.id || null;
     }
 
-    // Asignar el equipo
+    // Crear la asignación en la tabla AsignacionesEquipos
+    const nuevaAsignacion = await prisma.asignacionesEquipos.create({
+      data: {
+        computadorId: tipoEquipo === 'computador' ? equipoId : null,
+        dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
+        targetEmpleadoId: empleadoId,
+        actionType: 'Assignment',
+        targetType: 'Usuario',
+        itemType: tipoEquipo === 'computador' ? 'Computador' : 'Dispositivo',
+        date: new Date(),
+        motivo: motivo,
+        ubicacionId: ubicacionFinalId,
+        activo: true
+      }
+    });
+
+    // Actualizar el estado del equipo a ASIGNADO
     let equipoActualizado;
     if (tipoEquipo === 'computador') {
       equipoActualizado = await prisma.computador.update({
         where: { id: equipoId },
         data: {
-          empleadoId: empleadoId,
           estado: ESTADOS_EQUIPO.ASIGNADO,
         },
         include: {
-          modelo: {
+          computadorModelos: {
             include: {
-              marca: true,
-            },
-          },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
       });
     } else {
       equipoActualizado = await prisma.dispositivo.update({
         where: { id: equipoId },
         data: {
-          empleadoId: empleadoId,
           estado: ESTADOS_EQUIPO.ASIGNADO,
         },
         include: {
-          modelo: {
+          dispositivoModelos: {
             include: {
-              marca: true,
-            },
-          },
+              modeloEquipo: {
+                include: {
+                  marcaModelos: {
+                    include: {
+                      marca: true
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
       });
     }
 
-    // Registrar en el historial de asignaciones
-    await prisma.historialAsignacion.create({
-      data: {
-        empleadoId: empleadoId,
-        equipoId: equipoId,
-        tipoEquipo: tipoEquipo,
-        accion: 'asignacion',
-        motivo: motivo,
-        usuarioId: user?.id,
-      },
-    });
-
-    // Registrar en el historial de movimientos
-    await prisma.historialMovimiento.create({
-      data: {
-        equipoId: equipoId,
-        tipoEquipo: tipoEquipo,
-        accion: 'asignacion',
-        destino: empleado.nombre + ' ' + empleado.apellido,
-        empresa: empleado.nombre + ' ' + empleado.apellido, // Usar nombre del empleado como empresa temporalmente
-        motivo: motivo,
-        gerente: user?.name || 'Sistema',
-        usuarioId: user?.id,
-      },
-    });
+    // La asignación ya está registrada en AsignacionesEquipos
 
     // Log de auditoría
     await AuditLogger.logUpdate(

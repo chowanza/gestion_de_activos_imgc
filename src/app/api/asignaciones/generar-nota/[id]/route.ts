@@ -26,58 +26,52 @@ export async function GET(
   }
      try {
     // 1. Obtener los datos de la asignación y sus relaciones
-    const asignacion = await prisma.asignaciones.findUnique({
-      where: { id: parseInt(id) },
+    const asignacion = await prisma.asignacionesEquipos.findUnique({
+      where: { id: id },
       include: {
         computador: {
           include: {
-            modelo: {
+            computadorModelos: {
               include: {
-                marca: true, // Incluir la marca del modelo
-              },
-            },
-            empleado: {
-              include: {
-                departamento: {
+                modeloEquipo: {
                   include: {
-                    empresa: true
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
                   }
                 }
               }
-            }, // Si el computador está asignado a un empleado
+            }
           },
         },
         dispositivo: {
           include: {
-            modelo: {
+            dispositivoModelos: {
               include: {
-                marca: true,
-              },
-            },
-            empleado: {
-              include: {
-                departamento: {
+                modeloEquipo: {
                   include: {
-                    empresa: true
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
                   }
                 }
               }
-            },
+            }
           },
         },
         targetEmpleado: {
           include: {
-            departamento: {
+            organizaciones: {
               include: {
-                empresa: true, // Incluir la empresa del departamento
-              },
-            },
-            cargo: true, // Incluir el cargo del empleado
-          },
-        },
-        targetDepartamento: {
-          include: {
-            empresa: true,
+                departamento: true,
+                empresa: true,
+                cargo: true
+              }
+            }
           },
         },
         ubicacion: true,
@@ -110,12 +104,12 @@ export async function GET(
       worksheet.getCell('B4').value = asignacion.date.toLocaleDateString('es-ES');
       worksheet.getCell('B5').value = `${asignacion.targetEmpleado?.nombre} ${asignacion.targetEmpleado?.apellido}`;
       worksheet.getCell('B6').value = asignacion.targetEmpleado?.ced || '';
-      worksheet.getCell('B7').value = asignacion.targetEmpleado?.cargo?.nombre || '';
+      worksheet.getCell('B7').value = asignacion.targetEmpleado?.organizaciones?.[0]?.cargo?.nombre || '';
       worksheet.getCell('B8').value = ''; // legajo removido
-      worksheet.getCell('B9').value = asignacion.targetEmpleado?.departamento?.empresa?.nombre || '';
-      worksheet.getCell('B10').value = asignacion.targetEmpleado?.departamento?.nombre || '';
+      worksheet.getCell('B9').value = asignacion.targetEmpleado?.organizaciones?.[0]?.empresa?.nombre || '';
+      worksheet.getCell('B10').value = asignacion.targetEmpleado?.organizaciones?.[0]?.departamento?.nombre || '';
       worksheet.getCell('B11').value = asignacion.ubicacion?.nombre || '';
-      worksheet.getCell('B12').value = asignacion.gerente;
+      worksheet.getCell('B12').value = asignacion.gerenteId || '';
       worksheet.getCell('B13').value = ''; // ceco removido
       worksheet.getCell('B15').value = asignacion.motivo;
     } else { // targetType === 'Departamento'
@@ -124,33 +118,37 @@ export async function GET(
       worksheet.getCell('B7').value = '';
       worksheet.getCell('B8').value = '';
       worksheet.getCell('B4').value = asignacion.date.toLocaleDateString('es-ES');
-      worksheet.getCell('B10').value = asignacion.targetDepartamento?.nombre;
-      worksheet.getCell('B6').value = asignacion.targetDepartamento?.empresa?.nombre;
+      worksheet.getCell('B10').value = '';
+      worksheet.getCell('B6').value = '';
       worksheet.getCell('B13').value = ''; // ceco removido
       worksheet.getCell('B9').value = ''; // sociedad removida
       worksheet.getCell('B11').value = asignacion.ubicacion?.nombre || '';
-      worksheet.getCell('B12').value = asignacion.gerente;
+      worksheet.getCell('B12').value = asignacion.gerenteId || '';
     }
 
 
     if (asignacion.itemType === 'Computador') {
-        worksheet.getCell('E4').value = `${asignacion.computador?.modelo.marca.nombre} ${asignacion.computador?.modelo.nombre}`; // Marca
+        const computadorModelo = asignacion.computador?.computadorModelos?.[0]?.modeloEquipo;
+        const computadorMarca = computadorModelo?.marcaModelos?.[0]?.marca;
+        worksheet.getCell('E4').value = `${computadorMarca?.nombre || ''} ${computadorModelo?.nombre || ''}`; // Marca
         worksheet.getCell('E5').value = asignacion.computador?.serial; // Tipo de equipo (Computador o Dispositivo)
         worksheet.getCell('B16').value = '';
-        worksheet.getCell('B14').value = asignacion.computador?.modelo.tipo || ''; // NSAP (si aplica)
+        worksheet.getCell('B14').value = computadorModelo?.tipo || ''; // NSAP (si aplica)
         worksheet.getCell('E6').value = asignacion.computador?.procesador || 'N/A';
         worksheet.getCell('E7').value = asignacion.computador?.ram || 'N/A';
         worksheet.getCell('E8').value = asignacion.computador?.almacenamiento || 'N/A';
-        worksheet.getCell('E9').value = asignacion.serialC || 'N/A';
-        worksheet.getCell('E10').value = asignacion.modeloC || 'N/A';
+        worksheet.getCell('E9').value = 'N/A';
+        worksheet.getCell('E10').value = 'N/A';
         worksheet.getCell('E13').value = asignacion.computador?.sisOperativo || 'N/A';
         worksheet.getCell('E15').value = 'N/A';
         worksheet.getCell('E14').value = asignacion.computador?.officeVersion || 'N/A';
         worksheet.getCell('B24').value = asignacion.notes || 'Sin notas.';
     } else if (asignacion.itemType === 'Dispositivo') {
       worksheet.getCell('B16').value = '';
-      worksheet.getCell('B14').value = asignacion.dispositivo?.modelo.tipo || '';
-      worksheet.getCell('E4').value = `${asignacion.dispositivo?.modelo.marca.nombre} ${asignacion.dispositivo?.modelo.nombre}`; // Marca
+      const dispositivoModelo = asignacion.dispositivo?.dispositivoModelos?.[0]?.modeloEquipo;
+      const dispositivoMarca = dispositivoModelo?.marcaModelos?.[0]?.marca;
+      worksheet.getCell('B14').value = dispositivoModelo?.tipo || '';
+      worksheet.getCell('E4').value = `${dispositivoMarca?.nombre || ''} ${dispositivoModelo?.nombre || ''}`; // Marca
       worksheet.getCell('E5').value = asignacion.dispositivo?.serial;
       worksheet.getCell('E6').value = '';
       worksheet.getCell('E7').value = '';

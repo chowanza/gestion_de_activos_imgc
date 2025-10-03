@@ -25,12 +25,15 @@ interface EquipmentUsersSectionProps {
       id: string;
       nombre: string; 
       apellido: string; 
-      cargo?: string;
+      cargo?: string | { nombre: string };
       foto?: string | null;
       departamento?: {
         nombre: string;
         empresa?: { nombre: string };
-      };
+      } | string;
+      empresa?: {
+        nombre: string;
+      } | string;
     } | null;
     departamento?: { 
       id: string;
@@ -65,7 +68,8 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
             apellido: detalle.targetEmpleado.apellido,
             cargo: detalle.targetEmpleado.cargo,
             fotoPerfil: detalle.targetEmpleado.fotoPerfil,
-            departamento: detalle.targetEmpleado.departamento
+            departamento: detalle.targetEmpleado.departamento,
+            empresa: detalle.targetEmpleado.empresa
           } : null,
           motivo: detalle.motivo,
           notas: detalle.notes,
@@ -122,7 +126,7 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
       </CardHeader>
       <CardContent className="p-6">
         {/* Estado actual del equipo (siempre primero) */}
-        {equipo.estado === 'ASIGNADO' && equipo.empleado && (
+        {equipo.empleado && (
           <div className="mb-6">
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center space-x-4">
@@ -145,6 +149,11 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                   {equipo.empleado.departamento && (
                     <p className="text-xs text-gray-500">
                       Dpto: {typeof equipo.empleado.departamento === 'string' ? equipo.empleado.departamento : equipo.empleado.departamento?.nombre || 'Sin departamento'}
+                    </p>
+                  )}
+                  {equipo.empleado.empresa && (
+                    <p className="text-xs text-gray-500">
+                      Empresa: {typeof equipo.empleado.empresa === 'string' ? equipo.empleado.empresa : equipo.empleado.empresa?.nombre || 'Sin empresa'}
                     </p>
                   )}
                 </div>
@@ -267,6 +276,16 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                             </h5>
                             {assignment.empleado?.cargo && (
                               <p className="text-xs text-gray-600">{typeof assignment.empleado.cargo === 'string' ? assignment.empleado.cargo : assignment.empleado.cargo?.nombre || 'Sin cargo'}</p>
+                            )}
+                            {assignment.empleado?.departamento && (
+                              <p className="text-xs text-gray-500">
+                                Dpto: {typeof assignment.empleado.departamento === 'string' ? assignment.empleado.departamento : assignment.empleado.departamento?.nombre || 'Sin departamento'}
+                              </p>
+                            )}
+                            {assignment.empleado?.empresa && (
+                              <p className="text-xs text-gray-500">
+                                Empresa: {typeof assignment.empleado.empresa === 'string' ? assignment.empleado.empresa : assignment.empleado.empresa?.nombre || 'Sin empresa'}
+                              </p>
                             )}
                           </div>
                         </div>

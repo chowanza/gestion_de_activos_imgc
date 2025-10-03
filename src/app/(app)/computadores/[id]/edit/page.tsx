@@ -74,7 +74,7 @@ export default function EditarComputadorPage() {
 
             if (response.ok) {
                 showToast.success('Computadora eliminada correctamente');
-                router.push('/computadores');
+                router.push('/equipos');
             } else {
                 showToast.error('Error al eliminar la computadora');
             }

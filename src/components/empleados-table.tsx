@@ -70,18 +70,20 @@ interface EmpleadoTableProps {
   data: Empleado[]
 }
 
-export function EmpleadoTable({}: EmpleadoTableProps) {
+export function EmpleadoTable({ data }: EmpleadoTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
-    email: true,
-    telefono: true,
-    direccion: true,
-    fechaDesincorporacion: false
+    email: false,
+    telefono: false,
+    direccion: false,
+    fechaDesincorporacion: false,
+    fechaNacimiento: false,
+    edad: false
   })
   const [rowSelection, setRowSelection] = React.useState({})
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [empleados, setEmpleados] = React.useState<Empleado[]>([]);
+  // const [empleados, setEmpleados] = React.useState<Empleado[]>([]);
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setLoading] = useState(true);
@@ -95,15 +97,43 @@ export function EmpleadoTable({}: EmpleadoTableProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Error al eliminar el empleado.');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || 'Error al eliminar el empleado';
+        
+        // Manejar diferentes tipos de errores
+        if (response.status === 404) {
+          showToast.error("Empleado no encontrado.");
+        } else if (response.status === 409) {
+          const errorData = await response.json().catch(() => ({}));
+          if (errorData.tipo === 'restriccion_equipos_asignados') {
+            const equipos = errorData.detalles?.equipos || [];
+            const equiposLista = equipos.map((e: any) => `${e.tipo} ${e.serial}`).join(', ');
+            showToast.error(`No se puede desactivar al empleado porque tiene equipos asignados: ${equiposLista}. Primero debe desasignar los equipos.`);
+          } else {
+            showToast.error("No se puede eliminar al empleado porque tiene activos asignados o roles activos. Desasigne o desactive primero.");
+          }
+        } else {
+          showToast.error(`Error: ${errorMessage}`);
+        }
+        return;
       }
 
-      showToast.success("Empleado eliminado correctamente.");
-      fetchAllData();
+      const result = await response.json();
+      
+      // Manejar diferentes tipos de eliminación
+      if (result.tipo === 'desincorporacion_logica') {
+        showToast.success(`Empleado desincorporado exitosamente. Se desactivaron ${result.detalles?.asignacionesDesactivadas || 0} asignaciones y ${result.detalles?.relacionesDesactivadas || 0} relaciones organizacionales.`);
+      } else if (result.tipo === 'eliminacion_fisica') {
+        showToast.success("Empleado eliminado permanentemente del sistema.");
+      } else {
+        showToast.success("Empleado eliminado correctamente.");
+      }
+      
+      // fetchAllData(); // Los datos se actualizarán desde el componente padre
       router.refresh(); // Refresca los datos en la página actual (App Router)
     } catch (error) {
-      console.error(error);
-      showToast.error("No se pudo eliminar el empleado.");
+      console.error('Error en eliminación:', error);
+      showToast.error("Error de conexión. No se pudo eliminar el empleado.");
     } finally {
       setIsDeleting(false);
     }
@@ -132,6 +162,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "fotoPerfil",
     header: "Foto",
+    size: 60,
     cell: ({ row }) => {
       const fotoPerfil = row.getValue("fotoPerfil") as string;
       const nombre = row.getValue("nombre") as string;
@@ -163,7 +194,8 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "nombre",
     header: "Nombre",
-    cell: ({ row }) => <div>{row.getValue("nombre")}</div>,
+    size: 100,
+    cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue("nombre")}</div>,
     filterFn: (row, id, value) => {
       const nombre = row.getValue(id)?.toString().toLowerCase() || '';
       return nombre.includes(value);
@@ -172,7 +204,8 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "apellido",
     header: "Apellido",
-    cell: ({ row }) => <div>{row.getValue("apellido")}</div>,
+    size: 100,
+    cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue("apellido")}</div>,
     filterFn: (row, id, value) => {
       const apellido = row.getValue(id)?.toString().toLowerCase() || '';
       return apellido.includes(value);
@@ -181,7 +214,8 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "cedula",
     header: "Cédula",
-    cell: ({ row }) => <div>{row.getValue("cedula")}</div>,
+    size: 90,
+    cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue("cedula")}</div>,
     filterFn: (row, id, value) => {
       const cedula = row.getValue(id)?.toString().toLowerCase() || '';
       return cedula.includes(value);
@@ -190,6 +224,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "email",
     header: "Email",
+    size: 150,
     cell: ({ row }) => {
       const email = row.getValue("email") as string;
       return email ? (
@@ -213,6 +248,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "telefono",
     header: "Teléfono",
+    size: 100,
     cell: ({ row }) => {
       const telefono = row.getValue("telefono") as string;
       return telefono ? (
@@ -236,6 +272,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "direccion",
     header: "Dirección",
+    size: 150,
     cell: ({ row }) => {
       const direccion = row.getValue("direccion") as string;
       return direccion ? (
@@ -254,6 +291,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "fechaNacimiento",
     header: "Cumpleaños",
+    size: 90,
     cell: ({ row }) => {
       const fecha = row.getValue("fechaNacimiento") as string;
       if (!fecha) return <div>-</div>;
@@ -284,6 +322,7 @@ const columns: ColumnDef<Empleado>[] = [
     accessorKey: "fechaNacimiento",
     id: "edad",
     header: "Edad",
+    size: 60,
     cell: ({ row }) => {
       const fecha = row.getValue("fechaNacimiento") as string;
       if (!fecha) return <div>-</div>;
@@ -320,6 +359,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "fechaIngreso",
     header: "Fecha de Ingreso",
+    size: 100,
     cell: ({ row }) => {
       const fecha = row.getValue("fechaIngreso") as string;
       if (!fecha) return <div>-</div>;
@@ -349,6 +389,7 @@ const columns: ColumnDef<Empleado>[] = [
   {
     accessorKey: "fechaDesincorporacion",
     header: "Fecha de Desincorporación",
+    size: 120,
     cell: ({ row }) => {
       const fecha = row.getValue("fechaDesincorporacion") as string;
       if (!fecha) return <div>-</div>;
@@ -376,15 +417,16 @@ const columns: ColumnDef<Empleado>[] = [
     },
   },
   {
-    accessorFn: (row) => row.departamento?.empresa?.nombre ?? "Sin empresa",
+    accessorFn: (row) => row.organizaciones?.[0]?.empresa?.nombre ?? "Sin empresa",
     id: "empresaNombre",
+    size: 120,
     header: ({ column }) => {
       const isFilterActive = !!column.getFilterValue();
       // Obtener empresas únicas
       const uniqueEmpresas = Array.from(
         new Set(
-          empleados
-            .map(u => u.departamento?.empresa?.nombre)
+          data
+            .map(u => u.organizaciones?.[0]?.empresa?.nombre)
             .filter(Boolean) as string[]
         )
       ).sort();
@@ -451,25 +493,26 @@ const columns: ColumnDef<Empleado>[] = [
       );
     },
     cell: ({ row }) => {
-      const empresaNombre = row.original.departamento?.empresa?.nombre;
-      return <div>{empresaNombre || "Sin empresa"}</div>;
+      const empresaNombre = row.original.organizaciones?.[0]?.empresa?.nombre;
+      return <div className="whitespace-nowrap">{empresaNombre || "Sin empresa"}</div>;
     },
     filterFn: (row, id, value) => {
       if (!value || value.length === 0) return true;
-      const empresa = row.original.departamento?.empresa?.nombre;
+      const empresa = row.original.organizaciones?.[0]?.empresa?.nombre;
       return value.includes(empresa);
     },
   },
   {
-    accessorFn: (row) => row.departamento?.nombre ?? "Sin departamento",
+    accessorFn: (row) => row.organizaciones?.[0]?.departamento?.nombre ?? "Sin departamento",
     id: "departamentoNombre",
+    size: 120,
     header: ({ column }) => {
       const isFilterActive = !!column.getFilterValue();
       // Obtener departamentos únicos
       const uniqueDepartamentos = Array.from(
         new Set(
-          empleados
-            .map(u => u.departamento?.nombre)
+          data
+            .map(u => u.organizaciones?.[0]?.departamento?.nombre)
             .filter(Boolean) as string[]
         )
       ).sort();
@@ -536,18 +579,19 @@ const columns: ColumnDef<Empleado>[] = [
       );
     },
     cell: ({ row }) => {
-      const departamentoNombre = row.original.departamento?.nombre;
-      return <div>{departamentoNombre || "Sin departamento"}</div>;
+      const departamentoNombre = row.original.organizaciones?.[0]?.departamento?.nombre;
+      return <div className="whitespace-nowrap">{departamentoNombre || "Sin departamento"}</div>;
     },
     filterFn: (row, id, value) => {
       if (!value || value.length === 0) return true;
-      const departamento = row.original.departamento?.nombre;
+      const departamento = row.original.organizaciones?.[0]?.departamento?.nombre;
       return value.includes(departamento);
     },
   },
   {
     accessorKey: "estado",
     header: "Estado",
+    size: 80,
     cell: ({ row }) => {
       const estado = row.getValue("estado") as string;
       const isActivo = estado === 'Activo';
@@ -574,13 +618,15 @@ const columns: ColumnDef<Empleado>[] = [
     {
       accessorKey: "cargo",
       header: "Cargo",
+      size: 100,
       cell: ({ row }) => {
-        const cargo = row.original.cargo;
-        return cargo ? cargo.nombre : "Sin cargo";
+        const cargo = row.original.organizaciones?.[0]?.cargo;
+        return <div className="whitespace-nowrap">{cargo ? cargo.nombre : "Sin cargo"}</div>;
       },
     },
   {
     id: "actions",
+    size: 100,
     cell: ({ row }) => {
       const empleado = row.original
 
@@ -649,7 +695,7 @@ const columns: ColumnDef<Empleado>[] = [
 ]
 
   const table = useReactTable({
-    data: empleados,
+    data: data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -680,37 +726,38 @@ const columns: ColumnDef<Empleado>[] = [
   },
   });
 
-    const fetchAllData = async () => {
-      setLoading(true);
-      try {
-        const empleadosResponse = await fetch('/api/usuarios');
+    // const fetchAllData = async () => {
+    //   setLoading(true);
+    //   try {
+    //     const empleadosResponse = await fetch('/api/usuarios');
 
   
-        if (!empleadosResponse.ok) {
-          throw new Error(`Error fetching empleados: ${empleadosResponse.status}`);
-        }
+    //     if (!empleadosResponse.ok) {
+    //       throw new Error(`Error fetching empleados: ${empleadosResponse.status}`);
+    //     }
   
-        const empleadosData: Empleado[] = await empleadosResponse.json();
+    //     const empleadosData: Empleado[] = await empleadosResponse.json();
         
         
-        setEmpleados(empleadosData);
-        setLoading(false);
+    //     setEmpleados(empleadosData);
+    //     setLoading(false);
 
-      } catch (error: any) {
-        showToast.error("¡Error en Cargar!"+ (error.message), {
-            duration: 4000,
-            progress: false,
-            position: "top-right",
-            transition: "popUp",
-            icon: '',
-            sound: true,
-        });
-      }
-    };
+    //   } catch (error: any) {
+    //     showToast.error("¡Error en Cargar!"+ (error.message), {
+    //         duration: 4000,
+    //         progress: false,
+    //         position: "top-right",
+    //         transition: "popUp",
+    //         icon: '',
+    //         sound: true,
+    //     });
+    //   }
+    // };
   
     React.useEffect(() => {
-      fetchAllData();
-    }, []);
+      // Los datos vienen como props, no necesitamos cargarlos aquí
+      setLoading(false);
+    }, [data]);
   
 
 React.useEffect(() => {
@@ -734,10 +781,11 @@ if (!table || !columns || columns.length === 0 || isLoading) {
 }
 
 return (
-    <Card className="border-none shadow-md">
-      <CardHeader className="bg-primary/5 rounded-t-lg">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
+    <div className="w-full max-w-full overflow-hidden">
+      <Card className="border-none shadow-md">
+        <CardHeader className="bg-primary/5 rounded-t-lg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <Input
@@ -827,8 +875,8 @@ return (
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="rounded-md border">
-          <Table>
+        <div className="rounded-md border overflow-x-auto">
+          <Table className="min-w-full">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -891,6 +939,7 @@ return (
         </div>
       </CardContent>
     </Card>
+    </div>
   )
 
 }

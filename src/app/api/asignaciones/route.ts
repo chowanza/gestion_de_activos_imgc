@@ -22,61 +22,94 @@ const asignacionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const asignaciones = await prisma.asignaciones.findMany({
+    const asignaciones = await prisma.asignacionesEquipos.findMany({
       orderBy: { date: 'desc' },
       include: {
         computador: {
           include: {
-            modelo: {
+            computadorModelos: {
               include: {
-                marca: true, // Incluye el objeto Marca si existe
-              }
-            }
-          }
-        },         // Incluye el objeto Computador si existe
-        dispositivo:{
-          include: {
-            modelo: {
-              include: {
-                marca: true, // Incluye el objeto Marca si existe
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
         },
-        targetEmpleado: true,      // Incluye el objeto Empleado si existe
-        targetDepartamento: true, // Incluye el objeto Departamento si existe
-        ubicacion: true,          // Incluye el objeto Ubicacion si existe
+        dispositivo: {
+          include: {
+            dispositivoModelos: {
+              include: {
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: {
+                        marca: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        targetEmpleado: {
+          include: {
+            organizaciones: {
+              where: { activo: true },
+              include: {
+                departamento: true,
+                cargo: true
+              }
+            }
+          }
+        },
+        ubicacion: true,
       },
     });
 
     const resultadoFinal = asignaciones.map((a) => {
       let itemAsignado;
       if (a.itemType === 'Computador' && a.computador) {
+        const modeloEquipo = a.computador.computadorModelos[0]?.modeloEquipo;
+        const marca = modeloEquipo?.marcaModelos[0]?.marca;
         itemAsignado = {
           id: a.computador.id,
           tipo: 'Computador',
           serial: a.computador.serial,
-          descripcion: `${a.computador.modelo.marca.nombre} ${a.computador.modelo.nombre}`,
+          descripcion: marca && modeloEquipo ? `${marca.nombre} ${modeloEquipo.nombre}` : 'Sin modelo',
         };
       } else if (a.itemType === 'Dispositivo' && a.dispositivo) {
+        const modeloEquipo = a.dispositivo.dispositivoModelos[0]?.modeloEquipo;
+        const marca = modeloEquipo?.marcaModelos[0]?.marca;
         itemAsignado = {
           id: a.dispositivo.id,
           tipo: 'Dispositivo',
           serial: a.dispositivo.serial,
-          descripcion: `${a.dispositivo.modelo.marca.nombre} ${a.dispositivo.modelo.nombre}`,
+          descripcion: marca && modeloEquipo ? `${marca.nombre} ${modeloEquipo.nombre}` : 'Sin modelo',
           detalles: {
-            tipoDispositivo: a.dispositivo.modelo.tipo,
+            tipoDispositivo: modeloEquipo?.tipo || 'Desconocido',
           },
         };
       }
 
       let asignadoA;
       if (a.targetType === 'Usuario' && a.targetEmpleado) {
+        const organizacionActiva = a.targetEmpleado.organizaciones[0];
         asignadoA = {
           id: a.targetEmpleado.id,
           tipo: 'Usuario',
           nombre: `${a.targetEmpleado.nombre} ${a.targetEmpleado.apellido}`,
+          departamento: organizacionActiva?.departamento?.nombre || null,
+          cargo: organizacionActiva?.cargo?.nombre || null,
         };
+      }
 
       return {
         id: a.id,
@@ -84,9 +117,6 @@ export async function GET(request: NextRequest) {
         notes: a.notes,
         item: itemAsignado,
         asignadoA: asignadoA,
-        gerente: a.gerente,
-        serialC: a.serialC,
-        modeloC: a.modeloC,
         motivo: a.motivo,
         localidad: a.ubicacion?.nombre || null,
       };
@@ -153,7 +183,6 @@ export async function POST(request: NextRequest) {
             where: { id: itemId },
             select: { 
               estado: true, 
-              empleadoId: true, 
               serial: true 
             }
           });
@@ -162,7 +191,6 @@ export async function POST(request: NextRequest) {
             where: { id: itemId },
             select: { 
               estado: true, 
-              empleadoId: true, 
               serial: true 
             }
           });
@@ -172,27 +200,25 @@ export async function POST(request: NextRequest) {
           throw new Error(`No se encontró el ${itemType.toLowerCase()} con ID: ${itemId}`);
         }
 
-        if (equipoActual.estado === 'Asignado') {
-          const asignadoA = asignarA_type === 'Usuario' ? 
-            await tx.empleado.findUnique({ 
-              where: { id: equipoActual.empleadoId! },
-              select: { nombre: true, apellido: true }
-            }) :
-            await tx.departamento.findUnique({ 
-              where: { id: equipoActual.departamentoId! },
-              select: { nombre: true }
-            });
+        if (equipoActual.estado === 'ASIGNADO') {
+          // Verificar si ya hay una asignación activa para este equipo
+          const asignacionExistente = await tx.asignacionesEquipos.findFirst({
+            where: {
+              [itemType === 'Computador' ? 'computadorId' : 'dispositivoId']: itemId,
+              activo: true,
+              actionType: 'Assignment'
+            },
+            include: {
+              targetEmpleado: true
+            }
+          });
 
-          const nombreAsignado = asignadoA ? 
-            (asignarA_type === 'Usuario' ? 
-              `${(asignadoA as any).nombre} ${(asignadoA as any).apellido}` : 
-              (asignadoA as any).nombre) : 
-            'Usuario desconocido';
-
-          throw new Error(
-            `El equipo ${equipoActual.serial} ya está asignado a ${nombreAsignado}. ` +
-            `Debe desvincularlo primero antes de asignarlo a otra persona.`
-          );
+          if (asignacionExistente && asignacionExistente.targetEmpleado) {
+            throw new Error(
+              `El equipo ${equipoActual.serial} ya está asignado a ${asignacionExistente.targetEmpleado.nombre} ${asignacionExistente.targetEmpleado.apellido}. ` +
+              `Debe desvincularlo primero antes de asignarlo a otra persona.`
+            );
+          }
         }
 
         // 1) Resuelve el gerente automático con el tx de la transacción
@@ -217,9 +243,9 @@ export async function POST(request: NextRequest) {
         }
 
         // 3) Crear asignación
-        await tx.asignaciones.create({
+        await tx.asignacionesEquipos.create({
           data: {
-            actionType: 'Asignación',
+            actionType: 'Assignment',
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
@@ -229,23 +255,16 @@ export async function POST(request: NextRequest) {
 
             notes: notas || null,
 
-            // Asegúrate de tener estos campos en tu modelo:
-            // - gerenteId: String?
-            // - gerenteNombre: String? (opcional para snapshot)
             gerenteId: gerenteIdFinal,
-            gerente: gerenteNombreFinal, // Si tu modelo actual solo tiene `gerente` como String?, úsalo así.
-
-            serialC: itemType === 'Computador' ? serialC : null,
-            modeloC: itemType === 'Computador' ? modeloC : null,
             motivo: motivo || null,
             ubicacionId: ubicacionId || null,
+            activo: true,
           },
         });
 
         // 4) Actualizar el activo
         const updateData: any = {
           estado: 'ASIGNADO',
-          empleadoId: asignarA_id,
         };
 
         if (itemType === 'Computador') {
@@ -255,10 +274,11 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // 'desvincular'
-        const ultimaAsignacion = await tx.asignaciones.findFirst({
+        const ultimaAsignacion = await tx.asignacionesEquipos.findFirst({
           where: {
             OR: [{ computadorId: itemId }, { dispositivoId: itemId }],
-            actionType: 'Asignación',
+            actionType: 'Assignment',
+            activo: true,
           },
           orderBy: { date: 'desc' },
         });
@@ -267,18 +287,36 @@ export async function POST(request: NextRequest) {
           throw new Error('No se encontró una asignación activa para este ítem para desvincular.');
         }
 
-        await tx.asignaciones.create({
+        // Desactivar la asignación actual
+        await tx.asignacionesEquipos.update({
+          where: { id: ultimaAsignacion.id },
+          data: { activo: false }
+        });
+
+        // Crear registro de devolución
+        await tx.asignacionesEquipos.create({
           data: {
-            actionType: 'Devolución',
+            actionType: 'Return',
             itemType,
             computadorId: itemType === 'Computador' ? itemId : null,
             dispositivoId: itemType === 'Dispositivo' ? itemId : null,
             targetType: ultimaAsignacion.targetType,
             targetEmpleadoId: ultimaAsignacion.targetEmpleadoId,
-            targetDepartamentoId: ultimaAsignacion.targetDepartamentoId,
             notes: notas || `Devolución de ${ultimaAsignacion.targetType}`,
+            activo: true,
           },
         });
+
+        // Actualizar el estado del equipo
+        const updateData: any = {
+          estado: 'OPERATIVO',
+        };
+
+        if (itemType === 'Computador') {
+          await tx.computador.update({ where: { id: itemId }, data: updateData });
+        } else if (itemType === 'Dispositivo') {
+          await tx.dispositivo.update({ where: { id: itemId }, data: updateData });
+        }
       }
 
       return { success: true, message: `Acción '${action}' completada.` };

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   const id = request.nextUrl.pathname.split('/')[3];
 
   try {
-    const modelo = await prisma.modeloDispositivo.findUnique({
+    const modelo = await prisma.modeloEquipo.findUnique({
       where: {
         id: id,
       },
@@ -68,7 +68,7 @@ export async function PUT(request: NextRequest) {
   const id = request.nextUrl.pathname.split('/')[3];
   try {
     // 1. Buscar el modelo existente
-    const existingModelo = await prisma.modeloDispositivo.findUnique({
+    const existingModelo = await prisma.modeloEquipo.findUnique({
       where: { id },
     });
 
@@ -119,19 +119,31 @@ export async function PUT(request: NextRequest) {
       finalImageUrl = `/uploads/modelos/${fileName}`;
     }
 
-    // 5. Preparar los datos a actualizar
-    const dataToUpdate: { [key: string]: any } = {
-      nombre,
-      tipo,
-      marcaId,
-      img: finalImageUrl,
-    };
-
-    // 6. Actualizar el modelo en la base de datos
-    const updatedModelo = await prisma.modeloDispositivo.update({
+    // 5. Actualizar el modelo en la base de datos
+    const updatedModelo = await prisma.modeloEquipo.update({
       where: { id },
-      data: dataToUpdate,
+      data: {
+        nombre,
+        tipo,
+        img: finalImageUrl,
+      },
     });
+
+    // 6. Manejar la relación con la marca
+    if (marcaId) {
+      // Eliminar relaciones existentes con marcas
+      await prisma.marcaModeloEquipo.deleteMany({
+        where: { modeloEquipoId: id }
+      });
+
+      // Crear nueva relación con la marca
+      await prisma.marcaModeloEquipo.create({
+        data: {
+          modeloEquipoId: id,
+          marcaId: marcaId,
+        }
+      });
+    }
 
     return NextResponse.json(updatedModelo, { status: 200 });
   } catch (error: any) {
@@ -149,7 +161,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     // Fetch the modelo to get the image URL
-    const modelo = await prisma.modeloDispositivo.findUnique({
+    const modelo = await prisma.modeloEquipo.findUnique({
       where: {
         id: id,
       },
@@ -172,7 +184,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the modelo from the database
-    await prisma.modeloDispositivo.delete({
+    await prisma.modeloEquipo.delete({
       where: {
         id: id,
       },
