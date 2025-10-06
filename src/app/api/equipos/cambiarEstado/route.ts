@@ -121,27 +121,58 @@ export async function POST(request: NextRequest) {
 
     console.log('Datos de actualización:', updateData);
 
-    // Actualizar el estado del equipo
+    // ACTUALIZACIÓN TRANSACCIONAL: Estado del equipo + Limpieza de asignaciones
     console.log(`Actualizando ${tipoEquipo} con ID: ${equipoId}`);
     let equipoActualizado;
+    
     try {
-      if (tipoEquipo === 'computador') {
-        console.log('Actualizando computador...');
-        equipoActualizado = await prisma.computador.update({
-          where: { id: equipoId },
-          data: updateData,
-        });
-        console.log('Computador actualizado exitosamente');
-      } else {
-        console.log('Actualizando dispositivo...');
-        equipoActualizado = await prisma.dispositivo.update({
-          where: { id: equipoId },
-          data: updateData,
-        });
-        console.log('Dispositivo actualizado exitosamente');
-      }
+      // Usar transacción para asegurar atomicidad
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Actualizar el estado del equipo
+        let equipoActualizado;
+        if (tipoEquipo === 'computador') {
+          console.log('Actualizando computador...');
+          equipoActualizado = await tx.computador.update({
+            where: { id: equipoId },
+            data: updateData,
+          });
+          console.log('Computador actualizado exitosamente');
+        } else {
+          console.log('Actualizando dispositivo...');
+          equipoActualizado = await tx.dispositivo.update({
+            where: { id: equipoId },
+            data: updateData,
+          });
+          console.log('Dispositivo actualizado exitosamente');
+        }
+
+        // 2. CRÍTICO: Limpiar asignaciones activas si el nuevo estado lo requiere
+        const estadosNoAsignados = ['EN_RESGUARDO', 'OPERATIVO', 'DE_BAJA'];
+        if (estadosNoAsignados.includes(nuevoEstado)) {
+          console.log(`🔄 Limpiando asignaciones activas para estado ${nuevoEstado}`);
+          
+          // Desactivar todas las asignaciones activas
+          const asignacionesDesactivadas = await tx.asignacionesEquipos.updateMany({
+            where: {
+              [tipoEquipo === 'computador' ? 'computadorId' : 'dispositivoId']: equipoId,
+              activo: true
+            },
+            data: { 
+              activo: false
+            }
+          });
+          
+          console.log(`✅ ${asignacionesDesactivadas.count} asignaciones desactivadas`);
+        }
+
+        return equipoActualizado;
+      });
+
+      equipoActualizado = result;
+      console.log('✅ Transacción completada exitosamente');
+
     } catch (updateError) {
-      console.error('Error en actualización de equipo:', updateError);
+      console.error('Error en actualización transaccional:', updateError);
       throw updateError;
     }
 
@@ -179,26 +210,16 @@ export async function POST(request: NextRequest) {
       // PRIORIDAD 1: Si es una nueva asignación (independientemente del estado actual)
       if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
         console.log('Detectada nueva asignación');
-        actionType = 'Assignment';
+        actionType = 'ASIGNACION';
         targetType = 'Usuario';
         targetEmpleadoIdFinal = targetEmpleadoId;
         notes = `Asignación automática por cambio de estado a ${nuevoEstado}`;
-        
-        // Desactivar asignaciones anteriores si las hay
-        console.log('Desactivando asignaciones anteriores...');
-        await prisma.asignacionesEquipos.updateMany({
-          where: {
-            [tipoEquipo === 'computador' ? 'computadorId' : 'dispositivoId']: equipoId,
-            activo: true
-          },
-          data: { activo: false }
-        });
-        console.log('Asignaciones anteriores desactivadas');
+        // NOTA: Las asignaciones anteriores ya fueron desactivadas en la transacción
       }
       // PRIORIDAD 2: Detectar si es una devolución (de ASIGNADO a otro estado)
       else if (estadoActual === 'ASIGNADO' && nuevoEstado !== 'ASIGNADO' && !targetEmpleadoId) {
         console.log('Detectada devolución');
-        actionType = 'Return';
+        actionType = 'DEVOLUCION';
         targetType = 'Usuario';
         // Obtener el empleado asignado de las asignaciones activas
         const empleadoAsignado = equipo.asignaciones?.find(a => a.targetEmpleado && a.activo)?.targetEmpleado;

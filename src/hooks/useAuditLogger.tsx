@@ -21,44 +21,47 @@ export function useAuditLogger() {
 
     const logRouteVisit = async () => {
       try {
-        // Mapear rutas a nombres más descriptivos
+        // Mapear rutas a nombres más descriptivos (basado en rutas reales del sistema)
         const routeNames: Record<string, string> = {
           '/dashboard': 'Dashboard',
-          '/usuarios': 'Gestión de Usuarios',
           '/empresas': 'Gestión de Empresas',
           '/departamentos': 'Gestión de Departamentos',
+          '/empleados': 'Gestión de Empleados',
+          '/ubicaciones': 'Gestión de Ubicaciones',
+          '/catalogo': 'Catálogo de Equipos',
+          '/equipos': 'Gestión de Equipos',
+          '/reportes': 'Reportes del Sistema',
+          '/historial': 'Historial del Sistema',
+          '/usuarios': 'Gestión de Usuarios',
           '/computadores': 'Gestión de Computadores',
           '/dispositivos': 'Gestión de Dispositivos',
-          '/asignaciones': 'Gestión de Asignaciones',
           '/modelos': 'Gestión de Modelos',
-          '/lineas': 'Gestión de Líneas',
-          '/historial': 'Historial del Sistema',
+          '/asignaciones': 'Gestión de Asignaciones',
         };
 
         const routeName = routeNames[pathname] || pathname;
         
-        const payload = {
-          accion: 'navegacion',
-          entidad: 'sistema',
-          entidadId: pathname,
-          descripcion: `Usuario navegó a: ${routeName}`,
-          detalles: {
-            ruta: pathname,
-            pagina: routeName,
-            timestamp: new Date().toISOString(),
-            tipo: 'navegacion'
-          },
-          usuarioId: user.id,
-          ipAddress: '127.0.0.1',
-          userAgent: navigator.userAgent,
-        };
-        
+        // Usar el nuevo sistema de logging
         const response = await fetch('/api/historial-movimientos', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            accion: 'NAVEGACION',
+            entidad: 'sistema',
+            entidadId: pathname,
+            descripcion: `Usuario navegó a: ${routeName}`,
+            detalles: {
+              ruta: pathname,
+              pagina: routeName,
+              timestamp: new Date().toISOString(),
+              tipo: 'navegacion'
+            },
+            usuarioId: user.id,
+            ipAddress: '127.0.0.1',
+            userAgent: navigator.userAgent,
+          }),
         });
 
         if (!response.ok) {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { encrypt } from '@/lib/auth';
+import { AuditLogger } from '@/lib/audit-logger';
 
 
 // Esquema de validación con Zod
@@ -40,6 +41,12 @@ export async function POST(req: NextRequest) {
       role: user.role as 'user' | 'admin',
       username: user.username,
     });
+
+    // Registrar login en auditoría
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+    
+    await AuditLogger.logLogin(user.id, ipAddress, userAgent);
 
     // Crear la respuesta con la cookie de sesión
     const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });

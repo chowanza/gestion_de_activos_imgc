@@ -47,8 +47,9 @@ export default function HistorialPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [filterAction, setFilterAction] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -60,7 +61,7 @@ export default function HistorialPage() {
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [currentPage, filterType, filterAction, searchTerm]);
+  }, [currentPage, filterAction, searchTerm, startDate, endDate]);
 
   const fetchAuditLogs = async () => {
     try {
@@ -68,8 +69,9 @@ export default function HistorialPage() {
         page: currentPage.toString(),
         limit: '50',
         ...(searchTerm && { search: searchTerm }),
-        ...(filterType !== 'all' && { filterType }),
         ...(filterAction !== 'all' && { filterAction }),
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
       });
 
       const response = await fetch(`/api/historial/audit?${params}`);
@@ -106,39 +108,48 @@ export default function HistorialPage() {
     return <Activity className="h-4 w-4" />;
   };
 
-  const getAccionColor = (accion: string, tipo: string) => {
-    if (tipo === 'Sistema') {
-      switch (accion.toLowerCase()) {
-        case 'navegacion': return 'bg-blue-100 text-blue-800';
-        case 'login': return 'bg-green-100 text-green-800';
-        case 'logout': return 'bg-gray-100 text-gray-800';
-        case 'create': return 'bg-blue-100 text-blue-800';
-        case 'update': return 'bg-yellow-100 text-yellow-800';
-        case 'delete': return 'bg-red-100 text-red-800';
-        case 'view': return 'bg-purple-100 text-purple-800';
-        default: return 'bg-gray-100 text-gray-800';
-      }
-    } else if (tipo === 'Asignación') {
-      switch (accion.toLowerCase()) {
-        case 'asignación': return 'bg-green-100 text-green-800';
-        case 'devolución': return 'bg-red-100 text-red-800';
-        case 'reasignación': return 'bg-blue-100 text-blue-800';
-        case 'traspaso': return 'bg-purple-100 text-purple-800';
-        default: return 'bg-orange-100 text-orange-800';
-      }
-    } else if (tipo === 'Modificación') {
-      return 'bg-yellow-100 text-yellow-800';
+  // Función para estandarizar etiquetado de acciones según las 5 categorías principales
+  const getStandardizedActionLabel = (accion: string) => {
+    // NAVEGACION: Login, logout, navegación de rutas
+    if (accion === 'NAVEGACION') {
+      return 'NAVEGACION';
     }
-    return 'bg-gray-100 text-gray-800';
+    
+    // CREACION: Creación de nuevos registros
+    if (accion === 'CREACION') {
+      return 'CREACION';
+    }
+    
+    // ACTUALIZACION: Modificaciones, asignaciones, cambios de estado
+    if (accion === 'ACTUALIZACION') {
+      return 'ACTUALIZACION';
+    }
+    
+    // ELIMINACION: Eliminación de registros
+    if (accion === 'ELIMINACION') {
+      return 'ELIMINACION';
+    }
+    
+    // Mantener etiquetas originales para acciones legacy
+    return accion;
+  };
+
+  const getAccionColor = (accion: string) => {
+    const standardizedAction = getStandardizedActionLabel(accion);
+    
+    // Colores para las 5 categorías principales
+    switch (standardizedAction) {
+      case 'NAVEGACION': return 'bg-blue-100 text-blue-800';
+      case 'CREACION': return 'bg-green-100 text-green-800';
+      case 'ACTUALIZACION': return 'bg-yellow-100 text-yellow-800';
+      case 'ELIMINACION': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'Sistema': return 'bg-blue-100 text-blue-800';
-      case 'Asignación': return 'bg-green-100 text-green-800';
-      case 'Modificación': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    // Todos son del sistema
+    return 'bg-blue-100 text-blue-800';
   };
 
   const formatDate = (dateString: string) => {
@@ -177,13 +188,24 @@ export default function HistorialPage() {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Sistema</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.porTipo.Sistema || 0}</p>
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-600">{stats.total}</p>
+              </div>
+              <Globe className="h-8 w-8 text-gray-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">NAVEGACION</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.porAccion.NAVEGACION || 0}</p>
               </div>
               <Globe className="h-8 w-8 text-blue-500" />
             </div>
@@ -193,10 +215,10 @@ export default function HistorialPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Asignaciones</p>
-                <p className="text-2xl font-bold text-green-600">{stats.porTipo.Asignación || 0}</p>
+                <p className="text-sm font-medium text-gray-600">CREACION</p>
+                <p className="text-2xl font-bold text-green-600">{stats.porAccion.CREACION || 0}</p>
               </div>
-              <ArrowRightLeft className="h-8 w-8 text-green-500" />
+              <Plus className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -204,10 +226,21 @@ export default function HistorialPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Modificaciones</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.porTipo.Modificación || 0}</p>
+                <p className="text-sm font-medium text-gray-600">ACTUALIZACION</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.porAccion.ACTUALIZACION || 0}</p>
               </div>
               <Edit className="h-8 w-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">ELIMINACION</p>
+                <p className="text-2xl font-bold text-red-600">{stats.porAccion.ELIMINACION || 0}</p>
+              </div>
+              <Trash2 className="h-8 w-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
@@ -228,34 +261,34 @@ export default function HistorialPage() {
                 />
               </div>
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrar por tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                <SelectItem value="Sistema">Sistema</SelectItem>
-                <SelectItem value="Asignación">Asignación</SelectItem>
-                <SelectItem value="Modificación">Modificación</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={filterAction} onValueChange={setFilterAction}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filtrar por acción" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las acciones</SelectItem>
-                <SelectItem value="login">Login</SelectItem>
-                <SelectItem value="logout">Logout</SelectItem>
-                <SelectItem value="view">Visualización</SelectItem>
-                <SelectItem value="create">Crear</SelectItem>
-                <SelectItem value="update">Actualizar</SelectItem>
-                <SelectItem value="delete">Eliminar</SelectItem>
-                <SelectItem value="Asignación">Asignación</SelectItem>
-                <SelectItem value="Devolución">Devolución</SelectItem>
-                <SelectItem value="Modificación">Modificación</SelectItem>
+                <SelectItem value="NAVEGACION">NAVEGACION</SelectItem>
+                <SelectItem value="CREACION">CREACION</SelectItem>
+                <SelectItem value="ACTUALIZACION">ACTUALIZACION</SelectItem>
+                <SelectItem value="ELIMINACION">ELIMINACION</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="Fecha inicio"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40"
+              />
+              <Input
+                type="date"
+                placeholder="Fecha fin"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -298,8 +331,8 @@ export default function HistorialPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getAccionIcon(log.accion, log.tipo)}
-                          <Badge variant="outline" className={getAccionColor(log.accion, log.tipo)}>
-                            {log.accion}
+                          <Badge variant="outline" className={getAccionColor(log.accion)}>
+                            {getStandardizedActionLabel(log.accion)}
                           </Badge>
                         </div>
                       </TableCell>

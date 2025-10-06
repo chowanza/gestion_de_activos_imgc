@@ -324,7 +324,7 @@ export function EquipmentTimeline({
         badge: 'Asignado',
         details: [
           `Departamento: ${typeof empleado.departamento === 'string' ? empleado.departamento : empleado.departamento?.nombre || 'Sin departamento'}`,
-          `Empresa: ${typeof empleado.departamento === 'string' ? 'Sin empresa' : empleado.departamento?.empresa?.nombre || 'Sin empresa'}`,
+          `Empresa: ${typeof empleado.empresa === 'string' ? empleado.empresa : empleado.empresa?.nombre || 'Sin empresa'}`,
           ubicacion && `Ubicación: ${ubicacion.nombre}`
         ].filter(Boolean)
       };

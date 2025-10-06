@@ -170,7 +170,7 @@ export default function EquipmentStatusModal({
         label: `${user.nombre} ${user.apellido}`,
         cargo: user.cargo?.nombre || 'N/A',
         departamento: user.departamento?.nombre || 'N/A',
-        empresa: user.departamento?.empresa?.nombre || 'N/A'
+        empresa: user.empresa?.nombre || 'N/A'
       }));
 
       // Procesar departamentos

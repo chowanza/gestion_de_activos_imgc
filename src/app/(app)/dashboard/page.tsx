@@ -60,6 +60,7 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 
 export default function InventoryDashboard() {
   const [timeRange, setTimeRange] = useState("30d")
+  const [refreshKey, setRefreshKey] = useState(0)
   const [currentTime, setCurrentTime] = useState(new Date())
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isAdmin = useIsAdmin();
@@ -72,6 +73,23 @@ export default function InventoryDashboard() {
 
     return () => clearInterval(interval)
   }, [])
+
+  // Auto-refresh dashboard data every 30 seconds
+  useEffect(() => {
+    const refreshTimer = setInterval(() => {
+      setRefreshKey(prev => prev + 1)
+      console.log('🔄 Dashboard auto-refresh triggered')
+    }, 30000) // 30 seconds
+    
+    return () => clearInterval(refreshTimer)
+  }, [])
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+    console.log('🔄 Dashboard manual refresh triggered')
+  }
+
 
   // Particle effect
   useEffect(() => {
@@ -215,10 +233,24 @@ export default function InventoryDashboard() {
     isError, // Será `true` si la petición falla
     error, // Contendrá el objeto de error
   } = useQuery({
-    queryKey: ["dashboardData"], // Clave única para esta consulta
+    queryKey: ["dashboardData", refreshKey], // Clave única para esta consulta con refresh
     queryFn: fetchDashboardData, // Función que se ejecutará para obtener los datos
-    refetchInterval: 300000, // Opcional: Vuelve a cargar los datos cada 5 minutos
+    refetchInterval: 30000, // Vuelve a cargar los datos cada 30 segundos
+    refetchIntervalInBackground: true, // Refetch incluso cuando la ventana no está activa
   });
+
+  // Debug: log dashboard data when it changes
+  useEffect(() => {
+    if (dashboardData) {
+      console.log('Dashboard - Datos recibidos:', {
+        computadorEstadoStats: dashboardData.computadorEstadoStats,
+        dispositivoEstadoStats: dashboardData.dispositivoEstadoStats,
+        totalComputers: dashboardData.totalComputers,
+        totalDevices: dashboardData.totalDevices,
+        refreshKey
+      })
+    }
+  }, [dashboardData, refreshKey])
 
    // Funciones para filtrar datos - sin useMemo para evitar bucles infinitos
    const getFilteredEmpresaStats = () => {
@@ -408,26 +440,39 @@ export default function InventoryDashboard() {
           {/* Main Column - Charts and Analytics */}
           <div className="col-span-12">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="bg-gray-100 p-1 mb-6">
-                <TabsTrigger
-                  value="overview"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
+              <div className="flex justify-between items-center mb-6">
+                <TabsList className="bg-gray-100 p-1">
+                  <TabsTrigger
+                    value="overview"
+                    className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
+                  >
+                    Resumen
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="empresas"
+                    className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
+                  >
+                    Empresas
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="ubicaciones"
+                    className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
+                  >
+                    Ubicaciones
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Botón de refresh manual */}
+                <Button
+                  onClick={handleManualRefresh}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
                 >
-                  Resumen
-                </TabsTrigger>
-                <TabsTrigger
-                  value="empresas"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
-                >
-                  Empresas
-                </TabsTrigger>
-                <TabsTrigger
-                  value="ubicaciones"
-                  className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA]"
-                >
-                  Ubicaciones
-                </TabsTrigger>
-              </TabsList>
+                  <Activity className="h-4 w-4" />
+                  Actualizar
+                </Button>
+              </div>
 
               <TabsContent value="overview" className="mt-0">
                 <div className="grid gap-6">

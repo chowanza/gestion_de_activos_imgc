@@ -431,15 +431,27 @@ export async function GET(request: NextRequest) {
       equiposEnResguardo: totalEnResguardo,
       assignedEquipos: totalAsignados,
       
-      // Estadísticas de estado para gráficos
-      computadorEstadoStats: computadorEstados.map(estado => ({
-        estado: estado.estado,
-        count: estado._count.estado,
-      })),
-      dispositivoEstadoStats: dispositivoEstados.map(estado => ({
-        estado: estado.estado,
-        count: estado._count.estado,
-      })),
+      // Estadísticas de estado para gráficos con porcentajes
+      computadorEstadoStats: computadorEstados.map(estado => {
+        const percentage = totalComputadores > 0 
+          ? parseFloat(((estado._count.estado / totalComputadores) * 100).toFixed(1))
+          : 0;
+        return {
+          estado: estado.estado,
+          count: estado._count.estado,
+          percentage: percentage
+        };
+      }),
+      dispositivoEstadoStats: dispositivoEstados.map(estado => {
+        const percentage = totalDispositivos > 0 
+          ? parseFloat(((estado._count.estado / totalDispositivos) * 100).toFixed(1))
+          : 0;
+        return {
+          estado: estado.estado,
+          count: estado._count.estado,
+          percentage: percentage
+        };
+      }),
       
       // Trends (simplificados)
       computadoresTrend: 0,
@@ -452,6 +464,13 @@ export async function GET(request: NextRequest) {
       recentActivity: await getRecentActivity(),
     };
 
+    // Debug: verificar datos de donut charts
+    console.log('📊 Computador Estados:', computadorEstados);
+    console.log('📊 Dispositivo Estados:', dispositivoEstados);
+    console.log('📊 Computador Estado Stats:', dashboardData.computadorEstadoStats);
+    console.log('📊 Dispositivo Estado Stats:', dashboardData.dispositivoEstadoStats);
+    console.log('📊 Totales - Computadores:', totalComputadores, 'Dispositivos:', totalDispositivos);
+    
     console.log('✅ Dashboard data generado exitosamente');
     return NextResponse.json(dashboardData, { status: 200 });
 

@@ -111,7 +111,8 @@ export function EstadoDonutChart({ data, title, total }: EstadoDonutChartProps) 
   const [selectedState, setSelectedState] = useState<string | null>(null);
 
   // Debug: ver qué datos estamos recibiendo
-  console.log('EstadoDonutChart data:', data);
+  console.log('EstadoDonutChart - Props recibidas:', { data, title, total });
+  console.log('EstadoDonutChart - Data detallado:', JSON.stringify(data, null, 2));
 
   // Calcular el radio y centro del gráfico
   const radius = 50;

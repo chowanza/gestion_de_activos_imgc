@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerUser } from "@/lib/auth-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,12 +8,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search') || '';
-    const filterType = searchParams.get('filterType') || 'all';
     const filterAction = searchParams.get('filterAction') || 'all';
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
     const skip = (page - 1) * limit;
+
+    // Obtener usuario actual para mostrar en registros sin usuario específico
+    const currentUser = await getServerUser(request);
 
     // Construir filtros de fecha
     const dateFilter = {};
@@ -36,8 +39,11 @@ export async function GET(request: NextRequest) {
               { detalles: { contains: search } }
             ]
           }),
-          ...(filterAction !== 'all' && { accion: filterAction }),
-          ...(filterType !== 'all' && { entidad: filterType }),
+          ...(filterAction !== 'all' && { 
+            accion: filterAction === 'NAVEGACION' 
+              ? { in: ['NAVEGACION', 'login', 'logout', 'navegacion'] }
+              : filterAction 
+          }),
           ...(Object.keys(dateFilter).length > 0 && { fecha: dateFilter })
         },
         include: {
@@ -66,7 +72,6 @@ export async function GET(request: NextRequest) {
             ]
           }),
           ...(filterAction !== 'all' && { actionType: filterAction }),
-          ...(filterType !== 'all' && { itemType: filterType }),
           ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
         },
         include: {
@@ -129,7 +134,6 @@ export async function GET(request: NextRequest) {
             ]
           }),
           ...(filterAction !== 'all' && { campo: filterAction }),
-          ...(filterType !== 'all' && filterType === 'Computador' && { computador: { id: { not: null } } }),
           ...(Object.keys(dateFilter).length > 0 && { fecha: dateFilter })
         },
         include: {
@@ -175,7 +179,11 @@ export async function GET(request: NextRequest) {
           id: log.usuario.id,
           username: log.usuario.username,
           role: log.usuario.role
-        } : null,
+        } : (currentUser ? {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: currentUser.role
+        } : null),
         ipAddress: null,
         userAgent: null,
         equipo: null,
@@ -210,13 +218,17 @@ export async function GET(request: NextRequest) {
       auditLogs.push({
         id: `asig-${asig.id}`,
         fecha: asig.date,
-        tipo: 'Asignación',
+        tipo: 'Sistema',
         accion: asig.actionType,
-        entidad: asig.itemType,
+        entidad: 'sistema',
         entidadId: equipo?.id || null,
         descripcion: `${asig.actionType} de ${asig.itemType}${asig.motivo ? ` - ${asig.motivo}` : ''}`,
         detalles: asig.notes,
-        usuario: null,
+        usuario: currentUser ? {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: currentUser.role
+        } : null,
         ipAddress: null,
         userAgent: null,
         equipo: equipo ? {
@@ -251,13 +263,17 @@ export async function GET(request: NextRequest) {
       auditLogs.push({
         id: `mod-${mod.id}`,
         fecha: mod.fecha,
-        tipo: 'Modificación',
+        tipo: 'Sistema',
         accion: `Modificación - ${mod.campo}`,
-        entidad: 'Computador',
+        entidad: 'sistema',
         entidadId: computador?.id || null,
         descripcion: `Campo '${mod.campo}' modificado`,
         detalles: `${mod.valorAnterior || 'N/A'} → ${mod.valorNuevo || 'N/A'}`,
-        usuario: null,
+        usuario: currentUser ? {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: currentUser.role
+        } : null,
         ipAddress: null,
         userAgent: null,
         equipo: computador ? {
@@ -279,13 +295,10 @@ export async function GET(request: NextRequest) {
     const paginatedLogs = auditLogs.slice(skip, skip + limit);
     const totalPages = Math.ceil(auditLogs.length / limit);
 
-    // Generar estadísticas
+    // Generar estadísticas para las 5 categorías principales
     const stats = {
       total: auditLogs.length,
-      porTipo: auditLogs.reduce((acc, log) => {
-        acc[log.tipo] = (acc[log.tipo] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
+      porTipo: { 'Sistema': auditLogs.length },
       porAccion: auditLogs.reduce((acc, log) => {
         acc[log.accion] = (acc[log.accion] || 0) + 1;
         return acc;
