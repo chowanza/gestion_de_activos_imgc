@@ -13,15 +13,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Registrar acceso
-    if (user) {
-      await AuditLogger.logView(
-        'marcas',
-        'all',
-        `Usuario ${user.username} accedió a la lista de marcas`,
-        user.id as string
-      );
-    }
+    // No registrar acceso a listas - ya se registra la navegación en useAuditLogger
 
     return NextResponse.json(marcas, { status: 200 });
   } catch (error) {

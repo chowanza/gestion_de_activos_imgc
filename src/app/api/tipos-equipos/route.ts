@@ -18,15 +18,7 @@ export async function GET(request: NextRequest) {
 
     const tiposList = tipos.map(t => t.tipo).sort();
 
-    // Registrar acceso
-    if (user) {
-      await AuditLogger.logView(
-        'tipos-equipos',
-        'all',
-        `Usuario ${user.username} accedió a la lista de tipos de equipos`,
-        user.id as string
-      );
-    }
+    // No registrar acceso a listas - ya se registra la navegación en useAuditLogger
 
     return NextResponse.json(tiposList, { status: 200 });
   } catch (error) {

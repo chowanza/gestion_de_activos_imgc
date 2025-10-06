@@ -6,7 +6,7 @@ import { getServerUser } from '@/lib/auth-server';
 export async function POST(req: NextRequest) {
   try {
     // Obtener información del usuario antes de eliminar la sesión
-    const user = await getServerUser();
+    const user = await getServerUser(req);
     
     // 1. Elimina la sesión (set-cookie con max-age=0 o expires pasado)
     await deleteSession();

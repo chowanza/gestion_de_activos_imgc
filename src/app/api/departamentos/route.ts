@@ -39,15 +39,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Registrar acceso a la lista de departamentos
-    if (user) {
-      await AuditLogger.logView(
-        'departamentos',
-        'lista',
-        `Usuario ${user.username} accedió a la lista de departamentos`,
-        user.id as string
-      );
-    }
+    // No registrar acceso a listas - ya se registra la navegación en useAuditLogger
 
     return NextResponse.json(departamentos, { status: 200 });
   } catch (error) {

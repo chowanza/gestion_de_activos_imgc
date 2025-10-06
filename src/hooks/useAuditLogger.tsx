@@ -1,13 +1,15 @@
 // src/hooks/useAuditLogger.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from './useSession';
 
 export function useAuditLogger() {
   const pathname = usePathname();
   const { data: user } = useSession();
+  const lastLoggedPath = useRef<string | null>(null);
+  const lastLoggedTime = useRef<number>(0);
 
   useEffect(() => {
     if (!user) {
@@ -16,6 +18,12 @@ export function useAuditLogger() {
 
     // Solo registrar si no es la página de login
     if (pathname === '/') {
+      return;
+    }
+
+    // Evitar logs duplicados del mismo path en un período corto (5 segundos)
+    const now = Date.now();
+    if (lastLoggedPath.current === pathname && (now - lastLoggedTime.current) < 5000) {
       return;
     }
 
@@ -64,7 +72,11 @@ export function useAuditLogger() {
           }),
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          // Actualizar referencias para evitar duplicados
+          lastLoggedPath.current = pathname;
+          lastLoggedTime.current = now;
+        } else {
           console.error('Error logging route visit:', await response.text());
         }
       } catch (error) {
