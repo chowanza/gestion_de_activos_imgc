@@ -119,9 +119,9 @@ export function EquipmentTimeline({
           ? `${asig.targetEmpleado.nombre} ${asig.targetEmpleado.apellido}`
           : asig.targetDepartamento?.nombre || 'N/A';
         
-        const isAssignment = asig.actionType === 'Assignment';
+        const isAssignment = asig.actionType === 'Assignment' || asig.actionType === 'ASIGNACION';
         const isStatusChange = asig.actionType === 'CAMBIO_ESTADO';
-        const isReturn = asig.actionType === 'Return';
+        const isReturn = asig.actionType === 'Return' || asig.actionType === 'DEVOLUCION';
         const isEdit = asig.actionType === 'Edit';
         const isCreation = asig.actionType === 'CREACION';
         

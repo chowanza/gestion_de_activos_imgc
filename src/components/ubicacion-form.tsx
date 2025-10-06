@@ -75,8 +75,15 @@ export function UbicacionForm({ ubicacion, onClose, onSuccess }: UbicacionFormPr
       if (response.ok) {
         onSuccess();
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al guardar la ubicación');
+        let errorMessage = 'Error al guardar la ubicación';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          // Si no se puede parsear como JSON, usar el mensaje de estado
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error saving ubicacion:', error);

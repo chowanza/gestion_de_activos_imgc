@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
           motivo: motivo,
           notes: notes,
           ubicacionId: ubicacionId || null, // Agregar ubicación
-          activo: actionType === 'Assignment' ? true : false, // Solo las asignaciones están activas
+          activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
         },
       });
       console.log('Registro de asignación creado exitosamente');

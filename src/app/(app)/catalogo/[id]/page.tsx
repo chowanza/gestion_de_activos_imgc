@@ -287,8 +287,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Navegar a la página de empresas con búsqueda del nombre
-                                router.push(`/empresas?search=${encodeURIComponent(empresa.nombre)}`);
+                                // Navegar a la página de detalles de la empresa
+                                router.push(`/empresas/${empresa.id}`);
                               }}
                               className="h-8 w-8 p-0"
                             >
@@ -327,8 +327,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Navegar a la página de departamentos con búsqueda del nombre
-                                router.push(`/departamentos?search=${encodeURIComponent(depto.nombre)}`);
+                                // Navegar a la página de detalles del departamento
+                                router.push(`/departamentos/${depto.id}`);
                               }}
                               className="h-8 w-8 p-0"
                             >
@@ -401,8 +401,8 @@ export default function ModeloDetailsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Navegar a la página de ubicaciones con búsqueda del nombre
-                                router.push(`/ubicaciones?search=${encodeURIComponent(ubicacion.nombre)}`);
+                                // Navegar a la página de detalles de la ubicación
+                                router.push(`/ubicaciones/${ubicacion.id}`);
                               }}
                               className="h-8 w-8 p-0"
                             >

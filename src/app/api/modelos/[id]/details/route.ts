@@ -65,8 +65,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     };
 
     // Estadísticas por empresa
-    const empresaStats = new Map<string, number>();
-    const departamentoStats = new Map<string, { nombre: string; empresa: string; count: number }>();
+    const empresaStats = new Map<string, { id: string; nombre: string; count: number }>();
+    const departamentoStats = new Map<string, { id: string; nombre: string; empresa: string; count: number }>();
     const empleadoStats = new Map<string, { 
       id: string; 
       nombre: string; 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       empresa: string; 
       count: number 
     }>();
-    const ubicacionStats = new Map<string, { nombre: string; count: number }>();
+    const ubicacionStats = new Map<string, { id: string; nombre: string; count: number }>();
 
     // Obtener asignaciones reales para computadores (solo las que tienen empleados asignados)
     const asignacionesComputadores = await prisma.asignacionesEquipos.findMany({
@@ -142,11 +142,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           { computadorId: { in: computadores.map(c => c.id) } },
           { dispositivoId: { in: dispositivos.map(d => d.id) } }
         ],
-        activo: true,
-        ubicacionId: { not: null } // Solo los que tienen ubicación
+        ubicacionId: { not: null } // Solo los que tienen ubicación (activos e inactivos)
       },
       include: {
         ubicacion: true
+      },
+      orderBy: {
+        date: 'desc'
       }
     });
 
@@ -161,11 +163,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           
           if (empresa) {
             // Estadísticas por empresa
-            empresaStats.set(empresa.nombre, (empresaStats.get(empresa.nombre) || 0) + 1);
+            const empresaCurrent = empresaStats.get(empresa.nombre) || { 
+              id: empresa.id, 
+              nombre: empresa.nombre, 
+              count: 0 
+            };
+            empresaStats.set(empresa.nombre, { ...empresaCurrent, count: empresaCurrent.count + 1 });
             
             // Estadísticas por departamento
             const deptoKey = `${departamento.nombre}-${empresa.nombre}`;
             const deptoCurrent = departamentoStats.get(deptoKey) || { 
+              id: departamento.id,
               nombre: departamento.nombre, 
               empresa: empresa.nombre, 
               count: 0 
@@ -186,13 +194,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
       
-      if (asignacion.ubicacion) {
-        const ubicacionCurrent = ubicacionStats.get(asignacion.ubicacion.nombre) || { 
-          nombre: asignacion.ubicacion.nombre, 
-          count: 0 
-        };
-        ubicacionStats.set(asignacion.ubicacion.nombre, { ...ubicacionCurrent, count: ubicacionCurrent.count + 1 });
-      }
+      // NO procesar ubicaciones aquí para evitar duplicados
+      // Se procesarán todas las ubicaciones al final
     });
 
     // Procesar asignaciones de dispositivos
@@ -206,11 +209,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           
           if (empresa) {
             // Estadísticas por empresa
-            empresaStats.set(empresa.nombre, (empresaStats.get(empresa.nombre) || 0) + 1);
+            const empresaCurrent = empresaStats.get(empresa.nombre) || { 
+              id: empresa.id, 
+              nombre: empresa.nombre, 
+              count: 0 
+            };
+            empresaStats.set(empresa.nombre, { ...empresaCurrent, count: empresaCurrent.count + 1 });
             
             // Estadísticas por departamento
             const deptoKey = `${departamento.nombre}-${empresa.nombre}`;
             const deptoCurrent = departamentoStats.get(deptoKey) || { 
+              id: departamento.id,
               nombre: departamento.nombre, 
               empresa: empresa.nombre, 
               count: 0 
@@ -231,50 +240,47 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
       
-      if (asignacion.ubicacion) {
-        const ubicacionCurrent = ubicacionStats.get(asignacion.ubicacion.nombre) || { 
-          nombre: asignacion.ubicacion.nombre, 
-          count: 0 
-        };
-        ubicacionStats.set(asignacion.ubicacion.nombre, { ...ubicacionCurrent, count: ubicacionCurrent.count + 1 });
-      }
+      // NO procesar ubicaciones aquí para evitar duplicados
+      // Se procesarán todas las ubicaciones al final
     });
 
     // Procesar ubicaciones de equipos (incluso sin asignaciones a empleados)
+    // Solo contar equipos que pertenecen a este modelo específico
+    const equiposProcesados = new Set<string>();
+    
     ubicacionesEquipos.forEach(asignacion => {
       if (asignacion.ubicacion) {
-        const ubicacionCurrent = ubicacionStats.get(asignacion.ubicacion.nombre) || { 
-          nombre: asignacion.ubicacion.nombre, 
-          count: 0 
-        };
-        ubicacionStats.set(asignacion.ubicacion.nombre, { ...ubicacionCurrent, count: ubicacionCurrent.count + 1 });
+        // Obtener el ID del equipo (computador o dispositivo)
+        const equipoId = asignacion.computadorId || asignacion.dispositivoId;
+        
+        // Verificar que el equipo pertenece a este modelo específico
+        const esComputadorDelModelo = asignacion.computadorId && computadores.some(c => c.id === asignacion.computadorId);
+        const esDispositivoDelModelo = asignacion.dispositivoId && dispositivos.some(d => d.id === asignacion.dispositivoId);
+        
+        if (equipoId && !equiposProcesados.has(equipoId) && (esComputadorDelModelo || esDispositivoDelModelo)) {
+          equiposProcesados.add(equipoId);
+          
+          const ubicacionCurrent = ubicacionStats.get(asignacion.ubicacion.nombre) || { 
+            id: asignacion.ubicacion.id,
+            nombre: asignacion.ubicacion.nombre, 
+            count: 0 
+          };
+          ubicacionStats.set(asignacion.ubicacion.nombre, { ...ubicacionCurrent, count: ubicacionCurrent.count + 1 });
+        }
       }
     });
 
     // Convertir Maps a Arrays y ordenar
-    const empresas = Array.from(empresaStats.entries())
-      .map(([nombre, count]) => ({ 
-        id: `empresa-${nombre.toLowerCase().replace(/\s+/g, '-')}`, // ID temporal para navegación
-        nombre, 
-        count 
-      }))
+    const empresas = Array.from(empresaStats.values())
       .sort((a, b) => b.count - a.count);
 
     const departamentos = Array.from(departamentoStats.values())
-      .map(depto => ({
-        ...depto,
-        id: `depto-${depto.nombre.toLowerCase().replace(/\s+/g, '-')}-${depto.empresa.toLowerCase().replace(/\s+/g, '-')}` // ID temporal para navegación
-      }))
       .sort((a, b) => b.count - a.count);
 
     const empleados = Array.from(empleadoStats.values())
       .sort((a, b) => b.count - a.count);
 
     const ubicaciones = Array.from(ubicacionStats.values())
-      .map(ubicacion => ({
-        ...ubicacion,
-        id: `ubicacion-${ubicacion.nombre.toLowerCase().replace(/\s+/g, '-')}` // ID temporal para navegación
-      }))
       .sort((a, b) => b.count - a.count);
 
     const stats = {

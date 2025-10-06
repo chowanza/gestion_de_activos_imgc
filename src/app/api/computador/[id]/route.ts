@@ -64,6 +64,9 @@ export async function GET(request: NextRequest) {
                       }
                     },
                     ubicacion: true
+                  },
+                  orderBy: {
+                    date: 'desc'
                   }
                 },
                 historialModificaciones: {
@@ -102,8 +105,9 @@ export async function GET(request: NextRequest) {
           } : null
         }));
 
-        // Obtener ubicación de la asignación activa
-        const ubicacion = asignacionActiva?.ubicacion || null;
+        // Obtener ubicación de la asignación activa o la más reciente
+        const ubicacion = asignacionActiva?.ubicacion || 
+          computador.asignaciones.find(a => a.ubicacion)?.ubicacion || null;
 
         // Crear objeto computador mapeado
         const computadorMapeado = {

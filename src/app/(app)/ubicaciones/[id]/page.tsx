@@ -42,6 +42,7 @@ interface Computador {
     };
   }>;
   empleado?: {
+    id: string;
     nombre: string;
     apellido: string;
     departamento: {
@@ -68,6 +69,7 @@ interface Dispositivo {
     };
   }>;
   empleado?: {
+    id: string;
     nombre: string;
     apellido: string;
     departamento: {
@@ -244,49 +246,74 @@ export default function UbicacionDetailsPage() {
     );
   }
 
-  const totalEquipos = ubicacion.asignacionesEquipos?.length || 0;
+  // Calcular total de equipos únicos después de obtener las listas
   
-  // Funciones auxiliares para obtener equipos de las asignaciones
+  // Funciones auxiliares para obtener equipos únicos de las asignaciones
   const getComputadores = () => {
     if (!ubicacion.asignacionesEquipos) return [];
-    return ubicacion.asignacionesEquipos
+    
+    // Crear un mapa para evitar duplicados, manteniendo la asignación más reciente
+    const computadoresMap = new Map();
+    
+    ubicacion.asignacionesEquipos
       .filter(asignacion => asignacion.computador)
-      .map(asignacion => ({
-        ...asignacion.computador!,
-        empleado: asignacion.targetEmpleado ? {
-          nombre: asignacion.targetEmpleado.nombre,
-          apellido: asignacion.targetEmpleado.apellido,
-          departamento: {
-            nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
-            empresa: {
-              nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
-            }
-          }
-        } : undefined
-      }));
+      .forEach(asignacion => {
+        const computadorId = asignacion.computador!.id;
+        if (!computadoresMap.has(computadorId)) {
+          computadoresMap.set(computadorId, {
+            ...asignacion.computador!,
+            empleado: asignacion.targetEmpleado ? {
+              id: asignacion.targetEmpleado.id,
+              nombre: asignacion.targetEmpleado.nombre,
+              apellido: asignacion.targetEmpleado.apellido,
+              departamento: {
+                nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+                empresa: {
+                  nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
+                }
+              }
+            } : undefined
+          });
+        }
+      });
+    
+    return Array.from(computadoresMap.values());
   };
 
   const getDispositivos = () => {
     if (!ubicacion.asignacionesEquipos) return [];
-    return ubicacion.asignacionesEquipos
+    
+    // Crear un mapa para evitar duplicados, manteniendo la asignación más reciente
+    const dispositivosMap = new Map();
+    
+    ubicacion.asignacionesEquipos
       .filter(asignacion => asignacion.dispositivo)
-      .map(asignacion => ({
-        ...asignacion.dispositivo!,
-        empleado: asignacion.targetEmpleado ? {
-          nombre: asignacion.targetEmpleado.nombre,
-          apellido: asignacion.targetEmpleado.apellido,
-          departamento: {
-            nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
-            empresa: {
-              nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
-            }
-          }
-        } : undefined
-      }));
+      .forEach(asignacion => {
+        const dispositivoId = asignacion.dispositivo!.id;
+        if (!dispositivosMap.has(dispositivoId)) {
+          dispositivosMap.set(dispositivoId, {
+            ...asignacion.dispositivo!,
+            empleado: asignacion.targetEmpleado ? {
+              id: asignacion.targetEmpleado.id,
+              nombre: asignacion.targetEmpleado.nombre,
+              apellido: asignacion.targetEmpleado.apellido,
+              departamento: {
+                nombre: asignacion.targetEmpleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+                empresa: {
+                  nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
+                }
+              }
+            } : undefined
+          });
+        }
+      });
+    
+    return Array.from(dispositivosMap.values());
   };
 
   const computadores = getComputadores();
   const dispositivos = getDispositivos();
+  const totalEquipos = computadores.length + dispositivos.length;
 
   return (
     <div className="space-y-6">
@@ -467,7 +494,7 @@ export default function UbicacionDetailsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/empleados?search=${computador.empleado?.nombre} ${computador.empleado?.apellido}`)}
+                            onClick={() => router.push(`/empleados/${computador.empleado?.id}`)}
                             className="h-8 w-8 p-0"
                           >
                             <User className="h-4 w-4" />
@@ -550,7 +577,7 @@ export default function UbicacionDetailsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/empleados?search=${dispositivo.empleado?.nombre} ${dispositivo.empleado?.apellido}`)}
+                            onClick={() => router.push(`/empleados/${dispositivo.empleado?.id}`)}
                             className="h-8 w-8 p-0"
                           >
                             <User className="h-4 w-4" />

@@ -130,11 +130,29 @@ export default function UbicacionesPage() {
     (ubicacion.direccion && ubicacion.direccion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Función auxiliar para obtener conteos de equipos por ubicación
+  // Función auxiliar para obtener conteos únicos de equipos por ubicación
   const getEquiposCount = (ubicacion: Ubicacion) => {
-    const computadores = ubicacion.asignacionesEquipos?.filter((asignacion: any) => asignacion.computador)?.length || 0;
-    const dispositivos = ubicacion.asignacionesEquipos?.filter((asignacion: any) => asignacion.dispositivo)?.length || 0;
-    return { computadores, dispositivos };
+    if (!ubicacion.asignacionesEquipos) {
+      return { computadores: 0, dispositivos: 0 };
+    }
+
+    // Crear sets para evitar duplicados
+    const computadoresUnicos = new Set();
+    const dispositivosUnicos = new Set();
+
+    ubicacion.asignacionesEquipos.forEach((asignacion: any) => {
+      if (asignacion.computador) {
+        computadoresUnicos.add(asignacion.computador.id);
+      }
+      if (asignacion.dispositivo) {
+        dispositivosUnicos.add(asignacion.dispositivo.id);
+      }
+    });
+
+    return { 
+      computadores: computadoresUnicos.size, 
+      dispositivos: dispositivosUnicos.size 
+    };
   };
 
   if (loading) {

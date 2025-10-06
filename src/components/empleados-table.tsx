@@ -650,11 +650,6 @@ const columns: ColumnDef<Empleado>[] = [
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/empleados/${empleado.id}/asigned`}>
-                  Ver Asignados
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link href={`/empleados/${empleado.id}/editar`}>
                     Editar Empleado
                 </Link>

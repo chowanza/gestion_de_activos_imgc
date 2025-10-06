@@ -58,6 +58,198 @@ npx tsx scripts/verify-all-operational.ts
 📊 DISPOSITIVOS: Total: 50, OPERATIVO: 50 (100%)
 ```
 
+### `scripts/verificar-ubicaciones-equipos.ts`
+**Propósito**: Verificar la integridad de datos de ubicación de equipos.
+
+**Funcionalidad**:
+- Busca un equipo específico (COMP000002) en la base de datos
+- Compara datos entre endpoints de lista y detalles
+- Valida consistencia de ubicaciones
+- Verifica que la lógica de ubicación funcione correctamente
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-ubicaciones-equipos.ts
+```
+
+**Output esperado**:
+```
+✅ COMP000002 encontrado
+✅ Ubicaciones consistentes entre lista y detalles
+✅ Lógica de ubicación funciona correctamente
+```
+
+### `scripts/verificar-equipos-sin-ubicacion.ts`
+**Propósito**: Identificar equipos que no tienen ubicación asignada.
+
+**Funcionalidad**:
+- Analiza todos los computadores y dispositivos
+- Identifica equipos sin ubicación en asignaciones
+- Genera estadísticas por estado
+- Lista ubicaciones disponibles y equipos asignados
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-equipos-sin-ubicacion.ts
+```
+
+**Output esperado**:
+```
+📊 RESULTADOS:
+   - Total computadores: 100
+   - Computadores sin ubicación: 5
+   - Total dispositivos: 50
+   - Dispositivos sin ubicación: 2
+```
+
+### `scripts/verificar-detalles-ubicacion.ts`
+**Propósito**: Verificar que los detalles de ubicación muestren correctamente los equipos.
+
+**Funcionalidad**:
+- Verifica que una ubicación específica muestre todos sus equipos
+- Compara datos entre API y frontend
+- Valida que no haya equipos duplicados
+- Analiza consistencia de datos
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-detalles-ubicacion.ts
+```
+
+**Output esperado**:
+```
+✅ Ubicación encontrada: Telematica
+✅ Número total de equipos coincide
+✅ No hay computadores duplicados en el endpoint
+📊 EQUIPOS EN LA UBICACIÓN: 3 computadores
+```
+
+### `scripts/verificar-navegacion-empleados.ts`
+**Propósito**: Verificar que la navegación a empleados desde ubicaciones funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que los empleados tengan IDs válidos en los datos de ubicación
+- Valida que la estructura de datos sea correcta para la navegación
+- Comprueba existencia de empleados en la base de datos
+- Genera URLs de navegación para verificación
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-empleados.ts
+```
+
+**Output esperado**:
+```
+✅ Ubicación encontrada: Telematica
+✅ Todos los empleados tienen IDs válidos para navegación
+🔗 Jorge Rodriguez → /empleados/3ce9ce06-ece6-4846-b234-d63a78918a9c
+```
+
+### `scripts/verificar-conteo-ubicaciones.ts`
+**Propósito**: Verificar que el conteo de equipos en la lista de ubicaciones funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que el conteo de equipos sea consistente entre API y base de datos
+- Valida que solo se cuenten equipos únicos (evita duplicados)
+- Compara conteos de computadores y dispositivos
+- Analiza asignaciones activas e inactivas
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-conteo-ubicaciones.ts
+```
+
+**Output esperado**:
+```
+✅ Ubicaciones encontradas en BD: 1
+✅ Ubicaciones obtenidas del API: 1
+✅ Todos los conteos totales son consistentes
+📊 Computadores únicos: 2, Total asignaciones: 3
+```
+
+### `scripts/verificar-detalles-catalogo.ts`
+**Propósito**: Verificar que la información de uso en detalles del catálogo esté correcta.
+
+**Funcionalidad**:
+- Verifica que equipos asignados tengan empresa, departamento, empleado y ubicación
+- Verifica que equipos no asignados tengan al menos ubicación
+- Valida consistencia de datos entre asignaciones activas e inactivas
+- Comprueba reglas de negocio para integridad de datos
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-detalles-catalogo.ts
+```
+
+**Output esperado**:
+```
+✅ ASIGNADO: Empleado: Jorge Rodriguez, Empresa: IMGC IRON
+⚠️ NO ASIGNADO: Solo tiene ubicación: Telematica
+✅ Todas las reglas de negocio se cumplen correctamente
+```
+
+### `scripts/verificar-endpoint-catalogo-details.ts`
+**Propósito**: Verificar que el endpoint de detalles del catálogo funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que el endpoint /api/modelos/[id]/details devuelva datos correctos
+- Valida que las estadísticas de uso sean consistentes con la base de datos
+- Comprueba que las ubicaciones se muestren incluso para equipos no asignados
+- Analiza consistencia entre API y base de datos
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-endpoint-catalogo-details.ts
+```
+
+**Output esperado**:
+```
+✅ CORRECTO: Se muestran ubicaciones para los equipos
+✅ Todos los modelos con equipos tienen ubicaciones mostradas
+```
+
+### `scripts/verificar-navegacion-catalogo-details.ts`
+**Propósito**: Verificar que la navegación desde detalles del catálogo funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que el endpoint devuelva IDs reales para empresas, departamentos, empleados y ubicaciones
+- Valida que las URLs de navegación sean correctas
+- Comprueba que las páginas de destino existan en la base de datos
+- Analiza consistencia entre IDs del endpoint y BD
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-catalogo-details.ts
+```
+
+**Output esperado**:
+```
+✅ Los botones de navegación están configurados correctamente
+✅ Los IDs reales se están devolviendo desde el endpoint
+✅ Las URLs de navegación son válidas
+```
+
+### `scripts/verificar-conteo-por-modelo.ts`
+**Propósito**: Verificar que el conteo de equipos por modelo en ubicaciones sea correcto.
+
+**Funcionalidad**:
+- Verifica que el conteo de equipos en ubicaciones sea por modelo específico, no total
+- Valida que no haya duplicados en el conteo
+- Comprueba consistencia entre endpoint y base de datos
+- Analiza que la suma por ubicaciones no exceda el total del modelo
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-conteo-por-modelo.ts
+```
+
+**Output esperado**:
+```
+✅ El conteo de equipos por modelo en ubicaciones está funcionando correctamente
+✅ No hay duplicados en el conteo
+✅ Los conteos coinciden entre API y base de datos
+```
+
 ### `scripts/fix-equipment-states.ts`
 **Propósito**: Corregir estados de equipos a OPERATIVO.
 

@@ -34,7 +34,6 @@ export async function GET(request: Request) {
           }
         },
         asignaciones: {
-          where: { activo: true },
           include: {
             ubicacion: true,
             targetEmpleado: {
@@ -54,6 +53,9 @@ export async function GET(request: Request) {
                 }
               }
             }
+          },
+          orderBy: {
+            date: 'desc'
           }
         }
       },
@@ -66,7 +68,13 @@ export async function GET(request: Request) {
     const computadoresTransformados = computadores.map(computador => {
       const modeloEquipo = computador.computadorModelos[0]?.modeloEquipo;
       const marca = modeloEquipo?.marcaModelos[0]?.marca;
-      const asignacionActiva = computador.asignaciones[0];
+      
+      // Obtener asignación activa (la más reciente que esté activa)
+      const asignacionActiva = computador.asignaciones.find(a => a.activo) || null;
+      
+      // Obtener ubicación de la asignación activa o de la más reciente que tenga ubicación
+      const ubicacion = asignacionActiva?.ubicacion || 
+        computador.asignaciones.find(a => a.ubicacion)?.ubicacion || null;
       
       return {
         id: computador.id,
@@ -94,7 +102,7 @@ export async function GET(request: Request) {
           img: modeloEquipo.img,
           marca: marca ? { nombre: marca.nombre } : { nombre: 'Sin marca' }
         } : null,
-        ubicacion: asignacionActiva?.ubicacion || null,
+        ubicacion: ubicacion,
         empleado: asignacionActiva?.targetEmpleado ? {
           id: asignacionActiva.targetEmpleado.id,
           nombre: asignacionActiva.targetEmpleado.nombre,
@@ -213,7 +221,7 @@ export async function POST(request: Request) {
           actionType: 'CREACION',
           targetType: 'UBICACION',
           itemType: 'COMPUTADOR',
-          activo: true,
+          activo: false, // Las asignaciones de creación no deben estar activas
           notes: 'Ubicación asignada durante la creación del computador'
         },
       });

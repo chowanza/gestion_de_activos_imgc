@@ -55,7 +55,7 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
   // Función para obtener el historial de asignaciones de usuarios (solo asignaciones, no devoluciones)
   const getAssignmentHistory = () => {
     const assignments = equipo.historial
-      .filter(entry => entry.tipo === 'asignacion' && entry.detalle.actionType === 'Assignment')
+      .filter(entry => entry.tipo === 'asignacion' && (entry.detalle.actionType === 'Assignment' || entry.detalle.actionType === 'ASIGNACION'))
       .map(entry => {
         const detalle = entry.detalle;
         return {
@@ -86,7 +86,7 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
     if (equipo.estado !== 'ASIGNADO' || !equipo.empleado) return null;
     
     const currentAssignment = equipo.historial
-      .filter(entry => entry.tipo === 'asignacion' && entry.detalle.actionType === 'Assignment')
+      .filter(entry => entry.tipo === 'asignacion' && (entry.detalle.actionType === 'Assignment' || entry.detalle.actionType === 'ASIGNACION'))
       .find(entry => {
         const detalle = entry.detalle;
         return detalle.targetEmpleado?.id === equipo.empleado?.id;

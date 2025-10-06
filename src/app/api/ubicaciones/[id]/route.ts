@@ -12,9 +12,6 @@ export async function GET(
       where: { id },
       include: {
         asignacionesEquipos: {
-          where: {
-            activo: true
-          },
           include: {
             computador: {
               include: {
@@ -52,17 +49,20 @@ export async function GET(
             },
             targetEmpleado: {
               include: {
-            organizaciones: {
-              where: {
-                activo: true
-              },
-              include: {
-                departamento: true,
-                empresa: true
+                organizaciones: {
+                  where: {
+                    activo: true
+                  },
+                  include: {
+                    departamento: true,
+                    empresa: true
+                  }
+                }
               }
             }
-              }
-            }
+          },
+          orderBy: {
+            date: 'desc'
           }
         }
       }
