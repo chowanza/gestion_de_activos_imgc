@@ -250,6 +250,72 @@ npx tsx scripts/verificar-conteo-por-modelo.ts
 ✅ Los conteos coinciden entre API y base de datos
 ```
 
+### `scripts/verificar-navegacion-rapida.ts`
+**Propósito**: Verificar que la navegación rápida funcione correctamente en detalles de activos.
+
+**Funcionalidad**:
+- Verifica que las rutas de navegación sean correctas
+- Comprueba que los IDs de entidades existan en la base de datos
+- Valida que las páginas de destino sean accesibles
+- Genera URLs de navegación para verificación manual
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-rapida.ts
+```
+
+**Output esperado**:
+```
+✅ Navegación rápida implementada correctamente
+✅ Todas las entidades existen en la base de datos
+✅ Los endpoints devuelven los IDs correctos
+✅ Las páginas de destino son accesibles
+```
+
+### `scripts/verificar-navegacion-historial-asignaciones.ts`
+**Propósito**: Verificar que la navegación rápida funcione correctamente en el historial de asignaciones.
+
+**Funcionalidad**:
+- Verifica que los botones de navegación aparezcan en el historial de asignaciones
+- Comprueba que los IDs de empleados, departamentos y empresas del historial existan
+- Valida que las rutas de navegación sean correctas
+- Analiza la estructura de datos del historial
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-historial-asignaciones.ts
+```
+
+**Output esperado**:
+```
+✅ Navegación rápida en historial implementada correctamente
+✅ Botones de ojo agregados para empleados, departamentos y empresas
+✅ Todas las entidades del historial existen en la base de datos
+✅ Los endpoints devuelven los datos correctos
+```
+
+### `scripts/verificar-navegacion-ubicaciones.ts`
+**Propósito**: Verificar que la navegación rápida funcione correctamente para ubicaciones.
+
+**Funcionalidad**:
+- Verifica que los botones de navegación aparezcan en los campos de ubicación
+- Comprueba que los IDs de ubicaciones existan en la base de datos
+- Valida que las rutas de navegación sean correctas
+- Analiza la estructura de datos de ubicaciones
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-ubicaciones.ts
+```
+
+**Output esperado**:
+```
+✅ Navegación rápida para ubicaciones implementada correctamente
+✅ Botones de ojo agregados en campos de ubicación
+✅ Todas las ubicaciones existen en la base de datos
+✅ Los endpoints devuelven los datos correctos
+```
+
 ### `scripts/fix-equipment-states.ts`
 **Propósito**: Corregir estados de equipos a OPERATIVO.
 

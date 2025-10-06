@@ -57,6 +57,7 @@ import { EquipmentUsersSection } from "@/components/EquipmentUsersSection"
 import NuevoEquipmentStatusModal from "@/components/NuevoEquipmentStatusModal"
 import { TimelineFilters } from "@/components/TimelineFilters"
 import { useTimelineFilters } from "@/hooks/useTimelineFilters"
+import { QuickNavigationButton } from "@/components/QuickNavigationButton"
 
 
 // Define la interfaz para una entrada de modificación
@@ -632,17 +633,25 @@ const departamentoTag = (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-1">
                           <p className="text-xs text-gray-600 uppercase tracking-wider">Ubicación</p>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 text-gray-600 mr-2" />
-                            <div>
-                              <p className="text-sm text-gray-800">{equipo.ubicacion?.nombre || 'Sin ubicación'}</p>
-                              {equipo.ubicacion?.piso && (
-                                <p className="text-xs text-gray-600">Piso: {equipo.ubicacion.piso}</p>
-                              )}
-                              {equipo.ubicacion?.sala && (
-                                <p className="text-xs text-gray-600">Sala: {equipo.ubicacion.sala}</p>
-                              )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 text-gray-600 mr-2" />
+                              <div>
+                                <p className="text-sm text-gray-800">{equipo.ubicacion?.nombre || 'Sin ubicación'}</p>
+                                {equipo.ubicacion?.piso && (
+                                  <p className="text-xs text-gray-600">Piso: {equipo.ubicacion.piso}</p>
+                                )}
+                                {equipo.ubicacion?.sala && (
+                                  <p className="text-xs text-gray-600">Sala: {equipo.ubicacion.sala}</p>
+                                )}
+                              </div>
                             </div>
+                            {equipo.ubicacion?.id && (
+                              <QuickNavigationButton 
+                                id={equipo.ubicacion.id} 
+                                type="ubicacion" 
+                              />
+                            )}
                           </div>
                         </div>
 
@@ -661,19 +670,35 @@ const departamentoTag = (
                           <>
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Departamento</p>
-                              <div className="flex items-center">
-                                <Tag className="h-4 w-4 text-gray-600 mr-2" />
-                                <p className="text-sm text-gray-800">{departamentoTag}</p>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Tag className="h-4 w-4 text-gray-600 mr-2" />
+                                  <p className="text-sm text-gray-800">{departamentoTag}</p>
+                                </div>
+                                {equipo.empleado?.departamento?.id && (
+                                  <QuickNavigationButton 
+                                    id={equipo.empleado.departamento.id} 
+                                    type="departamento" 
+                                  />
+                                )}
                               </div>
                             </div>
 
                             <div className="space-y-1">
                               <p className="text-xs text-gray-600 uppercase tracking-wider">Empresa</p>
-                              <div className="flex items-center">
-                                <Building className="h-4 w-4 text-gray-600 mr-2" />
-                                <p className="text-sm text-gray-800">
-                                  {equipo.empleado?.empresa?.nombre || "N/A"}
-                                </p>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Building className="h-4 w-4 text-gray-600 mr-2" />
+                                  <p className="text-sm text-gray-800">
+                                    {equipo.empleado?.empresa?.nombre || "N/A"}
+                                  </p>
+                                </div>
+                                {equipo.empleado?.empresa?.id && (
+                                  <QuickNavigationButton 
+                                    id={equipo.empleado.empresa.id} 
+                                    type="empresa" 
+                                  />
+                                )}
                               </div>
                             </div>
                           </>

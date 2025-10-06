@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { QuickNavigationButton } from '@/components/QuickNavigationButton';
 
 interface EquipmentUsersSectionProps {
   equipo: {
@@ -158,7 +159,12 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                   )}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right flex flex-col items-end">
+                <QuickNavigationButton 
+                  id={equipo.empleado.id} 
+                  type="empleado" 
+                  className="mb-2"
+                />
                 <p className="text-xs text-gray-600">Asignado desde</p>
                 <p className="text-sm text-gray-800">
                   {currentAssignmentDate ? formatDate(currentAssignmentDate) : 'Fecha no disponible'}
@@ -278,18 +284,42 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                               <p className="text-xs text-gray-600">{typeof assignment.empleado.cargo === 'string' ? assignment.empleado.cargo : assignment.empleado.cargo?.nombre || 'Sin cargo'}</p>
                             )}
                             {assignment.empleado?.departamento && (
-                              <p className="text-xs text-gray-500">
-                                Dpto: {typeof assignment.empleado.departamento === 'string' ? assignment.empleado.departamento : assignment.empleado.departamento?.nombre || 'Sin departamento'}
-                              </p>
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs text-gray-500">
+                                  Dpto: {typeof assignment.empleado.departamento === 'string' ? assignment.empleado.departamento : assignment.empleado.departamento?.nombre || 'Sin departamento'}
+                                </p>
+                                {typeof assignment.empleado.departamento === 'object' && assignment.empleado.departamento?.id && (
+                                  <QuickNavigationButton 
+                                    id={assignment.empleado.departamento.id} 
+                                    type="departamento"
+                                    className="h-4 w-4"
+                                  />
+                                )}
+                              </div>
                             )}
                             {assignment.empleado?.empresa && (
-                              <p className="text-xs text-gray-500">
-                                Empresa: {typeof assignment.empleado.empresa === 'string' ? assignment.empleado.empresa : assignment.empleado.empresa?.nombre || 'Sin empresa'}
-                              </p>
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs text-gray-500">
+                                  Empresa: {typeof assignment.empleado.empresa === 'string' ? assignment.empleado.empresa : assignment.empleado.empresa?.nombre || 'Sin empresa'}
+                                </p>
+                                {typeof assignment.empleado.empresa === 'object' && assignment.empleado.empresa?.id && (
+                                  <QuickNavigationButton 
+                                    id={assignment.empleado.empresa.id} 
+                                    type="empresa"
+                                    className="h-4 w-4"
+                                  />
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          {assignment.empleado?.id && (
+                            <QuickNavigationButton 
+                              id={assignment.empleado.id} 
+                              type="empleado" 
+                            />
+                          )}
                           <p className="text-xs text-gray-600">{formatDate(assignment.fecha)}</p>
                           <Badge className={`${getActionBadgeColor()} text-xs`}>
                             Asignado
