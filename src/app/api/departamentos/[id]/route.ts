@@ -105,7 +105,16 @@ export async function GET(
               select: {
                 id: true,
                 nombre: true,
-                descripcion: true
+                descripcion: true,
+                _count: {
+                  select: {
+                    empleadoOrganizaciones: {
+                      where: {
+                        activo: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -260,7 +269,16 @@ export async function PUT(
               select: {
                 id: true,
                 nombre: true,
-                descripcion: true
+                descripcion: true,
+                _count: {
+                  select: {
+                    empleadoOrganizaciones: {
+                      where: {
+                        activo: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }

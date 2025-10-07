@@ -25,11 +25,13 @@ import {
   Eye,
   Edit,
   Plus,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 import DepartamentoForm from "@/components/DeptoForm";
 import EmpleadoForm from "@/components/EmpleadoForm";
+import CargoForm from "@/components/CargoForm";
 
 interface DepartamentoDetails {
   id: string;
@@ -125,34 +127,36 @@ export default function DepartamentoDetailsPage() {
   // Estados para modales
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEmpleadoModalOpen, setIsEmpleadoModalOpen] = useState(false);
+  const [isCargoModalOpen, setIsCargoModalOpen] = useState(false);
+  const [editingCargo, setEditingCargo] = useState<any>(null);
   
   // Estados para datos del formulario
   const [empresas, setEmpresas] = useState<any[]>([]);
   const [empleados, setEmpleados] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchDepartamento = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/departamentos/${id}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Departamento no encontrado');
-          }
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
+  const fetchDepartamento = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/departamentos/${id}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Departamento no encontrado');
         }
-        
-        const data = await response.json();
-        setDepartamento(data);
-      } catch (err: any) {
-        setError(err.message);
-        showToast.error(`Error al cargar departamento: ${err.message}`);
-      } finally {
-        setLoading(false);
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-    };
+      
+      const data = await response.json();
+      setDepartamento(data);
+    } catch (err: any) {
+      setError(err.message);
+      showToast.error(`Error al cargar departamento: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (id) {
       fetchDepartamento();
     }
@@ -182,6 +186,52 @@ export default function DepartamentoDetailsPage() {
 
     fetchFormData();
   }, []);
+
+  // Funciones para manejar cargos
+  const handleCreateCargo = () => {
+    setEditingCargo(null);
+    setIsCargoModalOpen(true);
+  };
+
+  const handleEditCargo = (cargo: any) => {
+    setEditingCargo(cargo);
+    setIsCargoModalOpen(true);
+  };
+
+  const handleDeleteCargo = async (cargoId: string, cargoNombre: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar el cargo "${cargoNombre}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/departamentos/${id}/cargos/${cargoId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al eliminar el cargo');
+      }
+
+      showToast.success('Cargo eliminado exitosamente');
+      // Recargar los datos del departamento
+      if (id) {
+        fetchDepartamento();
+      }
+    } catch (error: any) {
+      console.error('Error al eliminar cargo:', error);
+      showToast.error(error.message || 'Error al eliminar el cargo');
+    }
+  };
+
+  const handleCargoSuccess = () => {
+    setIsCargoModalOpen(false);
+    setEditingCargo(null);
+    // Recargar los datos del departamento
+    if (id) {
+      fetchDepartamento();
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -652,10 +702,16 @@ export default function DepartamentoDetailsPage() {
       {/* Cargos */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Briefcase className="h-5 w-5 mr-2" />
-            Cargos ({departamento.departamentoCargos?.length || 0})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Briefcase className="h-5 w-5 mr-2" />
+              Cargos ({departamento.departamentoCargos?.length || 0})
+            </CardTitle>
+            <Button onClick={handleCreateCargo} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Cargo
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {departamento.departamentoCargos && departamento.departamentoCargos.length > 0 ? (
@@ -663,8 +719,31 @@ export default function DepartamentoDetailsPage() {
               {departamento.departamentoCargos.map((deptCargo) => (
                 <div key={deptCargo.cargo.id} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold">{deptCargo.cargo.nombre}</h4>
-                    <Badge variant="secondary">Cargo</Badge>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-semibold">{deptCargo.cargo.nombre}</h4>
+                      <Badge variant="secondary" className="flex items-center">
+                        <Users className="h-3 w-3 mr-1" />
+                        {deptCargo.cargo._count?.empleadoOrganizaciones || 0}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditCargo(deptCargo.cargo)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCargo(deptCargo.cargo.id, deptCargo.cargo.nombre)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   {deptCargo.cargo.descripcion && (
                     <p className="text-sm text-gray-600">{deptCargo.cargo.descripcion}</p>
@@ -673,7 +752,14 @@ export default function DepartamentoDetailsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No hay cargos definidos en este departamento</p>
+            <div className="text-center py-8">
+              <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No hay cargos definidos en este departamento</p>
+              <Button onClick={handleCreateCargo} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Crear Primer Cargo
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -806,6 +892,18 @@ export default function DepartamentoDetailsPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Cargo Modal */}
+      <CargoForm
+        isOpen={isCargoModalOpen}
+        onClose={() => {
+          setIsCargoModalOpen(false);
+          setEditingCargo(null);
+        }}
+        onSuccess={handleCargoSuccess}
+        departamentoId={id as string}
+        cargo={editingCargo}
+      />
     </div>
   );
 }

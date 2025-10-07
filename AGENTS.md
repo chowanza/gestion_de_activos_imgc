@@ -316,6 +316,71 @@ npx tsx scripts/verificar-navegacion-ubicaciones.ts
 ✅ Los endpoints devuelven los datos correctos
 ```
 
+### `scripts/verificar-boton-volver-ubicacion.ts`
+**Propósito**: Verificar que el botón de volver en detalles de ubicación funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que el botón de volver use router.back() en lugar de navegación fija
+- Comprueba que la página de detalles de ubicación sea accesible
+- Valida que la navegación funcione desde diferentes orígenes
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-boton-volver-ubicacion.ts
+```
+
+**Output esperado**:
+```
+✅ Botón de volver modificado para usar router.back()
+✅ Navegación mejorada para regresar a la pantalla anterior
+✅ URLs de prueba generadas para verificación manual
+```
+
+### `scripts/verificar-navegacion-historial-empleados.ts`
+**Propósito**: Verificar que la navegación rápida funcione correctamente en el historial de asignaciones de empleados.
+
+**Funcionalidad**:
+- Verifica que los botones de navegación aparezcan en el historial de asignaciones
+- Comprueba que los IDs de equipos del historial existan en la base de datos
+- Valida que las rutas de navegación sean correctas
+- Analiza la estructura de datos del historial de empleados
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-navegacion-historial-empleados.ts
+```
+
+**Output esperado**:
+```
+✅ Navegación rápida en historial de empleados implementada correctamente
+✅ Botones de ojo agregados para equipos en el historial
+✅ Todos los equipos del historial existen en la base de datos
+✅ Los endpoints devuelven los datos correctos
+```
+
+### `scripts/verificar-gestion-cargos-departamento.ts`
+**Propósito**: Verificar que la gestión de cargos en departamentos funcione correctamente.
+
+**Funcionalidad**:
+- Verifica que se puedan crear, editar y eliminar cargos en departamentos
+- Comprueba que el conteo de empleados por cargo funcione correctamente
+- Valida que los endpoints de la API respondan correctamente
+- Analiza la estructura de datos de cargos
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-gestion-cargos-departamento.ts
+```
+
+**Output esperado**:
+```
+✅ Gestión de cargos en departamentos implementada correctamente
+✅ Funcionalidad CRUD (Crear, Leer, Actualizar, Eliminar) disponible
+✅ Conteo de empleados por cargo funcionando
+✅ Endpoints de API respondiendo correctamente
+✅ Validaciones de negocio implementadas
+```
+
 ### `scripts/fix-equipment-states.ts`
 **Propósito**: Corregir estados de equipos a OPERATIVO.
 

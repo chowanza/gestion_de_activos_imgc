@@ -320,7 +320,7 @@ export default function UbicacionDetailsPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/ubicaciones')}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

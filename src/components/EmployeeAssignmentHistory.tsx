@@ -12,7 +12,8 @@ import {
   MapPin,
   FileText,
   UserCheck,
-  UserX
+  UserX,
+  Eye
 } from 'lucide-react';
 import { formatDate } from '@/utils/formatDate';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface EmployeeAssignmentHistoryProps {
   historial: Array<{
@@ -46,6 +48,19 @@ interface EmployeeAssignmentHistoryProps {
 
 export function EmployeeAssignmentHistory({ historial, loading = false }: EmployeeAssignmentHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter();
+
+  // Función para navegar a los detalles del equipo
+  const handleNavigateToEquipment = (entry: any) => {
+    const equipmentType = entry.item.tipo.toLowerCase();
+    const equipmentId = entry.item.id;
+    
+    if (equipmentType === 'computador') {
+      router.push(`/computadores/${equipmentId}/details`);
+    } else if (equipmentType === 'dispositivo') {
+      router.push(`/dispositivos/${equipmentId}/details`);
+    }
+  };
 
   // Filtrar historial basado en el término de búsqueda
   const filteredHistorial = historial.filter(entry => {
@@ -189,6 +204,13 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
                         <span className="ml-2">{message.title}</span>
                       </h3>
                       <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleNavigateToEquipment(entry)}
+                          className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                          title={`Ver detalles del ${entry.item.tipo.toLowerCase()}`}
+                        >
+                          <Eye className="h-4 w-4 text-gray-600 hover:text-blue-600" />
+                        </button>
                         <p className="text-xs text-gray-600">{formatDate(entry.fecha)}</p>
                         <Badge className={`${getBadgeColor(message.color)} text-xs`}>
                           {message.badge}
