@@ -10,6 +10,7 @@ import { showToast } from "nextjs-toast-notify"; // Usando el componente de scro
 import Link from 'next/link';
 import { RadioGroupItem, RadioGroup } from '@/components/ui/radio-group';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
+import { Camera, X, Upload } from 'lucide-react';
 
 // --- Interfaces y Tipos (sin cambios) ---
 interface Modelo {
@@ -65,6 +66,11 @@ export interface ComputadorFormData {
         nombre: string;
         apellido: string;
     };
+    // Campo para evidencia fotográfica
+    evidenciaFotos?: string[];
+    // Campos para motivo y notas de creación
+    motivoCreacion?: string;
+    notasCreacion?: string;
 }
 
 interface ComputadorFormProps {
@@ -101,7 +107,10 @@ const initialState: ComputadorFormData = {
     fechaCompra: '',
     numeroFactura: '',
     proveedor: '',
-    monto: undefined
+    monto: undefined,
+    // Campos para motivo y notas de creación
+    motivoCreacion: '',
+    notasCreacion: ''
 };
 
 const ComputadorForm: React.FC<ComputadorFormProps> = ({
@@ -120,6 +129,10 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
     const [selectedTarget, setSelectedTarget] = useState<any>(null);
     const [isLoadingModelos, setIsLoadingModelos] = useState(false);
     const [isLoadingUbicaciones, setIsLoadingUbicaciones] = useState(false);
+    
+    // Estados para evidencia fotográfica
+    const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
     
     // Estados para la lógica de asignación (ya no se usan - el estado se maneja desde "Gestionar Estado")
 
@@ -231,7 +244,52 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
         // El estado del equipo se maneja desde "Gestionar Estado" en los detalles
 
-        await onSubmit(formData); // Llama a la función del padre para manejar la lógica de API
+        // Incluir evidencia fotográfica en los datos
+        const dataWithImages = {
+            ...formData,
+            evidenciaFotos: uploadedImages
+        };
+
+        await onSubmit(dataWithImages); // Llama a la función del padre para manejar la lógica de API
+    };
+
+    // Función para manejar la subida de imágenes
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            const uploadPromises = Array.from(files).map(async (file) => {
+                const formData = new FormData();
+                formData.append('images', file);
+
+                const response = await fetch('/api/upload/images', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error al subir ${file.name}`);
+                }
+
+                const result = await response.json();
+                return result.images[0]; // Retorna la URL de la imagen
+            });
+
+            const uploadedUrls = await Promise.all(uploadPromises);
+            setUploadedImages(prev => [...prev, ...uploadedUrls]);
+            showToast.success(`${uploadedUrls.length} imagen(es) subida(s) exitosamente`);
+        } catch (error: any) {
+            showToast.error(`Error al subir imágenes: ${error.message}`);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Función para eliminar una imagen
+    const removeImage = (index: number) => {
+        setUploadedImages(prev => prev.filter((_, i) => i !== index));
     };
     
     // Tipos de computadoras permitidos
@@ -427,6 +485,84 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                 />
                             </div>
                         </div>
+
+                        {/* Sección Motivo y Notas de Creación */}
+                        <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Información de Creación</h3>
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="motivoCreacion">Motivo de Creación</Label>
+                                <Input 
+                                    id="motivoCreacion" 
+                                    value={formData.motivoCreacion || ''} 
+                                    onChange={handleInputChange} 
+                                    placeholder="Ej: Nuevo equipo para departamento de tecnología"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="notasCreacion">Notas Adicionales</Label>
+                                <textarea
+                                    id="notasCreacion"
+                                    value={formData.notasCreacion || ''} 
+                                    onChange={(e) => setFormData(prev => ({ ...prev, notasCreacion: e.target.value }))}
+                                    placeholder="Información adicional sobre la creación del equipo..."
+                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Sección Evidencia Fotográfica */}
+                        <h3 className="text-lg font-medium mt-4 glow-text border-b pb-1">Evidencia Fotográfica</h3>
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="evidenciaFotos" className="flex items-center gap-2">
+                                    <Camera className="h-4 w-4" />
+                                    Imágenes de Evidencia
+                                </Label>
+                                <div className="flex flex-col gap-2">
+                                    <Input
+                                        id="evidenciaFotos"
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImageUpload}
+                                        disabled={isUploading}
+                                        className="cursor-pointer"
+                                    />
+                                    {isUploading && (
+                                        <p className="text-sm text-blue-600">Subiendo imágenes...</p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        Puedes subir múltiples imágenes como evidencia del equipo
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Mostrar imágenes subidas */}
+                            {uploadedImages.length > 0 && (
+                                <div className="grid gap-2">
+                                    <Label>Imágenes Subidas:</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {uploadedImages.map((imageUrl, index) => (
+                                            <div key={index} className="relative group">
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={`Evidencia ${index + 1}`}
+                                                    className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeImage(index)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                    <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="outline" onClick={onCancel}>
                             {onCancel ? 'Cancelar' : <Link href="/computadores">Cancelar</Link>}

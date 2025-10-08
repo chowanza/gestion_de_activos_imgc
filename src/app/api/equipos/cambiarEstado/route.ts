@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', body);
     
-    const { equipoId, tipoEquipo, nuevoEstado, motivo, targetEmpleadoId, ubicacionId } = body;
+    const { equipoId, tipoEquipo, nuevoEstado, motivo, targetEmpleadoId, ubicacionId, evidenciaFotos } = body;
+    
+    // Debug: Log del campo evidenciaFotos
+    console.log('🔍 [CambiarEstado API] evidenciaFotos recibido:', evidenciaFotos);
 
     if (!equipoId || !tipoEquipo || !nuevoEstado || !motivo) {
       console.log('Missing required fields:', { equipoId, tipoEquipo, nuevoEstado, motivo });
@@ -246,11 +249,13 @@ export async function POST(request: NextRequest) {
           dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
           motivo: motivo,
           notes: notes,
+          evidenciaFotos: evidenciaFotos || null, // Agregar evidencia fotográfica
           ubicacionId: ubicacionId || null, // Agregar ubicación
           activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
         },
       });
       console.log('Registro de asignación creado exitosamente');
+      console.log('✅ [CambiarEstado API] evidenciaFotos guardado:', nuevaAsignacion.evidenciaFotos);
       console.log('Nueva asignación:', {
         id: nuevaAsignacion.id,
         actionType: nuevaAsignacion.actionType,

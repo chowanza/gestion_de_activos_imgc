@@ -44,6 +44,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get employee associated with the user
+    const empleado = await prisma.empleado.findFirst({
+      where: {
+        email: user.email
+      },
+      select: { id: true }
+    });
+
     // Create intervention record
     const intervention = await prisma.intervencionesEquipos.create({
       data: {
@@ -52,7 +60,7 @@ export async function POST(request: NextRequest) {
         evidenciaFotos: evidenciaFotos || null,
         computadorId: equipmentType === 'computador' ? equipmentId : null,
         dispositivoId: equipmentType === 'dispositivo' ? equipmentId : null,
-        usuarioId: user.id
+        empleadoId: empleado?.id || null
       }
     });
 

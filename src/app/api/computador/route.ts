@@ -123,7 +123,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { modeloId, ...computadorData } = body;
+    const { modeloId, motivoCreacion, notasCreacion, ...computadorData } = body;
     
     // Validación más específica
     const errors = [];
@@ -222,7 +222,26 @@ export async function POST(request: Request) {
           targetType: 'UBICACION',
           itemType: 'COMPUTADOR',
           activo: false, // Las asignaciones de creación no deben estar activas
-          notes: 'Ubicación asignada durante la creación del computador'
+          notes: notasCreacion || 'Ubicación asignada durante la creación del computador',
+          motivo: motivoCreacion || 'Creación de computador',
+          evidenciaFotos: computadorData.evidenciaFotos && computadorData.evidenciaFotos.length > 0 
+            ? computadorData.evidenciaFotos.join(',') 
+            : null
+        },
+      });
+    } else if (computadorData.evidenciaFotos && computadorData.evidenciaFotos.length > 0) {
+      // Si no hay ubicación pero sí hay evidencia fotográfica, crear un registro solo para la evidencia
+      await prisma.asignacionesEquipos.create({
+        data: {
+          computadorId: newEquipo.id,
+          date: new Date(),
+          actionType: 'CREACION',
+          targetType: 'Sistema',
+          itemType: 'COMPUTADOR',
+          activo: false, // Las asignaciones de creación no deben estar activas
+          notes: notasCreacion || 'Evidencia fotográfica de la creación del computador',
+          motivo: motivoCreacion || 'Creación de computador',
+          evidenciaFotos: computadorData.evidenciaFotos.join(',')
         },
       });
     }

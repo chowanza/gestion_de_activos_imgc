@@ -104,6 +104,7 @@ model Empleado {
   asignacionesComoGerente AsignacionesEquipos[]              @relation("GerenteEmpleado")
   gerencias               DepartamentoGerente[]
   statusHistory           EmpleadoStatusHistory[]
+  intervenciones          IntervencionesEquipos[]
 }
 
 // --- EQUIPOS (sin FK a modelo) ---
@@ -170,7 +171,6 @@ model User {
 
   // Relaciones
   movimientos HistorialMovimientos[]
-  intervenciones IntervencionesEquipos[]
 }
 
 // --- TABLAS DE RELACION NORMALIZADAS ---
@@ -330,17 +330,18 @@ model IntervencionesEquipos {
   evidenciaFotos    String?   // URLs de imágenes separadas por comas
   computadorId      String?
   dispositivoId     String?
-  usuarioId         String?
+  empleadoId        String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   computador Computador? @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dispositivo Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuario User? @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleado Empleado? @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([fecha])
   @@index([computadorId])
   @@index([dispositivoId])
+  @@index([empleadoId])
 }
 
 model EmpleadoStatusHistory {

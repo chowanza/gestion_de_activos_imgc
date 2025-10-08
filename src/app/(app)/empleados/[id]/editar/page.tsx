@@ -11,19 +11,21 @@ import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
 function convertToISOFormat(dateString: string): string {
     if (!dateString) return '';
     
-    // Si ya está en formato ISO, devolverlo tal como está
-    if (dateString.includes('-')) return dateString;
+    // Si ya está en formato ISO (YYYY-MM-DD), devolverlo tal como está
+    if (dateString.includes('-') && dateString.length === 10) {
+        // Validar que sea una fecha válida en formato ISO
+        const date = new Date(dateString + 'T00:00:00');
+        if (!isNaN(date.getTime())) {
+            return dateString;
+        }
+    }
     
     // Si está en formato dd/mm/yy, convertir a ISO
     if (dateString.includes('/')) {
         const [day, month, year] = dateString.split('/');
         const fullYear = year.length === 2 ? `20${year}` : year;
         const isoDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        
-        // Ajustar para evitar problemas de zona horaria
-        const date = new Date(isoDate + 'T00:00:00');
-        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-        return localDate.toISOString().split('T')[0];
+        return isoDate;
     }
     
     return dateString;
@@ -36,6 +38,7 @@ export default function EditarEmpleadoPage() {
 
     const [initialData, setInitialData] = useState<EmpleadoFormData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isEmpleadoDesactivado, setIsEmpleadoDesactivado] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -46,17 +49,27 @@ export default function EditarEmpleadoPage() {
                     const data = await response.json();
                     
                     // Mapear campos de la API al formato del formulario
+                    const organizacionActiva = data.organizaciones?.[0]; // Obtener la primera organización activa
                     const mappedData: EmpleadoFormData = {
                         id: data.id,
-                        empresaId: data.departamento?.empresa?.id || '',
-                        departamentoId: data.departamentoId,
+                        empresaId: organizacionActiva?.empresa?.id || '',
+                        departamentoId: organizacionActiva?.departamento?.id || '',
                         nombre: data.nombre,
                         apellido: data.apellido,
                         cedula: data.ced, // Mapear ced a cedula
+                        email: data.email || '',
+                        telefono: data.telefono || '',
+                        direccion: data.direccion || '',
                         fechaNacimiento: data.fechaNacimiento ? convertToISOFormat(data.fechaNacimiento) : '',
                         fechaIngreso: data.fechaIngreso ? convertToISOFormat(data.fechaIngreso) : '',
-                        cargoId: data.cargoId,
+                        fechaDesincorporacion: data.fechaDesincorporacion || '',
+                        fotoPerfil: data.fotoPerfil || '',
+                        cargoId: organizacionActiva?.cargo?.id || '',
                     };
+                    
+                    // Determinar si el empleado está desactivado
+                    const estaDesactivado = !!data.fechaDesincorporacion;
+                    setIsEmpleadoDesactivado(estaDesactivado);
                     
                     setInitialData(mappedData);
                 } catch (error: any) {
@@ -109,6 +122,7 @@ export default function EditarEmpleadoPage() {
                     onSubmit={handleUpdateEmpleado}
                     initialData={initialData}
                     isEditing={true}
+                    isEmpleadoDesactivado={isEmpleadoDesactivado}
                 />
             </CardContent>
         </Card>

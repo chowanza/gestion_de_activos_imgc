@@ -29,6 +29,15 @@ export async function GET(request: NextRequest) {
           await Promise.resolve();
   
         const id = request.nextUrl.pathname.split('/')[3];
+        
+        // Validar que el ID existe y tiene formato UUID válido
+        if (!id || id.length !== 36) {
+          console.error('[GET /api/computador/:id] ID inválido:', id);
+          return NextResponse.json({ 
+            message: 'ID de computador inválido',
+            error: 'Invalid computer ID format'
+          }, { status: 400 });
+        }
         const computador = await prisma.computador.findUnique({
             where: { id },
             include: {
@@ -46,7 +55,23 @@ export async function GET(request: NextRequest) {
                     }
                 },
                 asignaciones: {
-                  include: {
+                  select: {
+                    id: true,
+                    date: true,
+                    notes: true,
+                    actionType: true,
+                    motivo: true,
+                    targetType: true,
+                    itemType: true,
+                    evidenciaFotos: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    activo: true,
+                    targetEmpleadoId: true,
+                    computadorId: true,
+                    dispositivoId: true,
+                    gerenteId: true,
+                    ubicacionId: true,
                     targetEmpleado: {
                       select: {
                         id: true,
@@ -76,11 +101,11 @@ export async function GET(request: NextRequest) {
               },
               intervenciones: {
                 include: {
-                  usuario: {
+                  empleado: {
                     select: {
                       id: true,
-                      username: true,
-                      role: true
+                      nombre: true,
+                      apellido: true
                     }
                   }
                 },
@@ -159,7 +184,7 @@ export async function GET(request: NextRequest) {
         id: intervencion.id,
         notas: intervencion.notas,
         evidenciaFotos: intervencion.evidenciaFotos,
-        usuario: intervencion.usuario,
+        empleado: intervencion.empleado,
         fecha: intervencion.fecha
       }
     }));
@@ -179,8 +204,36 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(responseData, { status: 200 });
 
     } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Error al obtener equipo' }, { status: 500 });
+    console.error('[GET /api/computador/:id] Error:', error);
+    
+    // Proporcionar información más específica sobre el error
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Si es un error de Prisma, proporcionar más contexto
+      if (error.message.includes('prisma') || error.message.includes('database')) {
+        return NextResponse.json({ 
+          message: 'Error de base de datos al obtener computador',
+          error: 'Database connection or query failed',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        }, { status: 500 });
+      }
+      
+      // Si es un error de serialización/formato
+      if (error.message.includes('JSON') || error.message.includes('serialize')) {
+        return NextResponse.json({ 
+          message: 'Error de formato de datos al procesar computador',
+          error: 'Data serialization failed',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        }, { status: 500 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'Error interno del servidor al obtener computador',
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }
 

@@ -192,6 +192,20 @@ export default function EmpleadoDetailsPage() {
 
   const formatDate = (dateString: string | Date) => {
     if (!dateString) return 'Fecha no disponible';
+    
+    // Si es una cadena en formato ISO (YYYY-MM-DD), parsearla correctamente
+    if (typeof dateString === 'string' && dateString.includes('-') && dateString.length === 10) {
+      // Crear la fecha en zona horaria local para evitar el offset de UTC
+      const [year, month, day] = dateString.split('-');
+      const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return localDate.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    
+    // Para otros formatos, usar el comportamiento original
     const date = dateString instanceof Date ? dateString : new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -215,7 +229,16 @@ export default function EmpleadoDetailsPage() {
 
   const calculateAge = (birthDate: string) => {
     const today = new Date();
-    const birth = new Date(birthDate);
+    
+    // Si es una cadena en formato ISO (YYYY-MM-DD), parsearla correctamente
+    let birth: Date;
+    if (birthDate.includes('-') && birthDate.length === 10) {
+      const [year, month, day] = birthDate.split('-');
+      birth = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      birth = new Date(birthDate);
+    }
+    
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     
@@ -917,8 +940,8 @@ export default function EmpleadoDetailsPage() {
               onSubmit={handleUpdateEmpleado}
               initialData={{
                 id: empleado.id,
-                empresaId: empleado.departamento?.empresa?.id || '',
-                departamentoId: empleado.departamento?.id || '',
+                empresaId: empleado.organizaciones?.[0]?.empresa?.id || '',
+                departamentoId: empleado.organizaciones?.[0]?.departamento?.id || '',
                 nombre: empleado.nombre,
                 apellido: empleado.apellido,
                 cedula: empleado.ced,
@@ -929,9 +952,10 @@ export default function EmpleadoDetailsPage() {
                 fechaIngreso: empleado.fechaIngreso || '',
                 fechaDesincorporacion: empleado.fechaDesincorporacion || '',
                 fotoPerfil: empleado.fotoPerfil || '',
-                cargoId: empleado.cargo?.id || '',
+                cargoId: empleado.organizaciones?.[0]?.cargo?.id || '',
               }}
               isEditing={true}
+              isEmpleadoDesactivado={!!empleado.fechaDesincorporacion}
             />
           )}
         </DialogContent>

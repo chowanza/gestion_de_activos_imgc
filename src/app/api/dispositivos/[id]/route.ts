@@ -52,7 +52,23 @@ export async function GET(request: NextRequest) {
                     }
                 },
                 asignaciones: {
-                  include: {
+                  select: {
+                    id: true,
+                    date: true,
+                    notes: true,
+                    actionType: true,
+                    motivo: true,
+                    targetType: true,
+                    itemType: true,
+                    evidenciaFotos: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    activo: true,
+                    targetEmpleadoId: true,
+                    computadorId: true,
+                    dispositivoId: true,
+                    gerenteId: true,
+                    ubicacionId: true,
                     targetEmpleado: {
                       select: {
                         id: true,

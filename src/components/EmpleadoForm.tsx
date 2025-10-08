@@ -55,6 +55,7 @@ interface EmpleadoFormProps {
     onSubmit: (data: EmpleadoFormData) => Promise<void>;
     initialData?: EmpleadoFormData | null;
     isEditing?: boolean; // Añadido para manejar el modo de edición
+    isEmpleadoDesactivado?: boolean; // Indica si el empleado está desactivado
 }
 
 interface OptionType {
@@ -83,6 +84,7 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     isEditing = false, // Por defecto es false
     onSubmit,
     initialData,
+    isEmpleadoDesactivado = false, // Por defecto es false
 }) => {
 
     const [formData, setFormData] = useState<EmpleadoFormData>(initialState);
@@ -158,20 +160,13 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         
-        // Para campos de fecha, ajustar la zona horaria para evitar el problema del día anterior
-        if (id === 'fechaNacimiento' || id === 'fechaIngreso') {
-            if (value) {
-                // Crear una fecha en la zona horaria local para evitar el offset de UTC
-                const date = new Date(value + 'T00:00:00');
-                const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                const isoDate = localDate.toISOString().split('T')[0];
-                
-                setFormData(prev => ({
-                    ...prev,
-                    [id]: isoDate
-                }));
-                return;
-            }
+        // Para campos de fecha, usar el valor directamente sin conversión de zona horaria
+        if (id === 'fechaNacimiento' || id === 'fechaIngreso' || id === 'fechaDesincorporacion') {
+            setFormData(prev => ({
+                ...prev,
+                [id]: value
+            }));
+            return;
         }
         
         setFormData(prev => ({
@@ -441,15 +436,17 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                         onChange={handleInputChange}
                     />
                 </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="fechaDesincorporacion">Fecha de Desincorporación</Label>
-                    <Input 
-                        id="fechaDesincorporacion" 
-                        type="date" 
-                        value={formData.fechaDesincorporacion || ''} 
-                        onChange={handleInputChange}
-                    />
-                </div>
+                {isEmpleadoDesactivado && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="fechaDesincorporacion">Fecha de Desincorporación</Label>
+                        <Input 
+                            id="fechaDesincorporacion" 
+                            type="date" 
+                            value={formData.fechaDesincorporacion || ''} 
+                            onChange={handleInputChange}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Campo de Foto de Perfil */}

@@ -113,14 +113,23 @@ export async function PUT(request: NextRequest) {
 
         // Función para procesar fechas y evitar problemas de zona horaria
         const processDate = (dateString: string | null): string | null => {
-            if (!dateString) return null;
+            if (!dateString || dateString.trim() === '') return null;
             
-            // Si la fecha viene en formato ISO (YYYY-MM-DD), procesarla correctamente
-            if (dateString.includes('-')) {
-                // Crear una fecha en la zona horaria local para evitar el offset de UTC
+            // Si la fecha viene en formato ISO (YYYY-MM-DD), devolverla tal como está
+            if (dateString.includes('-') && dateString.length === 10) {
+                // Validar que sea una fecha válida
                 const date = new Date(dateString + 'T00:00:00');
-                const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                return localDate.toISOString().split('T')[0];
+                if (!isNaN(date.getTime())) {
+                    return dateString;
+                }
+            }
+            
+            // Si está en formato dd/mm/yy, convertir a ISO
+            if (dateString.includes('/')) {
+                const [day, month, year] = dateString.split('/');
+                const fullYear = year.length === 2 ? `20${year}` : year;
+                const isoDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                return isoDate;
             }
             
             return dateString;
@@ -135,7 +144,18 @@ export async function PUT(request: NextRequest) {
         if (email !== undefined) dataToUpdate.email = email;
         if (fechaNacimiento) dataToUpdate.fechaNacimiento = processDate(fechaNacimiento);
         if (fechaIngreso) dataToUpdate.fechaIngreso = processDate(fechaIngreso);
-        if (fechaDesincorporacion !== undefined) dataToUpdate.fechaDesincorporacion = processDate(fechaDesincorporacion);
+        
+        // Solo actualizar fechaDesincorporacion si realmente se está cambiando el estado del empleado
+        if (fechaDesincorporacion !== undefined) {
+            const estabaDesactivado = !!empleadoOriginal?.fechaDesincorporacion;
+            const estaDesactivado = !!fechaDesincorporacion;
+            
+            // Solo actualizar si realmente hay un cambio de estado
+            if (estabaDesactivado !== estaDesactivado) {
+                dataToUpdate.fechaDesincorporacion = processDate(fechaDesincorporacion);
+            }
+        }
+        
         if (telefono !== undefined) dataToUpdate.telefono = telefono;
         if (direccion !== undefined) dataToUpdate.direccion = direccion;
         if (fotoPerfil !== undefined) dataToUpdate.fotoPerfil = fotoPerfil;
@@ -212,9 +232,15 @@ export async function PUT(request: NextRequest) {
                 if (departamentoId) updateData.departamentoId = departamentoId;
                 if (cargoId) updateData.cargoId = cargoId;
 
+                // Usar la clave compuesta correcta para la actualización
                 await prisma.empleadoEmpresaDepartamentoCargo.update({
                     where: {
-                        id: organizacionActiva.id
+                        empleadoId_empresaId_departamentoId_cargoId: {
+                            empleadoId: organizacionActiva.empleadoId,
+                            empresaId: organizacionActiva.empresaId,
+                            departamentoId: organizacionActiva.departamentoId,
+                            cargoId: organizacionActiva.cargoId
+                        }
                     },
                     data: updateData
                 });
@@ -230,7 +256,20 @@ export async function PUT(request: NextRequest) {
         if (direccion !== undefined && direccion !== empleadoOriginal?.direccion) camposModificados.push('dirección');
         if (fechaNacimiento && fechaNacimiento !== empleadoOriginal?.fechaNacimiento) camposModificados.push('fecha de nacimiento');
         if (fechaIngreso && fechaIngreso !== empleadoOriginal?.fechaIngreso) camposModificados.push('fecha de ingreso');
-        if (fechaDesincorporacion !== undefined && fechaDesincorporacion !== empleadoOriginal?.fechaDesincorporacion) camposModificados.push('fecha de desincorporación');
+        
+        // Solo registrar cambios en fechaDesincorporacion si realmente se está cambiando el estado del empleado
+        const estabaDesactivado = !!empleadoOriginal?.fechaDesincorporacion;
+        const estaDesactivado = !!fechaDesincorporacion;
+        
+        if (fechaDesincorporacion !== undefined && fechaDesincorporacion !== empleadoOriginal?.fechaDesincorporacion) {
+            if (estabaDesactivado && !estaDesactivado) {
+                camposModificados.push('reactivación del empleado');
+            } else if (!estabaDesactivado && estaDesactivado) {
+                camposModificados.push('desactivación del empleado');
+            } else {
+                camposModificados.push('fecha de desincorporación');
+            }
+        }
 
         if (camposModificados.length > 0) {
             await prisma.empleadoStatusHistory.create({

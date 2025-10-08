@@ -176,20 +176,9 @@ export default function InterventionModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Camera className="h-5 w-5 mr-2" />
-              Registro de Intervención
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={loading}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <DialogTitle className="flex items-center">
+            <Camera className="h-5 w-5 mr-2" />
+            Registro de Intervención
           </DialogTitle>
         </DialogHeader>
         

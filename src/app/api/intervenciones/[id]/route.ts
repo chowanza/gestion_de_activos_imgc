@@ -42,10 +42,11 @@ export async function PUT(
         evidenciaFotos,
       },
       include: {
-        usuario: {
+        empleado: {
           select: {
             id: true,
-            username: true,
+            nombre: true,
+            apellido: true,
           },
         },
       },

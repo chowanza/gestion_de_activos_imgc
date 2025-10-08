@@ -72,11 +72,11 @@ export async function GET(request: NextRequest) {
     const intervenciones = await prisma.intervencionesEquipos.findMany({
       where: intervencionesWhere,
       include: {
-        usuario: {
+        empleado: {
           select: {
             id: true,
-            username: true,
-            role: true
+            nombre: true,
+            apellido: true
           }
         }
       },

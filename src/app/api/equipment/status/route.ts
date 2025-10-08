@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
       assignmentData 
     } = body;
 
+
     if (!equipmentId || !equipmentType || !newStatus) {
       return NextResponse.json(
         { message: 'Faltan parámetros requeridos' }, 
@@ -123,32 +124,22 @@ export async function POST(request: NextRequest) {
           });
 
       // Crear registro en el historial de asignaciones
-      const assignmentRecord = await tx.asignaciones.create({
+      const assignmentRecord = await tx.asignacionesEquipos.create({
         data: {
           actionType: assignmentData.actionType,
           motivo: assignmentData.motivo,
           notes: assignmentData.notas,
+          evidenciaFotos: assignmentData.evidenciaFotos, // Agregar evidencia fotográfica
           ubicacionId: assignmentData.ubicacionId,
           gerenteId: assignmentData.gerenteId,
           targetType: assignmentData.targetType || 'Sistema',
           targetEmpleadoId: assignmentData.targetEmpleadoId,
-          targetDepartamentoId: assignmentData.targetDepartamentoId,
           itemType: equipmentType,
           computadorId: equipmentType === 'Computador' ? equipmentId : null,
-          dispositivoId: equipmentType === 'Dispositivo' ? equipmentId : null,
-          serialC: assignmentData.serialC,
-          modeloC: assignmentData.modeloC,
-          gerente: assignmentData.gerenteId ? 
-            (await tx.empleado.findUnique({
-              where: { id: assignmentData.gerenteId },
-              select: { nombre: true, apellido: true }
-            }))?.nombre + ' ' + 
-            (await tx.empleado.findUnique({
-              where: { id: assignmentData.gerenteId },
-              select: { apellido: true }
-            }))?.apellido : null
+          dispositivoId: equipmentType === 'Dispositivo' ? equipmentId : null
         }
       });
+
 
       return { updatedEquipment, assignmentRecord };
     });

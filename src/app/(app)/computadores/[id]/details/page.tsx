@@ -375,7 +375,8 @@ const departamentoTag = (
         nuevoEstado: newStatus,
         motivo: assignmentData.motivo || 'Cambio de estado',
         targetEmpleadoId: assignmentData.targetEmpleadoId || null,
-        ubicacionId: assignmentData.ubicacionId || null
+        ubicacionId: assignmentData.ubicacionId || null,
+        evidenciaFotos: assignmentData.evidenciaFotos || null
       };
       
       console.log('Enviando datos al API:', requestData);

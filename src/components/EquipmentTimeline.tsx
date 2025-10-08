@@ -159,8 +159,11 @@ export function EquipmentTimeline({
             badge: 'Creado',
             details: [
               asig.ubicacion?.nombre && `Ubicación inicial: ${asig.ubicacion.nombre}`,
-              asig.notes && `Detalles: ${asig.notes}`
-            ].filter(Boolean)
+              asig.motivo && `Motivo: ${asig.motivo}`,
+              asig.notes && `Notas: ${asig.notes}`,
+              asig.evidenciaFotos && 'Evidencia fotográfica disponible'
+            ].filter(Boolean),
+            evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
           };
         }
         
@@ -173,8 +176,10 @@ export function EquipmentTimeline({
             badge: 'Edición',
             details: [
               asig.notes && `Detalles: ${asig.notes}`,
-              asig.motivo && `Motivo: ${asig.motivo}`
-            ].filter(Boolean)
+              asig.motivo && `Motivo: ${asig.motivo}`,
+              asig.evidenciaFotos && 'Evidencia fotográfica disponible'
+            ].filter(Boolean),
+            evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
           };
         }
         
@@ -205,8 +210,10 @@ export function EquipmentTimeline({
           details: [
             asig.motivo && `Motivo: ${asig.motivo}`,
             asig.notes && `Notas: ${asig.notes}`,
-            asig.ubicacion?.nombre && `Ubicación: ${asig.ubicacion.nombre}`
-          ].filter(Boolean)
+            asig.ubicacion?.nombre && `Ubicación: ${asig.ubicacion.nombre}`,
+            asig.evidenciaFotos && 'Evidencia fotográfica disponible'
+          ].filter(Boolean),
+          evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
         };
 
       case 'intervencion':
@@ -217,11 +224,11 @@ export function EquipmentTimeline({
           message: `Intervención realizada el ${fechaFormateada}`,
           color: 'amber',
           badge: 'Intervención',
-          details: [
-            intervention.notas && `Observaciones: ${intervention.notas}`,
-            intervention.usuario && `Realizada por: ${intervention.usuario.username}`,
-            intervention.evidenciaFotos && 'Evidencia fotográfica disponible'
-          ].filter(Boolean),
+            details: [
+              intervention.notas && `Observaciones: ${intervention.notas}`,
+              intervention.empleado && `Realizada por: ${intervention.empleado.nombre} ${intervention.empleado.apellido}`,
+              intervention.evidenciaFotos && 'Evidencia fotográfica disponible'
+            ].filter(Boolean),
           evidenciaFotos: intervention.evidenciaFotos ? intervention.evidenciaFotos.split(',') : [],
           // Datos para edición
           canEdit: true,
@@ -581,6 +588,7 @@ export function EquipmentTimeline({
                         <PhotoEvidence images={message.evidenciaFotos} />
                       </div>
                     )}
+                    
 
                     {/* Botón de Edición para Intervenciones */}
                     {message.canEdit && message.interventionData && (

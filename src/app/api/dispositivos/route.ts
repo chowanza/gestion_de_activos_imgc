@@ -126,7 +126,7 @@ export async function POST(request: Request) {
   try {
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
-    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto } = body;
+    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
 
     // Validación
     if (!modeloId || !serial || !codigoImgc) {
@@ -167,7 +167,26 @@ export async function POST(request: Request) {
           targetType: 'UBICACION',
           itemType: 'DISPOSITIVO',
           activo: false, // Las asignaciones de creación no deben estar activas
-          notes: 'Ubicación asignada durante la creación del dispositivo'
+          notes: notasCreacion || 'Ubicación asignada durante la creación del dispositivo',
+          motivo: motivoCreacion || 'Creación de dispositivo',
+          evidenciaFotos: evidenciaFotos && evidenciaFotos.length > 0 
+            ? evidenciaFotos.join(',') 
+            : null
+        },
+      });
+    } else if (evidenciaFotos && evidenciaFotos.length > 0) {
+      // Si no hay ubicación pero sí hay evidencia fotográfica, crear un registro solo para la evidencia
+      await prisma.asignacionesEquipos.create({
+        data: {
+          dispositivoId: nuevoDispositivo.id,
+          date: new Date(),
+          actionType: 'CREACION',
+          targetType: 'Sistema',
+          itemType: 'DISPOSITIVO',
+          activo: false, // Las asignaciones de creación no deben estar activas
+          notes: notasCreacion || 'Evidencia fotográfica de la creación del dispositivo',
+          motivo: motivoCreacion || 'Creación de dispositivo',
+          evidenciaFotos: evidenciaFotos.join(',')
         },
       });
     }
