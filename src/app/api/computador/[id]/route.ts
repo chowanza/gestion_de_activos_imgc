@@ -73,6 +73,20 @@ export async function GET(request: NextRequest) {
                   orderBy: {
                       fecha: 'desc'
                   }
+              },
+              intervenciones: {
+                include: {
+                  usuario: {
+                    select: {
+                      id: true,
+                      username: true,
+                      role: true
+                    }
+                  }
+                },
+                orderBy: {
+                  fecha: 'desc'
+                }
               }
             }
         });
@@ -136,8 +150,22 @@ export async function GET(request: NextRequest) {
       detalle: m, // Mantenemos el objeto original anidado
     }));
 
+    // Mapear intervenciones al formato del historial
+    const historialDeIntervenciones = computador.intervenciones.map(intervencion => ({
+      id: `intervencion-${intervencion.id}`,
+      tipo: 'intervencion' as const,
+      fecha: intervencion.fecha.toISOString(),
+      detalle: {
+        id: intervencion.id,
+        notas: intervencion.notas,
+        evidenciaFotos: intervencion.evidenciaFotos,
+        usuario: intervencion.usuario,
+        fecha: intervencion.fecha
+      }
+    }));
+
     // Combinar y ordenar el historial final
-    const historialCombinado = [...historialDeAsignaciones, ...historialDeModificaciones]
+    const historialCombinado = [...historialDeAsignaciones, ...historialDeModificaciones, ...historialDeIntervenciones]
       .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
         // Construimos el objeto de respuesta final

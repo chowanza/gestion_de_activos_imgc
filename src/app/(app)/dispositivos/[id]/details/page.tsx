@@ -28,6 +28,7 @@ import {
   Wifi,
   Wrench,
   Zap,
+  Camera,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -48,6 +49,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
+import InterventionModal from "@/components/InterventionModal"
 import { handleGenerateAndDownloadQRd } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
 import { EquipmentTimeline } from "@/components/EquipmentTimeline"
@@ -273,6 +275,7 @@ export default function EquipmentDetails() {
       const queryClient = useQueryClient();
   
       const [statusModalOpen, setStatusModalOpen] = useState(false);
+      const [interventionModalOpen, setInterventionModalOpen] = useState(false);
 
       // Hook de TanStack Query para cargar los datos del equipo
       const {
@@ -442,6 +445,14 @@ const departamentoTag = (
     }
   };
 
+  const handleInterventionSuccess = async () => {
+    // Recargar datos del equipo y timeline
+    await loadEquipoData();
+    if (handleFiltersChange) {
+      handleFiltersChange(filters); // Recargar timeline
+    }
+  };
+
 
 
   return (
@@ -484,6 +495,11 @@ const departamentoTag = (
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-white border-gray-300" align="end">
+                <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setInterventionModalOpen(true)}>
+                  <Camera className="h-4 w-4 mr-2" />
+                  Registrar Intervención
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
                   <Wrench className="h-4 w-4 mr-2" />
                   Gestionar Estado
@@ -789,6 +805,7 @@ const departamentoTag = (
                             externalHistorial={historial}
                             loading={timelineLoading}
                             error={timelineError}
+                            onFiltersChange={handleFiltersChange}
                           />
                       </CardContent>
                   </Card>
@@ -827,6 +844,18 @@ const departamentoTag = (
             } : undefined
           }}
           onStatusChange={handleStatusChange}
+        />
+      )}
+
+      {/* Modal de Intervención */}
+      {equipo && (
+        <InterventionModal
+          isOpen={interventionModalOpen}
+          onClose={() => setInterventionModalOpen(false)}
+          onSuccess={handleInterventionSuccess}
+          equipmentId={equipo.id}
+          equipmentType="dispositivo"
+          equipmentSerial={equipo.serial}
         />
       )}
     </div>

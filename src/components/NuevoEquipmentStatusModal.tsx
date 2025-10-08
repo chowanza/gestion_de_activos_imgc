@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { showToast } from 'nextjs-toast-notify';
-import { Loader2, User, Wrench, Shield, MapPin, CheckCircle2, Trash2, AlertCircle } from 'lucide-react';
+import { Loader2, User, Wrench, Shield, MapPin, CheckCircle2, Trash2, AlertCircle, Camera, Upload, X, Image as ImageIcon } from 'lucide-react';
 import ReactSelect from 'react-select';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
 import { ESTADOS_EQUIPO, requiereEmpleado, permiteAsignacion } from '@/lib/estados-equipo';
@@ -104,6 +104,7 @@ export default function NuevoEquipmentStatusModal({
   const [selectedUbicacion, setSelectedUbicacion] = useState<any>(null);
   const [motivo, setMotivo] = useState('');
   const [notas, setNotas] = useState('');
+  const [images, setImages] = useState<Array<{file: File, preview: string, id: string}>>([]);
 
   // Estados para datos
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -189,10 +190,33 @@ export default function NuevoEquipmentStatusModal({
     setLoading(true);
 
     try {
+      // Upload images first if any
+      let imageUrls: string[] = [];
+      
+      if (images.length > 0) {
+        const formData = new FormData();
+        images.forEach((image, index) => {
+          formData.append(`images`, image.file);
+        });
+
+        const uploadResponse = await fetch('/api/upload/images', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Error al subir las imágenes');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        imageUrls = uploadResult.urls || [];
+      }
+
       const assignmentData = {
         actionType: getActionType(nuevoEstado),
         motivo: motivo || null,
         notas: notas || null,
+        evidenciaFotos: imageUrls.length > 0 ? imageUrls.join(',') : null,
         ubicacionId: selectedUbicacion?.value || null,
         targetType: nuevoEstado === ESTADOS_EQUIPO.ASIGNADO ? 'Usuario' : null,
         targetEmpleadoId: nuevoEstado === ESTADOS_EQUIPO.ASIGNADO ? selectedTarget?.value : null,
@@ -231,7 +255,55 @@ export default function NuevoEquipmentStatusModal({
 
   const handleClose = () => {
     resetForm();
+    // Cleanup images
+    images.forEach(img => URL.revokeObjectURL(img.preview));
+    setImages([]);
     onClose();
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newImages: Array<{file: File, preview: string, id: string}> = [];
+    
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          showToast.error(`La imagen ${file.name} es muy grande. Máximo 5MB.`);
+          return;
+        }
+
+        const id = Math.random().toString(36).substr(2, 9);
+        const preview = URL.createObjectURL(file);
+        
+        newImages.push({
+          file,
+          preview,
+          id
+        });
+      }
+    });
+
+    if (newImages.length > 0) {
+      setImages(prev => [...prev, ...newImages]);
+      showToast.success(`${newImages.length} imagen(es) agregada(s)`);
+    }
+
+    // Clear the input
+    const input = event.target as HTMLInputElement;
+    input.value = '';
+  };
+
+  const removeImage = (imageId: string) => {
+    setImages(prev => {
+      const updated = prev.filter(img => img.id !== imageId);
+      const removedImage = prev.find(img => img.id === imageId);
+      if (removedImage) {
+        URL.revokeObjectURL(removedImage.preview);
+      }
+      return updated;
+    });
   };
 
   const currentStatusConfig = statusConfig[equipment.estado as keyof typeof statusConfig] || {
@@ -534,6 +606,79 @@ export default function NuevoEquipmentStatusModal({
                   placeholder="Información adicional sobre el cambio de estado..."
                   rows={3}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Evidencia Fotográfica */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center">
+                <Camera className="h-4 w-4 mr-2" />
+                Evidencia Visual
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Subir Imágenes (Opcional)</Label>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('evidence-upload')?.click()}
+                    disabled={loading}
+                    className="flex items-center"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Subir Imágenes
+                  </Button>
+                  <span className="text-sm text-gray-500">
+                    Máximo 5MB por imagen
+                  </span>
+                </div>
+                
+                <input
+                  id="evidence-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                
+                {/* Image Previews */}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                    {images.map((image) => (
+                      <div key={image.id} className="relative group">
+                        <img
+                          src={image.preview}
+                          alt="Preview"
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(image.id)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                          {image.file.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {images.length === 0 && (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mt-3">
+                    <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      No hay imágenes seleccionadas
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

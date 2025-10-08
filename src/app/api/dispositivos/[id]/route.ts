@@ -75,6 +75,20 @@ export async function GET(request: NextRequest) {
                     date: 'desc'
                   }
                 },
+                intervenciones: {
+                  include: {
+                    usuario: {
+                      select: {
+                        id: true,
+                        username: true,
+                        role: true
+                      }
+                    }
+                  },
+                  orderBy: {
+                    fecha: 'desc'
+                  }
+                },
             }
         });
 
@@ -110,7 +124,7 @@ export async function GET(request: NextRequest) {
         const ubicacion = asignacionActiva?.ubicacion || 
           dispositivo.asignaciones.find(a => a.ubicacion)?.ubicacion || null;
 
-        // Solo historial de asignaciones para dispositivos
+        // Historial de asignaciones para dispositivos
         const historialDeAsignaciones = asignacionesMapeadas.map(a => ({
             id: `asig-${a.id}`, // Prefijo para evitar colisión de IDs
             tipo: 'asignacion', // Tipo para identificarlo en el frontend
@@ -118,8 +132,22 @@ export async function GET(request: NextRequest) {
             detalle: a, // Mantenemos el objeto original anidado
         }));
 
-        // Ordenar el historial final
-        const historialCombinado = historialDeAsignaciones
+        // Mapear intervenciones al formato del historial
+        const historialDeIntervenciones = dispositivo.intervenciones.map(intervencion => ({
+            id: `intervencion-${intervencion.id}`,
+            tipo: 'intervencion' as const,
+            fecha: intervencion.fecha.toISOString(),
+            detalle: {
+                id: intervencion.id,
+                notas: intervencion.notas,
+                evidenciaFotos: intervencion.evidenciaFotos,
+                usuario: intervencion.usuario,
+                fecha: intervencion.fecha
+            }
+        }));
+
+        // Combinar y ordenar el historial final
+        const historialCombinado = [...historialDeAsignaciones, ...historialDeIntervenciones]
             .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
         // Construimos el objeto de respuesta final con modeloId incluido

@@ -139,6 +139,7 @@ model Computador {
   computadorModelos       ComputadorModeloEquipo[]
   asignaciones            AsignacionesEquipos[]
   historialModificaciones HistorialModificaciones[]
+  intervenciones          IntervencionesEquipos[]
 }
 
 model Dispositivo {
@@ -158,6 +159,7 @@ model Dispositivo {
   // Relaciones normalizadas
   dispositivoModelos DispositivoModeloEquipo[]
   asignaciones       AsignacionesEquipos[]
+  intervenciones     IntervencionesEquipos[]
 }
 
 model User {
@@ -168,6 +170,7 @@ model User {
 
   // Relaciones
   movimientos HistorialMovimientos[]
+  intervenciones IntervencionesEquipos[]
 }
 
 // --- TABLAS DE RELACION NORMALIZADAS ---
@@ -253,6 +256,7 @@ model AsignacionesEquipos {
   motivo            String?
   targetType        String
   itemType          String
+  evidenciaFotos    String?   // URLs de imágenes separadas por comas
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   activo            Boolean   @default(true)
@@ -316,6 +320,27 @@ model HistorialMovimientos {
   @@index([accion])
   @@index([entidad])
   @@index([usuarioId])
+}
+
+// INTERVENCIONES Y EVIDENCIA FOTOGRÁFICA
+model IntervencionesEquipos {
+  id                String    @id @default(uuid())
+  fecha             DateTime  @default(now())
+  notas             String?
+  evidenciaFotos    String?   // URLs de imágenes separadas por comas
+  computadorId      String?
+  dispositivoId     String?
+  usuarioId         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  computador Computador? @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dispositivo Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario User? @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fecha])
+  @@index([computadorId])
+  @@index([dispositivoId])
 }
 
 model EmpleadoStatusHistory {

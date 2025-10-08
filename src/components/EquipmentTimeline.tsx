@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { 
   History, 
   User, 
@@ -20,11 +21,15 @@ import {
   Calendar,
   Tag,
   Hash,
-  Edit
+  Edit,
+  Camera,
+  Shield
 } from 'lucide-react';
 import { formatDate } from '@/utils/formatDate';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import PhotoEvidence from './PhotoEvidence';
+import EditInterventionModal from './EditInterventionModal';
 
 interface EquipmentTimelineProps {
   equipo: {
@@ -63,7 +68,7 @@ interface EquipmentTimelineProps {
     };
     historial?: Array<{
       id: string;
-      tipo: 'asignacion' | 'modificacion' | 'creacion';
+      tipo: 'asignacion' | 'modificacion' | 'creacion' | 'intervencion';
       fecha: string;
       detalle: any;
     }>;
@@ -73,7 +78,7 @@ interface EquipmentTimelineProps {
   onFiltersChange?: (filters: any) => void;
   externalHistorial?: Array<{
     id: string;
-    tipo: 'asignacion' | 'modificacion' | 'creacion';
+    tipo: 'asignacion' | 'modificacion' | 'creacion' | 'intervencion';
     fecha: string;
     actionType: string;
     detalle: any;
@@ -90,6 +95,26 @@ export function EquipmentTimeline({
   loading = false,
   error = null
 }: EquipmentTimelineProps) {
+  const [editInterventionModalOpen, setEditInterventionModalOpen] = useState(false);
+  const [selectedIntervention, setSelectedIntervention] = useState<any>(null);
+
+  const handleEditIntervention = (intervention: any) => {
+    setSelectedIntervention({
+      ...intervention,
+      equipmentId: equipo.id,
+      equipmentType: 'computador', // Por defecto, se puede ajustar según el contexto
+      equipmentSerial: equipo.serial,
+    });
+    setEditInterventionModalOpen(true);
+  };
+
+  const handleInterventionUpdateSuccess = () => {
+    // Recargar el historial del equipo
+    if (onFiltersChange) {
+      onFiltersChange({});
+    }
+  };
+
   // Función para generar mensajes inteligentes basados en el contexto
   const generateTimelineMessage = (entry: any, index: number) => {
     const { tipo, detalle, fecha } = entry;
@@ -162,8 +187,10 @@ export function EquipmentTimeline({
             badge: 'Estado',
             details: [
               asig.notes && `Detalles: ${asig.notes}`,
-              asig.motivo && `Motivo: ${asig.motivo}`
-            ].filter(Boolean)
+              asig.motivo && `Motivo: ${asig.motivo}`,
+              asig.evidenciaFotos && 'Evidencia fotográfica disponible'
+            ].filter(Boolean),
+            evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
           };
         }
         
@@ -180,6 +207,30 @@ export function EquipmentTimeline({
             asig.notes && `Notas: ${asig.notes}`,
             asig.ubicacion?.nombre && `Ubicación: ${asig.ubicacion.nombre}`
           ].filter(Boolean)
+        };
+
+      case 'intervencion':
+        const intervention = detalle;
+        return {
+          icon: <Shield className="h-4 w-4 text-amber-500" />,
+          title: 'Intervención Técnica',
+          message: `Intervención realizada el ${fechaFormateada}`,
+          color: 'amber',
+          badge: 'Intervención',
+          details: [
+            intervention.notas && `Observaciones: ${intervention.notas}`,
+            intervention.usuario && `Realizada por: ${intervention.usuario.username}`,
+            intervention.evidenciaFotos && 'Evidencia fotográfica disponible'
+          ].filter(Boolean),
+          evidenciaFotos: intervention.evidenciaFotos ? intervention.evidenciaFotos.split(',') : [],
+          // Datos para edición
+          canEdit: true,
+          interventionData: {
+            id: intervention.id,
+            fecha: intervention.fecha,
+            notas: intervention.notas,
+            evidenciaFotos: intervention.evidenciaFotos
+          }
         };
 
       case 'modificacion':
@@ -519,6 +570,31 @@ export function EquipmentTimeline({
                         ))}
                       </div>
                     )}
+                    
+                    {/* Evidencia Fotográfica */}
+                    {message.evidenciaFotos && message.evidenciaFotos.length > 0 && (
+                      <div className="mt-3">
+                        <div className="flex items-center mb-2">
+                          <Camera className="h-4 w-4 text-gray-500 mr-2" />
+                          <span className="text-xs font-medium text-gray-700">Evidencia Fotográfica:</span>
+                        </div>
+                        <PhotoEvidence images={message.evidenciaFotos} />
+                      </div>
+                    )}
+
+                    {/* Botón de Edición para Intervenciones */}
+                    {message.canEdit && message.interventionData && (
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          onClick={() => handleEditIntervention(message.interventionData)}
+                          className="flex items-center px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors"
+                          title="Editar intervención"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -531,6 +607,13 @@ export function EquipmentTimeline({
           <p>No hay historial de movimientos para este equipo.</p>
         </div>
       )}
+      {/* Modal de Edición de Intervención */}
+      <EditInterventionModal
+        isOpen={editInterventionModalOpen}
+        onClose={() => setEditInterventionModalOpen(false)}
+        onSuccess={handleInterventionUpdateSuccess}
+        intervention={selectedIntervention}
+      />
     </div>
   );
 }

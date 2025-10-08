@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-const secretKey = process.env.JWT_SECRET_KEY!;
+const secretKey = process.env.JWT_SECRET_KEY || 'default-secret-key-for-development-only-change-in-production';
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export interface UserJwtPayload {

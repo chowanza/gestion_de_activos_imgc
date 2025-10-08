@@ -53,6 +53,36 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Obtener historial de intervenciones
+    const intervencionesWhere: any = {
+      ...(itemType === 'computador' ? { computadorId: id } : { dispositivoId: id })
+    };
+
+    // Filtro por rango de fechas para intervenciones
+    if (fechaInicio || fechaFin) {
+      intervencionesWhere.fecha = {};
+      if (fechaInicio) {
+        intervencionesWhere.fecha.gte = new Date(fechaInicio);
+      }
+      if (fechaFin) {
+        intervencionesWhere.fecha.lte = new Date(fechaFin);
+      }
+    }
+
+    const intervenciones = await prisma.intervencionesEquipos.findMany({
+      where: intervencionesWhere,
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            username: true,
+            role: true
+          }
+        }
+      },
+      orderBy: { fecha: orden }
+    });
+
     // Mapear asignaciones a formato unificado
     const historialAsignaciones = asignaciones.map(a => ({
       id: `asig-${a.id}`,
@@ -71,8 +101,17 @@ export async function GET(request: NextRequest) {
       detalle: m
     }));
 
+    // Mapear intervenciones a formato unificado
+    const historialIntervenciones = intervenciones.map(i => ({
+      id: `int-${i.id}`,
+      tipo: 'intervencion',
+      fecha: i.fecha,
+      actionType: 'INTERVENCION',
+      detalle: i
+    }));
+
     // Combinar y ordenar el historial final
-    const historialCombinado = [...historialAsignaciones, ...historialModificaciones]
+    const historialCombinado = [...historialAsignaciones, ...historialModificaciones, ...historialIntervenciones]
       .sort((a, b) => {
         const fechaA = new Date(a.fecha).getTime();
         const fechaB = new Date(b.fecha).getTime();

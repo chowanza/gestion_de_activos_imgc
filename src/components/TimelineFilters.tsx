@@ -49,11 +49,6 @@ export function TimelineFilters({ onFiltersChange, initialFilters }: TimelineFil
             Filtros de Historial
           </CardTitle>
           <div className="flex items-center gap-2">
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="text-xs">
-                Filtros activos
-              </Badge>
-            )}
             <Button
               variant="outline"
               size="sm"
@@ -105,15 +100,10 @@ export function TimelineFilters({ onFiltersChange, initialFilters }: TimelineFil
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2">
               <div className="text-xs text-gray-500">
-                {hasActiveFilters ? (
+                {hasActiveFilters && (
                   <span className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     Filtros aplicados
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                    Sin filtros activos
                   </span>
                 )}
               </div>
