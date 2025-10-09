@@ -13,7 +13,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [2/8] Verificando conexion a SQL Server...
-sqlcmd -S localhost\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT @@VERSION" >nul 2>&1
+sqlcmd -S WIN-9E5P7UTLA25\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT @@VERSION" >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: No se puede conectar a SQL Server
     echo Verifique que:

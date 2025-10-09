@@ -27,7 +27,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [3] Verificando usuario imgcAdmin...
-sqlcmd -S localhost\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -Q "SELECT 'Usuario conectado correctamente'" 2>nul
+sqlcmd -S WIN-9E5P7UTLA25\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -Q "SELECT 'Usuario conectado correctamente'" 2>nul
 if %errorlevel% neq 0 (
     echo ERROR: No se puede conectar con imgcAdmin
     echo Ejecute el script setup-sqlserver-imgc.sql
@@ -38,7 +38,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [4] Verificando base de datos gestion_activos_imgc...
-sqlcmd -S localhost\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT 'Base de datos accesible'" 2>nul
+sqlcmd -S WIN-9E5P7UTLA25\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT 'Base de datos accesible'" 2>nul
 if %errorlevel% neq 0 (
     echo ERROR: No se puede acceder a la base de datos
     echo Ejecute el script setup-sqlserver-imgc.sql
