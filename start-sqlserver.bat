@@ -5,11 +5,11 @@ echo ================================================
 echo.
 
 echo Verificando estado actual de SQL Server...
-sc query MSSQL$SQLEXPRESS | findstr "STATE"
+sc query MSSQL$SQLEXPRESS_SGA | findstr "STATE"
 
 echo.
 echo Intentando iniciar SQL Server...
-net start MSSQL$SQLEXPRESS
+net start MSSQL$SQLEXPRESS_SGA
 
 if %errorlevel% equ 0 (
     echo.
@@ -18,7 +18,7 @@ if %errorlevel% equ 0 (
     echo ================================================
     echo.
     echo Estado actual:
-    sc query MSSQL$SQLEXPRESS | findstr "STATE"
+    sc query MSSQL$SQLEXPRESS_SGA | findstr "STATE"
     echo.
     echo Ahora puede ejecutar: verify-connection.bat
 ) else (
@@ -33,7 +33,7 @@ if %errorlevel% equ 0 (
     echo 3. Verificar configuracion de servicios
     echo.
     echo Estado actual:
-    sc query MSSQL$SQLEXPRESS | findstr "STATE"
+    sc query MSSQL$SQLEXPRESS_SGA | findstr "STATE"
 )
 
 echo.

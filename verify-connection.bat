@@ -5,7 +5,7 @@ echo ================================================
 echo.
 
 echo [1] Verificando que SQL Server este corriendo...
-sc query MSSQL$SQLEXPRESS | findstr "RUNNING" >nul
+sc query MSSQL$SQLEXPRESS_SGA | findstr "RUNNING" >nul
 if %errorlevel% neq 0 (
     echo ERROR: SQL Server no esta corriendo
     echo Inicie el servicio SQL Server (SQLEXPRESS)
@@ -27,7 +27,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [3] Verificando usuario imgcAdmin...
-sqlcmd -S localhost\SQLEXPRESS -U imgcAdmin -P "1Mgc1R0n**" -Q "SELECT 'Usuario conectado correctamente'" 2>nul
+sqlcmd -S localhost\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -Q "SELECT 'Usuario conectado correctamente'" 2>nul
 if %errorlevel% neq 0 (
     echo ERROR: No se puede conectar con imgcAdmin
     echo Ejecute el script setup-sqlserver-imgc.sql
@@ -38,7 +38,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [4] Verificando base de datos gestion_activos_imgc...
-sqlcmd -S localhost\SQLEXPRESS -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT 'Base de datos accesible'" 2>nul
+sqlcmd -S localhost\SQLEXPRESS_SGA -U imgcAdmin -P "1Mgc1R0n**" -d gestion_activos_imgc -Q "SELECT 'Base de datos accesible'" 2>nul
 if %errorlevel% neq 0 (
     echo ERROR: No se puede acceder a la base de datos
     echo Ejecute el script setup-sqlserver-imgc.sql
