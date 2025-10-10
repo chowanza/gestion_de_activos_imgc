@@ -64,6 +64,7 @@ interface DepartamentoDetails {
         computador?: {
           id: string;
           serial: string;
+          estado: string;
           computadorModelos: Array<{
             modeloEquipo: {
               nombre: string;
@@ -78,6 +79,7 @@ interface DepartamentoDetails {
         dispositivo?: {
           id: string;
           serial: string;
+          estado: string;
           dispositivoModelos: Array<{
             modeloEquipo: {
               nombre: string;
@@ -101,6 +103,9 @@ interface DepartamentoDetails {
       id: string;
       nombre: string;
       descripcion?: string;
+      _count?: {
+        empleadoOrganizaciones: number;
+      };
     };
   }>;
   _count: {

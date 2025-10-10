@@ -5,14 +5,6 @@ echo   IP de la VM: 172.16.3.123
 echo ===============================================
 echo.
 
-echo [1] Copiando archivo de configuracion de produccion...
-copy env.production .env >nul
-if %errorlevel% neq 0 (
-    echo ERROR: No se pudo copiar el archivo de configuracion
-    pause
-    exit /b 1
-)
-echo ✅ Archivo .env configurado para intranet
 
 echo.
 echo [2] Instalando dependencias...

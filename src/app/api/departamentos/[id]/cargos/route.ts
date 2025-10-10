@@ -6,10 +6,10 @@ import { AuditLogger } from '@/lib/audit-logger';
 // GET - Obtener todos los cargos de un departamento
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const departamento = await prisma.departamento.findUnique({
       where: { id },
@@ -45,7 +45,7 @@ export async function GET(
 // POST - Crear un nuevo cargo para un departamento
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getServerUser(request);
@@ -56,7 +56,7 @@ export async function POST(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { nombre, descripcion } = body;
 
@@ -124,7 +124,7 @@ export async function POST(
       'Cargo',
       result.id,
       `Cargo "${result.nombre}" creado en departamento "${departamento.nombre}"`,
-      user.id,
+      user.id as string,
       { 
         nombre: result.nombre,
         descripcion: result.descripcion,

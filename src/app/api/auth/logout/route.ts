@@ -13,10 +13,10 @@ export async function POST(req: NextRequest) {
 
     // Registrar logout en auditoría
     if (user) {
-      const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-      const userAgent = req.headers.get('user-agent') || 'unknown';
+      const ipAddress = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown') as string;
+      const userAgent = (req.headers.get('user-agent') || 'unknown') as string;
       
-      await AuditLogger.logLogout(user.id, ipAddress, userAgent);
+      await AuditLogger.logLogout(user.id as string, ipAddress, userAgent);
     }
 
     // 2. Devuelve respuesta JSON con cookie eliminada

@@ -6,7 +6,7 @@ import { AuditLogger } from '@/lib/audit-logger';
 // PUT - Actualizar un cargo específico
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; cargoId: string } }
+  { params }: { params: Promise<{ id: string; cargoId: string }> }
 ) {
   try {
     const user = await getServerUser(request);
@@ -17,7 +17,7 @@ export async function PUT(
       );
     }
 
-    const { id: departamentoId, cargoId } = params;
+    const { id: departamentoId, cargoId } = await params;
     const body = await request.json();
     const { nombre, descripcion } = body;
 
@@ -94,7 +94,7 @@ export async function PUT(
       'Cargo',
       cargoId,
       `Cargo "${datosAnteriores.nombre}" actualizado en departamento "${cargoExistente.departamentoCargos[0]?.departamento.nombre}"`,
-      user.id,
+      user.id as string,
       { 
         datosAnteriores,
         datosNuevos: {
@@ -123,7 +123,7 @@ export async function PUT(
 // DELETE - Eliminar un cargo específico
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; cargoId: string } }
+  { params }: { params: Promise<{ id: string; cargoId: string }> }
 ) {
   try {
     const user = await getServerUser(request);
@@ -134,7 +134,7 @@ export async function DELETE(
       );
     }
 
-    const { id: departamentoId, cargoId } = params;
+    const { id: departamentoId, cargoId } = await params;
 
     // Verificar que el cargo existe y pertenece al departamento
     const cargoExistente = await prisma.cargo.findFirst({
@@ -196,7 +196,7 @@ export async function DELETE(
       'Cargo',
       cargoId,
       `Cargo "${cargoExistente.nombre}" eliminado del departamento "${cargoExistente.departamentoCargos[0]?.departamento.nombre}"`,
-      user.id,
+      user.id as string,
       { 
         nombre: cargoExistente.nombre,
         descripcion: cargoExistente.descripcion,

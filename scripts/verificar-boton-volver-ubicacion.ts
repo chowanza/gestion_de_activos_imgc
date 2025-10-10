@@ -58,10 +58,10 @@ async function verificarBotonVolverUbicacion() {
         if (response.ok) {
           const data = await response.json();
           console.log(`   ✅ API ubicación ${ubicacion.nombre}: Responde correctamente`);
-          console.log(`     📍 Nombre: ${data.nombre}`);
-          console.log(`     📍 Piso: ${data.piso || 'N/A'}`);
-          console.log(`     📍 Sala: ${data.sala || 'N/A'}`);
-          console.log(`     📍 Equipos: ${data.asignacionesEquipos?.length || 0}`);
+          console.log(`     📍 Nombre: ${(data as any).nombre}`);
+          console.log(`     📍 Piso: ${(data as any).piso || 'N/A'}`);
+          console.log(`     📍 Sala: ${(data as any).sala || 'N/A'}`);
+          console.log(`     📍 Equipos: ${(data as any).asignacionesEquipos?.length || 0}`);
         } else {
           console.log(`   ❌ API ubicación ${ubicacion.nombre}: Error ${response.status}`);
         }

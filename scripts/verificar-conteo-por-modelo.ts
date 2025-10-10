@@ -63,7 +63,7 @@ async function verificarConteoPorModelo() {
       }
       
       const data = await response.json();
-      const stats = data.stats;
+      const stats = (data as any).stats;
       
       console.log(`   ✅ Endpoint responde correctamente`);
       console.log(`   📊 API - Total equipos del modelo: ${stats.totalEquipos}`);
@@ -141,7 +141,7 @@ async function verificarConteoPorModelo() {
       const response = await fetch(`http://localhost:3000/api/modelos/${modelo.id}/details`);
       if (response.ok) {
         const data = await response.json();
-        const stats = data.stats;
+        const stats = (data as any).stats;
         
         // Verificar que la suma de equipos por ubicación no exceda el total
         const sumaEquiposPorUbicacion = stats.ubicaciones.reduce((sum, u) => sum + u.count, 0);

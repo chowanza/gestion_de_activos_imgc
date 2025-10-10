@@ -37,6 +37,9 @@ async function debugAuthIssue() {
         empleadoOrganizaciones: {
           where: {
             activo: true
+          },
+          include: {
+            empleado: true
           }
         }
       }

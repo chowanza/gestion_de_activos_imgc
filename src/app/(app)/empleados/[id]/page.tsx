@@ -66,6 +66,7 @@ interface EmpleadoDetails {
       nombre: string;
       descripcion?: string;
     };
+    activo: boolean;
   }>;
   asignacionesComoTarget?: Array<{
     id: string;

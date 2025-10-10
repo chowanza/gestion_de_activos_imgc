@@ -99,7 +99,7 @@ async function testDeleteCargo() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`   ✅ Eliminación exitosa: ${data.message}`);
+        console.log(`   ✅ Eliminación exitosa: ${(data as any).message}`);
         
         // Verificar que el cargo ya no existe
         const cargoEliminado = await prisma.cargo.findUnique({
@@ -114,7 +114,7 @@ async function testDeleteCargo() {
         
       } else {
         const errorData = await response.json();
-        console.log(`   ❌ Error: ${errorData.message}`);
+        console.log(`   ❌ Error: ${(errorData as any).message}`);
         
         if (response.status === 401) {
           console.log('   🔐 Problema de autorización detectado');
@@ -148,7 +148,7 @@ async function testDeleteCargo() {
         
         if (response.status === 400) {
           const errorData = await response.json();
-          console.log(`   ✅ Protección funcionando: ${errorData.message}`);
+          console.log(`   ✅ Protección funcionando: ${(errorData as any).message}`);
         } else {
           console.log(`   ⚠️ La protección podría no estar funcionando correctamente`);
         }

@@ -5,7 +5,7 @@ import { getServerUser } from '@/lib/auth-server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getServerUser(request);
   if (!user) {
@@ -13,7 +13,7 @@ export async function PUT(
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const { fecha, notas, evidenciaFotos } = await request.json();
 
     if (!fecha || !notas || !id) {
@@ -79,7 +79,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getServerUser(request);
   if (!user) {
@@ -87,7 +87,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Verificar que la intervención existe
     const existingIntervention = await prisma.intervencionesEquipos.findUnique({

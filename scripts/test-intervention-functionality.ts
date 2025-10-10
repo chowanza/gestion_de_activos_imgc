@@ -111,7 +111,7 @@ async function testInterventionFunctionality() {
             evidenciaFotos: '/uploads/interventions/test_image.jpg',
             computadorId: equipmentType === 'computador' ? testEquipment.id : null,
             dispositivoId: equipmentType === 'dispositivo' ? testEquipment.id : null,
-            usuarioId: testUser.id
+            empleadoId: testUser.id
           }
         });
 
@@ -138,9 +138,10 @@ async function testInterventionFunctionality() {
                 serial: true
               }
             },
-            usuario: {
+            empleado: {
               select: {
-                username: true
+                nombre: true,
+                apellido: true
               }
             }
           }
@@ -149,7 +150,7 @@ async function testInterventionFunctionality() {
         if (retrievedIntervention) {
           console.log('✅ Intervención recuperada exitosamente');
           console.log(`   Serial del equipo: ${retrievedIntervention.computador?.serial || retrievedIntervention.dispositivo?.serial}`);
-          console.log(`   Usuario: ${retrievedIntervention.usuario?.username}`);
+          console.log(`   Empleado: ${retrievedIntervention.empleado?.nombre} ${retrievedIntervention.empleado?.apellido}`);
           console.log(`   Fecha: ${retrievedIntervention.fecha.toISOString()}`);
         } else {
           console.log('❌ Error recuperando la intervención');

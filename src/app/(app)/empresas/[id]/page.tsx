@@ -54,6 +54,16 @@ interface EmpresaDetails {
       apellido: string;
       ced: string;
       fechaIngreso?: string;
+      asignacionesComoTarget?: Array<{
+        id: string;
+        activo: boolean;
+        computador?: {
+          id: string;
+        };
+        dispositivo?: {
+          id: string;
+        };
+      }>;
         };
       cargo: {
         nombre: string;
