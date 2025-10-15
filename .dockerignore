@@ -1,0 +1,12 @@
+node_modules
+.next
+docker_data.vhdx
+*.log
+.env
+.vscode
+.git
+backups
+__pycache__
+*.tmp
+*.bak
+.DS_Store

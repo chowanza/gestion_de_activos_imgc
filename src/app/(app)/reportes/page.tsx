@@ -1,7 +1,8 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,7 @@ import { exportToPDF, exportToExcel, ExportData } from '@/utils/exportUtils';
 import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
 
 // Componentes dinámicos para evitar problemas de hidratación
-const DynamicReactSelect = dynamic(() => import('react-select'), {
+const DynamicReactSelect = dynamicImport(() => import('react-select'), {
   ssr: false,
   loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />
 });

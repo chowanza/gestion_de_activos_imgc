@@ -1,6 +1,5 @@
-
-
 "use client";
+export const dynamic = 'force-dynamic';
 
 import ComputadorForm from "@/components/ComputadorForm";
 import type { ComputadorFormData } from "@/components/ComputadorForm";

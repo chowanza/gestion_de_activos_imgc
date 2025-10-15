@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const computadoresAsignados = computadoresConAsignaciones.map(a => a.computadorId).filter(Boolean);
+  const computadoresAsignados = computadoresConAsignaciones.map(a => a.computadorId).filter((id): id is string => !!id);
 
     // Buscar dispositivos que no tengan asignaciones activas
     const dispositivosConAsignaciones = await prisma.asignacionesEquipos.findMany({
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const dispositivosAsignados = dispositivosConAsignaciones.map(a => a.dispositivoId).filter(Boolean);
+  const dispositivosAsignados = dispositivosConAsignaciones.map(a => a.dispositivoId).filter((id): id is string => !!id);
 
     // Obtener computadores disponibles
     if (!tipo || tipo === 'todos' || tipo === 'computador') {

@@ -3,28 +3,35 @@ import prisma  from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Si tienes relación Gerencia.gerenteId:
+    // Buscar empleados con alguna organización cuyo cargo contenga 'gerente'
     const gerentes = await prisma.empleado.findMany({
       where: {
-        // Filtra por cargo que contenga 'gerente'
-        cargo: {
-          nombre: { contains: 'gerente' }
+        organizaciones: {
+          some: {
+            cargo: {
+              nombre: { contains: 'gerente' }
+            }
+          }
         }
       },
       select: {
         id: true,
         nombre: true,
         apellido: true,
-        cargo: true,
+        organizaciones: {
+          select: {
+            cargo: true
+          }
+        }
       },
       orderBy: { nombre: 'asc' },
     });
 
-    // Mapea al formato que usa tu Select
+    // Mapea al formato que usa tu Select (toma el primer cargo encontrado)
     const options = gerentes.map(g => ({
       value: g.id,
       label: `${g.nombre} ${g.apellido}`,
-      cargo: g.cargo,
+      cargo: g.organizaciones[0]?.cargo || null,
     }));
 
     return NextResponse.json(options, { status: 200 });

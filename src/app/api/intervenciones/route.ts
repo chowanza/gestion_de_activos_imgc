@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Get employee associated with the user
     const empleado = await prisma.empleado.findFirst({
       where: {
-        email: user.email
+        email: (user as { email?: string }).email
       },
       select: { id: true }
     });
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       'Intervención',
       intervention.id,
       `Intervención registrada en ${equipmentType === 'computador' ? 'computador' : 'dispositivo'} ${equipment.serial}`,
-      user.id,
+      (user as { id?: string }).id,
       {
         equipmentType,
         equipmentId,
@@ -128,11 +128,11 @@ export async function GET(request: NextRequest) {
     const interventions = await prisma.intervencionesEquipos.findMany({
       where: whereClause,
       include: {
-        usuario: {
+        empleado: {
           select: {
             id: true,
-            username: true,
-            role: true
+            nombre: true,
+            apellido: true
           }
         }
       },
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
         fecha: intervention.fecha,
         notas: intervention.notas,
         evidenciaFotos: intervention.evidenciaFotos,
-        usuario: intervention.usuario,
+        empleado: intervention.empleado,
         createdAt: intervention.createdAt,
         updatedAt: intervention.updatedAt
       }))

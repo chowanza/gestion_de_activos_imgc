@@ -32,6 +32,9 @@ interface Cargo {
     id: string;
     nombre: string;
     descripcion: string;
+    departamentoCargos?: Array<{
+        departamentoId: string;
+    }>;
 }
 
 export interface EmpleadoFormData {
@@ -293,7 +296,10 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
         .filter(departamento => !formData.empresaId || departamento.empresaDepartamentos?.some(ed => ed.empresa.id === formData.empresaId))
         .map(departamento => ({ value: departamento.id, label: departamento.nombre }));
     const cargoOptions = cargos
-        .filter(cargo => !formData.departamentoId || cargo.departamentoCargos?.some(dc => dc.departamentoId === formData.departamentoId))
+        .filter(cargo =>
+            !formData.departamentoId ||
+            (Array.isArray(cargo.departamentoCargos) && cargo.departamentoCargos.some(dc => dc.departamentoId === formData.departamentoId))
+        )
         .map(cargo => ({ value: cargo.id, label: cargo.nombre }));
     
     const selectedEmpresaValue = empresaOptions.find(option => option.value === formData.empresaId) || null;

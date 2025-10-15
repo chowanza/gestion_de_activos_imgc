@@ -60,7 +60,7 @@ export async function PUT(
       'IntervencionEquipo',
       id,
       `Intervención actualizada para ${equipmentType} ${equipmentSerial}`,
-      user.id,
+      (user as { id?: string }).id,
       {
         equipmentType,
         equipmentSerial,
@@ -115,7 +115,7 @@ export async function DELETE(
       'IntervencionEquipo',
       id,
       `Intervención eliminada para ${equipmentType} ${equipmentSerial}`,
-      user.id,
+      (user as { id?: string }).id,
       {
         equipmentType,
         equipmentSerial,

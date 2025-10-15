@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       where: empresaWhere,
       include: {
         empresaDepartamentos: {
-          where: departamentoId ? { id: departamentoId } : {},
+          where: departamentoId ? { departamentoId } : {},
           include: {
             departamento: true,
             ...(includeDetails ? {
@@ -79,15 +80,9 @@ export async function GET(request: NextRequest) {
         return {
           id: departamento.id,
           nombre: departamento.nombre,
-          descripcion: departamento.descripcion,
+          // descripcion: departamento.descripcion, // Not in schema
           estadisticas: statsDepartamento,
-          empleados: includeDetails ? empleadosActivos.map(emp => ({
-            id: emp.id,
-            nombre: `${emp.nombre} ${emp.apellido}`,
-            cedula: emp.ced,
-            cargo: emp.organizaciones[0]?.cargo?.nombre || 'Sin cargo',
-            activo: emp.fechaDesincorporacion === null
-          })) : []
+          empleados: Array.isArray(empleadosActivos) ? empleadosActivos : []
         };
       });
 
@@ -104,10 +99,10 @@ export async function GET(request: NextRequest) {
         id: empresa.id,
         nombre: empresa.nombre,
         descripcion: empresa.descripcion,
-        ruc: empresa.ruc,
-        direccion: empresa.direccion,
-        telefono: empresa.telefono,
-        email: empresa.email,
+        // ruc: empresa.ruc, // Not in schema
+        // direccion: empresa.direccion, // Not in schema
+        // telefono: empresa.telefono, // Not in schema
+        // email: empresa.email, // Not in schema
         estadisticas: statsEmpresa,
         departamentos: departamentos
       };

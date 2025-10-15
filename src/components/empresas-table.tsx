@@ -170,7 +170,7 @@ export function EmpresasTable() {
     accessorKey: "_count.empresaDepartamentos",
     header: "Departamentos",
     cell: ({ row }) => {
-      const count = row.original._count?.empresaDepartamentos || 0;
+      const count = row.original._count?.departamentos || 0;
       return (
         <Badge variant={count > 0 ? "default" : "secondary"}>
           {count} departamento{count !== 1 ? 's' : ''}

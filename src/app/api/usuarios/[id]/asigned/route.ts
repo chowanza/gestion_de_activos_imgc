@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Asegúrate que la ruta a tu cliente Prisma sea correcta
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest
@@ -11,12 +12,14 @@ export async function GET(
     const empleado = await prisma.empleado.findUnique({
       where: { id },
       include: {
-        departamento: {
+        organizaciones: {
+          where: { activo: true },
           include: {
+            departamento: true,
             empresa: true,
-          },
-        },
-        cargo: true,
+            cargo: true
+          }
+        }
       },
     });
 
@@ -26,45 +29,75 @@ export async function GET(
 
     // Paso 2: Ejecutar todas las búsquedas de activos Y los conteos en paralelo.
     const [
-        computadores, 
-        dispositivos, 
-        lineasAsignadas,
-        totalComputadores, // <-- NUEVO
-        totalDispositivos, // <-- NUEVO
+      asignacionesComputador,
+      asignacionesDispositivo,
+      lineasAsignadas,
+      totalComputadores,
+      totalDispositivos,
     ] = await Promise.all([
-      // Buscar computadores asignados al empleado (solo si tienen estado "Asignado")
-      prisma.computador.findMany({
-        where: { 
-          empleadoId: id,
-          estado: "Asignado"
+      prisma.asignacionesEquipos.findMany({
+        where: {
+          targetEmpleadoId: id,
+          activo: true,
+          computadorId: { not: null }
         },
         include: {
-          modelo: {
+          computador: {
             include: {
-              marca: true,
-            },
-          },
-        },
+              computadorModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: { marca: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }),
-      // Buscar dispositivos asignados al empleado (solo si tienen estado "Asignado")
-      prisma.dispositivo.findMany({
-        where: { 
-          empleadoId: id,
-          estado: "Asignado"
+      prisma.asignacionesEquipos.findMany({
+        where: {
+          targetEmpleadoId: id,
+          activo: true,
+          dispositivoId: { not: null }
         },
         include: {
-          modelo: {
+          dispositivo: {
             include: {
-              marca: true,
-            },
-          },
-        },
+              dispositivoModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: { marca: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }),
-      // Nota: Las líneas telefónicas fueron removidas del esquema
       Promise.resolve([]),
-      // --- NUEVAS CONSULTAS DE CONTEO ---
-      prisma.computador.count({ where: { empleadoId: id, estado: "Asignado" } }),
-      prisma.dispositivo.count({ where: { empleadoId: id, estado: "Asignado" } }),
+      prisma.asignacionesEquipos.count({
+        where: {
+          targetEmpleadoId: id,
+          activo: true,
+          computadorId: { not: null }
+        }
+      }),
+      prisma.asignacionesEquipos.count({
+        where: {
+          targetEmpleadoId: id,
+          activo: true,
+          dispositivoId: { not: null }
+        }
+      })
     ]);
 
     // Paso 3: Las líneas telefónicas fueron removidas del esquema
@@ -73,23 +106,21 @@ export async function GET(
 
     // Paso 4: Construir el objeto de respuesta final, incluyendo las estadísticas.
     const responseData = {
-      id: empleado.id,
-      nombre: empleado.nombre,
-      apellido: empleado.apellido,
-      cargo: empleado.cargo?.nombre || 'Sin cargo asignado',
-      departamento: empleado.departamento?.nombre || 'Sin departamento asignado',
-      empresa: empleado.empresa?.nombre || 'Sin empresa asignada',
-      gerencia: empleado.empresa?.nombre || 'Sin gerencia asignada',
-      computadores,
-      dispositivos,
-      lineasTelefonicas,
-      // --- NUEVO OBJETO DE ESTADÍSTICAS ---
-      estadisticas: {
-        totalComputadores: totalComputadores,
-        totalDispositivos: totalDispositivos,
-        totalLineas: totalLineas,
-        totalActivos: totalComputadores + totalDispositivos + totalLineas,
-      },
+  id: empleado.id,
+  nombre: empleado.nombre,
+  apellido: empleado.apellido,
+  cargo: empleado.organizaciones?.[0]?.cargo?.nombre || 'Sin cargo asignado',
+  departamento: empleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento asignado',
+  empresa: empleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa asignada',
+  computadores: asignacionesComputador.map((a: any) => a.computador),
+  dispositivos: asignacionesDispositivo.map((a: any) => a.dispositivo),
+  lineasTelefonicas,
+  estadisticas: {
+    totalComputadores,
+    totalDispositivos,
+    totalLineas,
+    totalActivos: totalComputadores + totalDispositivos + totalLineas,
+  },
     };
 
     return NextResponse.json(responseData, { status: 200 });

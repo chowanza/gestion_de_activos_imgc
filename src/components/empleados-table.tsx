@@ -40,28 +40,33 @@ export type EmpleadoFormData = z.infer<typeof empleadoSchema>
 
 // Type for Empleado objects from API
 export interface Empleado {
-    id: string;
-    nombre: string;
-    apellido: string;
-    cedula: string;
-    email?: string;
-    telefono?: string;
-    direccion?: string;
-    fechaNacimiento?: string;
-    fechaIngreso?: string;
-    fechaDesincorporacion?: string;
-    fotoPerfil?: string;
-    estado?: string;
-    departamento: { 
-        id: string; 
-        nombre: string; 
-        empresa: { nombre: string } 
-    };
-    cargo: { 
-        id: string; 
-        nombre: string; 
-        descripcion: string 
-    };
+  id: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  email?: string;
+  telefono?: string;
+  direccion?: string;
+  fechaNacimiento?: string;
+  fechaIngreso?: string;
+  fechaDesincorporacion?: string;
+  fotoPerfil?: string;
+  estado?: string;
+  departamento?: { 
+    id: string; 
+    nombre: string; 
+    empresa?: { nombre: string } 
+  };
+  cargo?: { 
+    id: string; 
+    nombre: string; 
+    descripcion: string 
+  };
+  organizaciones?: Array<{
+    empresa?: { nombre: string };
+    departamento?: { nombre: string };
+    cargo?: { nombre: string };
+  }>;
 }
 
 

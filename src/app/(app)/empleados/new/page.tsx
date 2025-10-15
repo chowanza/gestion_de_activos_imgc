@@ -1,6 +1,5 @@
-
-
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";

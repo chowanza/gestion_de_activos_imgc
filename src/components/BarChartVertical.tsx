@@ -10,6 +10,7 @@ interface BarData {
   departments?: Array<{
     name: string;
     computers: number;
+    devices?: number;
     users: number;
     percentage: number;
   }>;
@@ -167,7 +168,7 @@ export function BarChartVertical({
                   {equipmentTypeFilter === "todos" && (
                     <span className="flex items-center">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                      {dept.computers + dept.devices} equipos
+                      {(dept.computers ?? 0) + (dept.devices ?? 0)} equipos
                     </span>
                   )}
                   {equipmentTypeFilter === "computadores" && (

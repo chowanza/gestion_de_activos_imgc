@@ -11,8 +11,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const modelos = await prisma.modeloDispositivo.findMany({
-      where: { marcaId },
+    const modelos = await prisma.modeloEquipo.findMany({
+      where: {
+        tipo: 'DISPOSITIVO',
+        marcaModelos: {
+          some: {
+            marcaId
+          }
+        }
+      },
       orderBy: { nombre: 'asc' },
     });
     return NextResponse.json(modelos);

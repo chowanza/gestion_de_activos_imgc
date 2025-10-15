@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 import { getServerUser } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
@@ -36,31 +37,50 @@ export async function POST(request: NextRequest) {
         where: { id },
         data: updateData,
         include: {
-          departamento: {
+          organizaciones: {
+            where: { activo: true },
             include: {
-              empresa: true
+              departamento: true,
+              empresa: true,
+              cargo: true
             }
           },
-          cargo: true,
-          computadores: {
+          asignacionesComoTarget: {
+            where: { activo: true },
             include: {
-              modelo: {
+              computador: {
                 include: {
-                  marca: true
+                  computadorModelos: {
+                    include: {
+                      modeloEquipo: {
+                        include: {
+                          marcaModelos: {
+                            include: { marca: true }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
-              }
-            }
-          },
-          dispositivos: {
-            include: {
-              modelo: {
+              },
+              dispositivo: {
                 include: {
-                  marca: true
+                  dispositivoModelos: {
+                    include: {
+                      modeloEquipo: {
+                        include: {
+                          marcaModelos: {
+                            include: { marca: true }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
       });
 
       // Crear registro en historial

@@ -79,8 +79,15 @@ export async function GET(request: NextRequest) {
                           where: { activo: true },
                           include: {
                             cargo: true,
-                            departamento: true,
-                            empresa: true
+                            departamento: {
+                              include: {
+                                empresaDepartamentos: {
+                                  include: {
+                                    empresa: true
+                                  }
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -93,11 +100,12 @@ export async function GET(request: NextRequest) {
                 },
                 intervenciones: {
                   include: {
-                    usuario: {
+                    empleado: {
                       select: {
                         id: true,
-                        username: true,
-                        role: true
+                        nombre: true,
+                        apellido: true,
+                        fotoPerfil: true
                       }
                     }
                   },
@@ -122,7 +130,7 @@ export async function GET(request: NextRequest) {
           ...asignacionActiva.targetEmpleado,
           cargo: asignacionActiva.targetEmpleado.organizaciones[0]?.cargo || null,
           departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento || null,
-          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.empresa || null
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos?.[0]?.empresa || null
         } : null;
 
         // Mapear asignaciones
@@ -132,7 +140,7 @@ export async function GET(request: NextRequest) {
             ...a.targetEmpleado,
             cargo: a.targetEmpleado.organizaciones[0]?.cargo || null,
             departamento: a.targetEmpleado.organizaciones[0]?.departamento || null,
-            empresa: a.targetEmpleado.organizaciones[0]?.empresa || null
+            empresa: a.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos?.[0]?.empresa || null
           } : null
         }));
 
@@ -150,17 +158,17 @@ export async function GET(request: NextRequest) {
 
         // Mapear intervenciones al formato del historial
         const historialDeIntervenciones = dispositivo.intervenciones.map(intervencion => ({
-            id: `intervencion-${intervencion.id}`,
-            tipo: 'intervencion' as const,
-            fecha: intervencion.fecha.toISOString(),
-            detalle: {
-                id: intervencion.id,
-                notas: intervencion.notas,
-                evidenciaFotos: intervencion.evidenciaFotos,
-                usuario: intervencion.usuario,
-                fecha: intervencion.fecha
-            }
-        }));
+      id: `intervencion-${intervencion.id}`,
+      tipo: 'intervencion' as const,
+      fecha: intervencion.fecha.toISOString(),
+      detalle: {
+        id: intervencion.id,
+        notas: intervencion.notas,
+        evidenciaFotos: intervencion.evidenciaFotos,
+        empleado: intervencion.empleado,
+        fecha: intervencion.fecha
+      }
+    }));
 
         // Combinar y ordenar el historial final
         const historialCombinado = [...historialDeAsignaciones, ...historialDeIntervenciones]

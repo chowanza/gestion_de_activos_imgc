@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
@@ -24,10 +25,14 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar si hay modelos usando el tipo anterior
-    const modelosConTipo = await prisma.modeloDispositivo.findMany({
+    const modelosConTipo = await prisma.modeloEquipo.findMany({
       where: { tipo: tipoAnterior },
       include: {
-        marca: true
+        marcaModelos: {
+          include: {
+            marca: true
+          }
+        }
       }
     });
 
@@ -39,7 +44,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Actualizar todos los modelos que usan el tipo anterior
-    const updatedModelos = await prisma.modeloDispositivo.updateMany({
+    const updatedModelos = await prisma.modeloEquipo.updateMany({
       where: { tipo: tipoAnterior },
       data: { tipo: tipoNuevo }
     });
@@ -58,7 +63,7 @@ export async function PUT(request: NextRequest) {
           modelos: modelosConTipo.map(m => ({
             id: m.id,
             nombre: m.nombre,
-            marca: m.marca.nombre
+            marca: m.marcaModelos[0]?.marca?.nombre || null
           }))
         }
       );

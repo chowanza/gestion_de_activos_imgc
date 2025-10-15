@@ -119,14 +119,14 @@ async function getAsignaciones(startDate: string | null, endDate: string | null,
   const processedAsignaciones = asignaciones.map(asignacion => {
     const equipo = asignacion.computador || asignacion.dispositivo;
     const tipoEquipo = asignacion.itemType;
-    
-    // Obtener información del modelo del equipo
+
+    // Obtener información del modelo del equipo (type guard)
     let modeloInfo = 'N/A';
-    if (equipo?.computadorModelos?.[0]?.modeloEquipo) {
+    if (equipo && 'computadorModelos' in equipo && Array.isArray(equipo.computadorModelos) && equipo.computadorModelos[0]?.modeloEquipo) {
       const modelo = equipo.computadorModelos[0].modeloEquipo;
       const marca = modelo.marcaModelos?.[0]?.marca;
       modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
-    } else if (equipo?.dispositivoModelos?.[0]?.modeloEquipo) {
+    } else if (equipo && 'dispositivoModelos' in equipo && Array.isArray(equipo.dispositivoModelos) && equipo.dispositivoModelos[0]?.modeloEquipo) {
       const modelo = equipo.dispositivoModelos[0].modeloEquipo;
       const marca = modelo.marcaModelos?.[0]?.marca;
       modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;

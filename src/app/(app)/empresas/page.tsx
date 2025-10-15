@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { EmpresasTable } from "@/components/empresas-table";
 import { Button } from "@/components/ui/button";

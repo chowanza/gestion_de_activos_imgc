@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import DispositivoForm from "@/components/DispositivoForm";
 import type { DispositivoFormData } from "@/components/DispositivoForm";

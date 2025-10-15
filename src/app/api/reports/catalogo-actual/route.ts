@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -144,8 +145,6 @@ export async function GET(request: NextRequest) {
         estado: comp.estado,
         fechaCompra: comp.fechaCompra,
         monto: comp.monto,
-        observaciones: comp.observaciones,
-        activo: comp.activo,
         ubicacion: {
           nombre: asignacionActual?.ubicacion?.nombre || 'Sin ubicación',
           direccion: asignacionActual?.ubicacion?.direccion || 'Sin dirección'
@@ -194,8 +193,6 @@ export async function GET(request: NextRequest) {
         estado: disp.estado,
         fechaCompra: disp.fechaCompra,
         monto: disp.monto,
-        observaciones: disp.observaciones,
-        activo: disp.activo,
         ubicacion: {
           nombre: asignacionActual?.ubicacion?.nombre || 'Sin ubicación',
           direccion: asignacionActual?.ubicacion?.direccion || 'Sin dirección'
@@ -245,8 +242,6 @@ export async function GET(request: NextRequest) {
     // Generar estadísticas
     const stats = {
       totalActivos: allActivos.length,
-      totalActivosActivos: allActivos.filter(a => a.activo).length,
-      totalActivosInactivos: allActivos.filter(a => !a.activo).length,
       porTipo: allActivos.reduce((acc, activo) => {
         acc[activo.tipo] = (acc[activo.tipo] || 0) + 1;
         return acc;
@@ -280,7 +275,15 @@ export async function GET(request: NextRequest) {
         acc[ubicacion] = (acc[ubicacion] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      valorTotal: allActivos.reduce((acc, activo) => acc + (activo.monto || 0), 0),
+      valorTotal: allActivos.reduce((acc, activo) => {
+        const monto =
+          activo.monto == null
+            ? 0
+            : typeof activo.monto === 'object' && 'toNumber' in activo.monto
+              ? activo.monto.toNumber()
+              : activo.monto;
+        return acc + monto;
+      }, 0),
       porAño: allActivos.reduce((acc, activo) => {
         if (activo.fechaCompra) {
           const año = new Date(activo.fechaCompra).getFullYear();

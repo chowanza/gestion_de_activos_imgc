@@ -7,221 +7,178 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- CONSTANTES DE ESTADO ---
-// Estados cuando NO está asignado: OPERATIVO, DE_BAJA, EN_RESGUARDO
-// Estados cuando SÍ está asignado: ASIGNADO, EN_MANTENIMIENTO
-
-// --- DATOS MAESTROS DE EQUIPOS ---
 model Marca {
-  id      String @id @default(uuid())
-  nombre  String @unique
-
-  // Relaciones normalizadas
+  id           String              @id @default(uuid())
+  nombre       String              @unique
   marcaModelos MarcaModeloEquipo[]
 }
 
 model ModeloEquipo {
-  id     String  @id @default(uuid())
-  nombre String
-  tipo   String
-  img    String?
-
-  // Relaciones normalizadas
-  marcaModelos           MarcaModeloEquipo[]
-  computadorModelos      ComputadorModeloEquipo[]
-  dispositivoModelos     DispositivoModeloEquipo[]
+  id                 String                    @id @default(uuid())
+  nombre             String
+  tipo               String
+  img                String?
+  computadorModelos  ComputadorModeloEquipo[]
+  dispositivoModelos DispositivoModeloEquipo[]
+  marcaModelos       MarcaModeloEquipo[]
 }
 
-// --- ESTRUCTURAS ORGANIZACIONALES ---
 model Ubicacion {
-  id          String  @id @default(uuid())
-  nombre      String  @unique
-  descripcion String?
-  direccion   String?
-  piso        String?
-  sala        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relaciones
+  id                  String                @id @default(uuid())
+  nombre              String                @unique
+  descripcion         String?
+  direccion           String?
+  piso                String?
+  sala                String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   asignacionesEquipos AsignacionesEquipos[]
 }
 
 model Empresa {
-  id          String   @id @default(uuid())
-  nombre      String   @unique
-  descripcion String?
-  logo        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relaciones normalizadas
-  empresaDepartamentos         EmpresaDepartamento[]
-  empleadoOrganizaciones       EmpleadoEmpresaDepartamentoCargo[]
+  id                     String                             @id @default(uuid())
+  nombre                 String                             @unique
+  descripcion            String?
+  createdAt              DateTime                           @default(now())
+  updatedAt              DateTime                           @updatedAt
+  logo                   String?
+  empleadoOrganizaciones EmpleadoEmpresaDepartamentoCargo[]
+  empresaDepartamentos   EmpresaDepartamento[]
 }
 
 model Departamento {
-  id        String   @id @default(uuid())
-  nombre    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones normalizadas
-  empresaDepartamentos         EmpresaDepartamento[]
-  departamentoCargos           DepartamentoCargo[]
-  empleadoOrganizaciones       EmpleadoEmpresaDepartamentoCargo[]
-  gerencias                    DepartamentoGerente[]
+  id                     String                             @id @default(uuid())
+  nombre                 String
+  createdAt              DateTime                           @default(now())
+  updatedAt              DateTime                           @updatedAt
+  departamentoCargos     DepartamentoCargo[]
+  gerencias              DepartamentoGerente[]
+  empleadoOrganizaciones EmpleadoEmpresaDepartamentoCargo[]
+  empresaDepartamentos   EmpresaDepartamento[]
 }
 
 model Cargo {
-  id          String   @id @default(uuid())
-  nombre      String
-  descripcion String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relaciones normalizadas
+  id                     String                             @id @default(uuid())
+  nombre                 String
+  descripcion            String?
+  createdAt              DateTime                           @default(now())
+  updatedAt              DateTime                           @updatedAt
   departamentoCargos     DepartamentoCargo[]
   empleadoOrganizaciones EmpleadoEmpresaDepartamentoCargo[]
 }
 
 model Empleado {
-  id                    String  @id @default(uuid())
-  nombre                String
-  apellido              String
-  ced                   String
-  email                 String?
-  telefono              String?
-  direccion             String?
-  fechaNacimiento       String?
-  fechaIngreso          String?
-  fechaDesincorporacion String?
-  fotoPerfil            String? @db.Text
-
-  // Relaciones normalizadas (eliminamos las FK directas)
-  organizaciones          EmpleadoEmpresaDepartamentoCargo[]
-  asignacionesComoTarget  AsignacionesEquipos[]              @relation("TargetEmpleado")
+  id                      String                             @id @default(uuid())
+  nombre                  String
+  apellido                String
+  ced                     String
+  fechaNacimiento         String?
+  fechaIngreso            String?
+  fechaDesincorporacion   String?
+  fotoPerfil              String?                            @db.Text
+  email                   String?
+  direccion               String?
+  telefono                String?
   asignacionesComoGerente AsignacionesEquipos[]              @relation("GerenteEmpleado")
+  asignacionesComoTarget  AsignacionesEquipos[]              @relation("TargetEmpleado")
   gerencias               DepartamentoGerente[]
+  organizaciones          EmpleadoEmpresaDepartamentoCargo[]
   statusHistory           EmpleadoStatusHistory[]
   intervenciones          IntervencionesEquipos[]
 }
 
-// --- EQUIPOS (sin FK a modelo) ---
 model Computador {
-  id                String    @id @default(uuid())
-  serial            String    @unique
-  estado            String    @default("OPERATIVO")
-  codigoImgc        String    // OBLIGATORIO
-  host              String?
-  
-  // Información de compra
-  fechaCompra       DateTime?
-  numeroFactura     String?
-  proveedor         String?
-  monto             Decimal?
-  
-  // Sistema Operativo
-  sisOperativo      String?
-  arquitectura      String?
-  
-  // Hardware
-  procesador        String?
-  ram               String?
-  almacenamiento    String?
-  macWifi           String?
-  macEthernet       String?
-  
-  // Software
-  officeVersion     String?
-  anydesk           String?
-
-  // Relaciones normalizadas
-  computadorModelos       ComputadorModeloEquipo[]
+  id                      String                    @id @default(uuid())
+  serial                  String                    @unique
+  estado                  String                    @default("OPERATIVO")
+  host                    String?
+  sisOperativo            String?
+  arquitectura            String?
+  macWifi                 String?
+  macEthernet             String?
+  ram                     String?
+  almacenamiento          String?
+  procesador              String?
+  officeVersion           String?
+  codigoImgc              String
+  fechaCompra             DateTime?
+  monto                   Decimal?
+  numeroFactura           String?
+  proveedor               String?
+  anydesk                 String?
   asignaciones            AsignacionesEquipos[]
+  computadorModelos       ComputadorModeloEquipo[]
   historialModificaciones HistorialModificaciones[]
   intervenciones          IntervencionesEquipos[]
 }
 
 model Dispositivo {
-  id            String    @id @default(uuid())
-  serial        String    @unique
-  estado        String    @default("OPERATIVO")
-  mac           String?
-  ip            String?
-  codigoImgc    String    // OBLIGATORIO
-  
-  // Información de compra
-  fechaCompra   DateTime?
-  numeroFactura String?
-  proveedor     String?
-  monto         Decimal?
-
-  // Relaciones normalizadas
-  dispositivoModelos DispositivoModeloEquipo[]
+  id                 String                    @id @default(uuid())
+  serial             String                    @unique
+  estado             String                    @default("OPERATIVO")
+  mac                String?
+  ip                 String?
+  codigoImgc         String
+  fechaCompra        DateTime?
+  monto              Decimal?
+  numeroFactura      String?
+  proveedor          String?
   asignaciones       AsignacionesEquipos[]
+  dispositivoModelos DispositivoModeloEquipo[]
   intervenciones     IntervencionesEquipos[]
 }
 
 model User {
-  id       String @id @default(uuid())
-  username String @unique
-  password String
-  role     String @default("viewer")
-
-  // Relaciones
+  id          String                 @id @default(uuid())
+  username    String                 @unique
+  password    String
+  role        String                 @default("viewer")
   movimientos HistorialMovimientos[]
 }
 
-// --- TABLAS DE RELACION NORMALIZADAS ---
 model MarcaModeloEquipo {
-  marcaId       String
+  marcaId        String
   modeloEquipoId String
-
-  marca        Marca        @relation(fields: [marcaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  modeloEquipo ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  marca          Marca        @relation(fields: [marcaId], references: [id], onUpdate: NoAction)
+  modeloEquipo   ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onUpdate: NoAction)
 
   @@id([marcaId, modeloEquipoId])
 }
 
 model EmpresaDepartamento {
-  empresaId        String
-  departamentoId   String
-  fechaAsignacion  DateTime @default(now())
-  activo           Boolean  @default(true)
-
-  empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  departamento Departamento @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empresaId       String
+  departamentoId  String
+  fechaAsignacion DateTime     @default(now())
+  activo          Boolean      @default(true)
+  departamento    Departamento @relation(fields: [departamentoId], references: [id], onUpdate: NoAction)
+  empresa         Empresa      @relation(fields: [empresaId], references: [id], onUpdate: NoAction)
 
   @@id([empresaId, departamentoId])
 }
 
 model DepartamentoCargo {
-  departamentoId  String
-  cargoId         String
-  fechaCreacion   DateTime @default(now())
-  activo          Boolean  @default(true)
-
-  departamento Departamento @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cargo        Cargo        @relation(fields: [cargoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  departamentoId String
+  cargoId        String
+  fechaCreacion  DateTime     @default(now())
+  activo         Boolean      @default(true)
+  cargo          Cargo        @relation(fields: [cargoId], references: [id], onUpdate: NoAction)
+  departamento   Departamento @relation(fields: [departamentoId], references: [id], onUpdate: NoAction)
 
   @@id([departamentoId, cargoId])
 }
 
-// TABLA CENTRAL - REEMPLAZA LAS FK EN EMPLEADO
 model EmpleadoEmpresaDepartamentoCargo {
-  empleadoId          String
-  empresaId           String
-  departamentoId      String
-  cargoId             String
-  fechaAsignacion     DateTime  @default(now())
-  fechaDesasignacion  DateTime?
-  activo              Boolean   @default(true)
-
-  empleado     Empleado     @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  departamento Departamento @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cargo        Cargo        @relation(fields: [cargoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleadoId         String
+  empresaId          String
+  departamentoId     String
+  cargoId            String
+  fechaAsignacion    DateTime     @default(now())
+  fechaDesasignacion DateTime?
+  activo             Boolean      @default(true)
+  cargo              Cargo        @relation(fields: [cargoId], references: [id], onUpdate: NoAction)
+  departamento       Departamento @relation(fields: [departamentoId], references: [id], onUpdate: NoAction)
+  empleado           Empleado     @relation(fields: [empleadoId], references: [id], onUpdate: NoAction)
+  empresa            Empresa      @relation(fields: [empresaId], references: [id], onUpdate: NoAction)
 
   @@id([empleadoId, empresaId, departamentoId, cargoId])
 }
@@ -229,75 +186,66 @@ model EmpleadoEmpresaDepartamentoCargo {
 model ComputadorModeloEquipo {
   computadorId   String
   modeloEquipoId String
-
-  computador   Computador   @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  modeloEquipo ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  computador     Computador   @relation(fields: [computadorId], references: [id], onUpdate: NoAction)
+  modeloEquipo   ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onUpdate: NoAction)
 
   @@id([computadorId, modeloEquipoId])
 }
 
 model DispositivoModeloEquipo {
-  dispositivoId    String
-  modeloEquipoId   String
-  tipoDispositivo  String?
-
-  dispositivo  Dispositivo  @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  modeloEquipo ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dispositivoId   String
+  modeloEquipoId  String
+  tipoDispositivo String?
+  dispositivo     Dispositivo  @relation(fields: [dispositivoId], references: [id], onUpdate: NoAction)
+  modeloEquipo    ModeloEquipo @relation(fields: [modeloEquipoId], references: [id], onUpdate: NoAction)
 
   @@id([dispositivoId, modeloEquipoId])
 }
 
-// ASIGNACIONES MEJORADAS
 model AsignacionesEquipos {
-  id                String    @id @default(uuid())
-  date              DateTime  @default(now())
-  notes             String?
-  actionType        String
-  motivo            String?
-  targetType        String
-  itemType          String
-  evidenciaFotos    String?   // URLs de imágenes separadas por comas
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  activo            Boolean   @default(true)
-
-  // Relaciones opcionales
-  targetEmpleadoId  String?
-  computadorId      String?
-  dispositivoId     String?
-  gerenteId         String?
-  ubicacionId       String?
-
-  targetEmpleado    Empleado?   @relation("TargetEmpleado", fields: [targetEmpleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  computador        Computador? @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dispositivo       Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  gerenteEmpleado   Empleado?   @relation("GerenteEmpleado", fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ubicacion         Ubicacion?  @relation(fields: [ubicacionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  id               String       @id @default(uuid())
+  date             DateTime     @default(now())
+  notes            String?
+  actionType       String
+  motivo           String?
+  targetType       String
+  itemType         String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  activo           Boolean      @default(true)
+  targetEmpleadoId String?
+  computadorId     String?
+  dispositivoId    String?
+  gerenteId        String?
+  ubicacionId      String?
+  evidenciaFotos   String?
+  computador       Computador?  @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dispositivo      Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gerenteEmpleado  Empleado?    @relation("GerenteEmpleado", fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  targetEmpleado   Empleado?    @relation("TargetEmpleado", fields: [targetEmpleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ubicacion        Ubicacion?   @relation(fields: [ubicacionId], references: [id], onUpdate: NoAction)
 }
 
 model DepartamentoGerente {
-  departamentoId      String
-  gerenteId           String
-  fechaAsignacion     DateTime  @default(now())
-  fechaDesasignacion  DateTime?
-  activo              Boolean   @default(true)
-
-  departamento Departamento @relation(fields: [departamentoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  gerente      Empleado     @relation(fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  departamentoId     String
+  gerenteId          String
+  fechaAsignacion    DateTime     @default(now())
+  fechaDesasignacion DateTime?
+  activo             Boolean      @default(true)
+  departamento       Departamento @relation(fields: [departamentoId], references: [id], onUpdate: NoAction)
+  gerente            Empleado     @relation(fields: [gerenteId], references: [id], onUpdate: NoAction)
 
   @@id([departamentoId, gerenteId])
 }
 
-// --- HISTORIAL Y AUDITORIA (mantienen estructura original) ---
 model HistorialModificaciones {
-  id            String   @id @default(uuid())
-  fecha         DateTime @default(now())
+  id            String     @id @default(uuid())
+  fecha         DateTime   @default(now())
   campo         String
   valorAnterior String?
   valorNuevo    String?
   computadorId  String
-
-  computador Computador @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  computador    Computador @relation(fields: [computadorId], references: [id], onUpdate: NoAction)
 
   @@index([computadorId])
 }
@@ -313,8 +261,7 @@ model HistorialMovimientos {
   usuarioId   String?
   ipAddress   String?
   userAgent   String?
-
-  usuario User? @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario     User?    @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([fecha])
   @@index([accion])
@@ -322,21 +269,19 @@ model HistorialMovimientos {
   @@index([usuarioId])
 }
 
-// INTERVENCIONES Y EVIDENCIA FOTOGRÁFICA
 model IntervencionesEquipos {
-  id                String    @id @default(uuid())
-  fecha             DateTime  @default(now())
-  notas             String?
-  evidenciaFotos    String?   // URLs de imágenes separadas por comas
-  computadorId      String?
-  dispositivoId     String?
-  empleadoId        String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  computador Computador? @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dispositivo Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  empleado Empleado? @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             String       @id @default(uuid())
+  fecha          DateTime     @default(now())
+  notas          String?
+  evidenciaFotos String?
+  computadorId   String?
+  dispositivoId  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  empleadoId     String?
+  computador     Computador?  @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dispositivo    Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  empleado       Empleado?    @relation(fields: [empleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([fecha])
   @@index([computadorId])
@@ -345,13 +290,22 @@ model IntervencionesEquipos {
 }
 
 model EmpleadoStatusHistory {
-  id          String   @id @default(uuid())
-  empleadoId  String
-  accion      String
-  fecha       String
-  motivo      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  empleadoId String
+  accion     String
+  fecha      String
+  motivo     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  empleado   Empleado @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+}
 
-  empleado Empleado @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+model sysdiagrams {
+  name         String @db.NVarChar(128)
+  principal_id Int
+  diagram_id   Int    @id(map: "PK__sysdiagr__C2B05B61A916C976") @default(autoincrement())
+  version      Int?
+  definition   Bytes?
+
+  @@unique([principal_id, name], map: "UK_principal_name")
 }

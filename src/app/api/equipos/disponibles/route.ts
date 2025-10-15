@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const computadoresAsignados = computadoresConAsignaciones.map(a => a.computadorId).filter(Boolean);
+  const computadoresAsignados = computadoresConAsignaciones.map(a => a.computadorId).filter((id): id is string => !!id);
 
       equipos = await prisma.computador.findMany({
         where: {
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const dispositivosAsignados = dispositivosConAsignaciones.map(a => a.dispositivoId).filter(Boolean);
+  const dispositivosAsignados = dispositivosConAsignaciones.map(a => a.dispositivoId).filter((id): id is string => !!id);
 
       equipos = await prisma.dispositivo.findMany({
         where: {

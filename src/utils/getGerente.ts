@@ -13,25 +13,35 @@ export async function getGerente(tx: Tx, args: GetGerenteArgs) {
   const preferGG = args.preferirGerenteGeneralSiTargetEsGerente ?? true;
 
   if (args.targetType === 'Departamento') {
-    const depto = await tx.departamento.findUnique({
-      where: { id: args.targetId },
-      include: { gerente: true },
+    // Buscar el gerente activo del departamento usando la relación normalizada
+    const deptoGerencia = await tx.departamentoGerente.findFirst({
+      where: {
+        departamentoId: args.targetId,
+        activo: true,
+        fechaDesasignacion: null
+      },
+      include: { gerente: true }
     });
-    return depto?.gerente || null;
+    return deptoGerencia?.gerente || null;
   }
 
   // targetType === 'Empleado'
   const empleado = await tx.empleado.findUnique({
-    where: { id: args.targetId },
-    include: {
-      departamento: { include: { gerente: true } },
-      cargo: true,
-    },
+    where: { id: args.targetId }
   });
 
   if (!empleado) return null;
 
-  const esGerente = (empleado.cargo?.nombre || '').toLowerCase().includes('gerente');
+  // Obtener la organización activa del empleado para cargo
+  const org = await tx.empleadoEmpresaDepartamentoCargo.findFirst({
+    where: {
+      empleadoId: empleado.id,
+      activo: true,
+      fechaDesasignacion: null
+    },
+    include: { cargo: true }
+  });
+  const esGerente = org?.cargo?.nombre?.toLowerCase().includes('gerente') ?? false;
 
   if (preferGG && esGerente) {
     // Si tienes la tabla Configuracion
@@ -42,5 +52,24 @@ export async function getGerente(tx: Tx, args: GetGerenteArgs) {
     // if (cfg?.gerenteGeneral) return cfg.gerenteGeneral;
   }
 
-  return empleado.departamento?.gerente || null;
+  // Buscar el gerente del departamento del empleado
+  // Primero obtener la organización activa del empleado
+  const orgDept = await tx.empleadoEmpresaDepartamentoCargo.findFirst({
+    where: {
+      empleadoId: empleado.id,
+      activo: true,
+      fechaDesasignacion: null
+    }
+  });
+  if (!orgDept) return null;
+  // Buscar el gerente activo del departamento
+  const deptoGerencia = await tx.departamentoGerente.findFirst({
+    where: {
+      departamentoId: orgDept.departamentoId,
+      activo: true,
+      fechaDesasignacion: null
+    },
+    include: { gerente: true }
+  });
+  return deptoGerencia?.gerente || null;
 }

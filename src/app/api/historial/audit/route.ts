@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
     // Obtener usuario actual para mostrar en registros sin usuario específico
     const currentUser = await getServerUser(request);
 
-    // Construir filtros de fecha
-    const dateFilter = {};
+  // Construir filtros de fecha
+  const dateFilter: { [key: string]: any } = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
     }
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Procesar y combinar todos los datos de auditoría
-    const auditLogs = [];
+  const auditLogs: any[] = [];
 
     // Procesar Historial de Movimientos
     historialMovimientos.forEach(log => {

@@ -24,33 +24,81 @@ export async function POST(request: NextRequest) {
     const equipment = equipmentType === 'Computador' 
       ? await prisma.computador.findUnique({
           where: { id: equipmentId },
-        include: {
-          empleado: {
-            include: {
-              departamento: {
-                include: {
-                  empresa: true
+          include: {
+            asignaciones: {
+              where: { activo: true },
+              include: {
+                targetEmpleado: {
+                  include: {
+                    organizaciones: {
+                      where: { activo: true },
+                      include: {
+                        cargo: true,
+                        departamento: {
+                          include: {
+                            empresaDepartamentos: {
+                              include: { empresa: true }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                ubicacion: true
+              }
+            },
+            computadorModelos: {
+              include: {
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: { marca: true }
+                    }
+                  }
                 }
               }
             }
-          },
-          modelo: { include: { marca: true } }
-        }
+          }
         })
       : await prisma.dispositivo.findUnique({
           where: { id: equipmentId },
-        include: {
-          empleado: {
-            include: {
-              departamento: {
-                include: {
-                  empresa: true
+          include: {
+            asignaciones: {
+              where: { activo: true },
+              include: {
+                targetEmpleado: {
+                  include: {
+                    organizaciones: {
+                      where: { activo: true },
+                      include: {
+                        cargo: true,
+                        departamento: {
+                          include: {
+                            empresaDepartamentos: {
+                              include: { empresa: true }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                ubicacion: true
+              }
+            },
+            dispositivoModelos: {
+              include: {
+                modeloEquipo: {
+                  include: {
+                    marcaModelos: {
+                      include: { marca: true }
+                    }
+                  }
                 }
               }
             }
-          },
-          modelo: { include: { marca: true } }
-        }
+          }
         });
 
     if (!equipment) {
@@ -96,30 +144,80 @@ export async function POST(request: NextRequest) {
             where: { id: equipmentId },
             data: updateData,
             include: {
-              empleado: {
+              asignaciones: {
+                where: { activo: true },
                 include: {
-                  departamento: {
-                    include: { empresa: true }
-                  }
+                  targetEmpleado: {
+                    include: {
+                      organizaciones: {
+                        where: { activo: true },
+                        include: {
+                          cargo: true,
+                          departamento: {
+                            include: {
+                              empresaDepartamentos: {
+                                include: { empresa: true }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  ubicacion: true
                 }
               },
-              ubicacion: true,
-              modelo: { include: { marca: true } }
+              computadorModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: { marca: true }
+                      }
+                    }
+                  }
+                }
+              }
             }
           })
         : await tx.dispositivo.update({
             where: { id: equipmentId },
             data: updateData,
             include: {
-              empleado: {
+              asignaciones: {
+                where: { activo: true },
                 include: {
-                  departamento: {
-                    include: { empresa: true }
-                  }
+                  targetEmpleado: {
+                    include: {
+                      organizaciones: {
+                        where: { activo: true },
+                        include: {
+                          cargo: true,
+                          departamento: {
+                            include: {
+                              empresaDepartamentos: {
+                                include: { empresa: true }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  ubicacion: true
                 }
               },
-              ubicacion: true,
-              modelo: { include: { marca: true } }
+              dispositivoModelos: {
+                include: {
+                  modeloEquipo: {
+                    include: {
+                      marcaModelos: {
+                        include: { marca: true }
+                      }
+                    }
+                  }
+                }
+              }
             }
           });
 

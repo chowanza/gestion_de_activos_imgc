@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         estado: comp.estado,
         fechaCompra: comp.fechaCompra,
         monto: comp.monto,
-        observaciones: comp.observaciones,
+  // observaciones: comp.observaciones, // Eliminado: no existe en el modelo
         asignacion: asignacionActual ? {
           fechaAsignacion: asignacionActual.date,
           empleado: empleadoAsignado ? 
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
         estado: disp.estado,
         fechaCompra: disp.fechaCompra,
         monto: disp.monto,
-        observaciones: disp.observaciones,
+  // observaciones: disp.observaciones, // Eliminado: no existe en el modelo
         asignacion: asignacionActual ? {
           fechaAsignacion: asignacionActual.date,
           empleado: empleadoAsignado ? 

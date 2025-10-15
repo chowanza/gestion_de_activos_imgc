@@ -1,40 +1,36 @@
-version: '3.8' # Especificar una versión es una buena práctica
 
 services:
   web:
     build: .
     ports:
-      # La IP fija es para exponer el servicio a tu red local, está bien.
       - "3000:3000"
     environment:
-      # Asegúrate de que estas variables se cargan desde un archivo .env
       - DATABASE_URL=${DATABASE_URL}
-    # Modificamos el comando de inicio
+      - PRISMA_MIGRATE_SHADOW_DATABASE_URL=${PRISMA_MIGRATE_SHADOW_DATABASE_URL}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL}
     command: sh -c "npx prisma migrate deploy && npm run start"
     depends_on:
       db:
-        # Esta es la clave: el servicio web no iniciará hasta que la db esté 'healthy'
         condition: service_healthy
     restart: unless-stopped
 
   db:
-    image: postgres:16-alpine
+    image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=StrongPassword123!
+      - MSSQL_PID=Express
     healthcheck:
-      # Tu healthcheck está casi bien, solo un pequeño ajuste
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P StrongPassword123! -Q 'SELECT 1' || exit 1"]
+      interval: 10s
       timeout: 5s
       retries: 10
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - sqlserver_data:/var/opt/mssql
     ports:
-      # Es útil exponer el puerto de la DB al host para depuración (opcional)
-      - "5433:5432" 
+      - "1433:1433"
 
 volumes:
-  postgres_data:
-    # Definir el volumen explícitamente es bueno
+  sqlserver_data:
+    # Persistencia de datos para SQL Server

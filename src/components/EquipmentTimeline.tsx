@@ -382,7 +382,7 @@ export function EquipmentTimeline({
         badge: 'Asignado',
         details: [
           `Departamento: ${typeof empleado.departamento === 'string' ? empleado.departamento : empleado.departamento?.nombre || 'Sin departamento'}`,
-          `Empresa: ${typeof empleado.empresa === 'string' ? empleado.empresa : empleado.empresa?.nombre || 'Sin empresa'}`,
+          `Empresa: ${empleado.departamento?.empresa?.nombre || 'Sin empresa'}`,
           ubicacion && `Ubicación: ${ubicacion.nombre}`
         ].filter(Boolean)
       };
@@ -511,8 +511,7 @@ export function EquipmentTimeline({
             badge: 'Creación',
             color: 'green',
             details: [
-              `Serial: ${equipo.serial}`,
-              `Código: ${equipo.codigoImgc}`
+              `Serial: ${equipo.serial}`
             ]
           } : generateTimelineMessage(entry, index);
 

@@ -191,8 +191,13 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
 
         // useEffect separado para pre-seleccionar empleado
         useEffect(() => {
-            if (initialData?.empleado && usuarios.length > 0) {
-                const empleadoAsignado = usuarios.find(user => user.value === initialData.empleado.id);
+            if (
+                initialData?.empleado &&
+                typeof initialData.empleado.id === 'string' &&
+                usuarios.length > 0
+            ) {
+                const empleadoId = initialData.empleado.id;
+                const empleadoAsignado = usuarios.find(user => user.value === empleadoId);
                 if (empleadoAsignado) {
                     setSelectedTarget(empleadoAsignado);
                 }

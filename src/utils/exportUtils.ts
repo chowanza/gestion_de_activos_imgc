@@ -1,3 +1,34 @@
+// Exportar datos a Excel
+export const exportToExcel = (data: ExportData | LegacyExportData) => {
+  const isLegacyData = 'movements' in data;
+  let sheetData: any[][] = [];
+  let headers: string[] = [];
+  if (isLegacyData) {
+    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo', 'Gerente'];
+    sheetData = (data as LegacyExportData).movements.map((movement: any) => [
+      movement.fecha,
+      movement.accion,
+      movement.equipo,
+      movement.serial,
+      movement.asignadoA,
+      movement.motivo || '-',
+      movement.gerente || '-'
+    ]);
+  } else {
+    headers = (data as ExportData).columns.map((col: any) => col.title);
+    sheetData = (data as ExportData).data.map((row: any) =>
+      (data as ExportData).columns.map((col: any) => row[col.key] || '-')
+    );
+  }
+  // Agregar encabezados
+  const excelData = [headers, ...sheetData];
+  const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
+  const reportTypeName = isLegacyData ? 'movimientos' : (data as ExportData).reportType;
+  const fileName = `reporte_${reportTypeName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+};
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -65,20 +96,14 @@ export interface LegacyExportData {
 
 export const exportToPDF = async (data: ExportData | LegacyExportData) => {
   // Determinar si es formato nuevo o legacy
-  const isLegacyData = 'movements' in data;
-  const exportData = isLegacyData ? data as LegacyExportData : data as ExportData;
-  
   // Determinar orientación basada en el número de columnas
-  const columnCount = isLegacyData ? 7 : exportData.columns.length;
-  const needsLandscape = columnCount > 8; // Más de 8 columnas requiere orientación horizontal
-  
-  // Crear documento con orientación apropiada
+  const isLegacyData = 'movements' in data;
+  const columnCount = isLegacyData ? 7 : (data as ExportData).columns.length;
+  const needsLandscape = columnCount > 8;
   const doc = new jsPDF(needsLandscape ? 'landscape' : 'portrait');
-  
-  // Cargar autoTable dinámicamente
   const autoTablePlugin = await loadAutoTable();
-  
-  // Agregar logo de IMGC
+
+  // Logo
   try {
     const logoResponse = await fetch('/img/logo.png');
     const logoBlob = await logoResponse.blob();
@@ -87,106 +112,95 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(logoBlob);
     });
-    
-    // Agregar logo en la esquina superior izquierda
     doc.addImage(logoBase64, 'PNG', 20, 10, 20, 8);
   } catch (error) {
     console.warn('No se pudo cargar el logo:', error);
   }
-  
-  // Obtener dimensiones de la página
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
-  // Configuración del documento - Título centrado
+
+  // Título
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  const titleText = isLegacyData ? 'Reporte de Movimientos de Equipos' : exportData.title;
+  const titleText = isLegacyData ? 'Reporte de Movimientos de Equipos' : (data as ExportData).title;
   const titleWidth = doc.getTextWidth(titleText);
   doc.text(titleText, (pageWidth - titleWidth) / 2, 25);
-  
-  // Información del reporte - Centrada
+
+  // Período
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  
-  // Mostrar período si está disponible
-  if (exportData.filters.startDate && exportData.filters.endDate) {
-    const periodText = `Período: ${exportData.filters.startDate} - ${exportData.filters.endDate}`;
+  if (!isLegacyData && (data as ExportData).filters.startDate && (data as ExportData).filters.endDate) {
+    const periodText = `Período: ${(data as ExportData).filters.startDate} - ${(data as ExportData).filters.endDate}`;
     const periodWidth = doc.getTextWidth(periodText);
     doc.text(periodText, (pageWidth - periodWidth) / 2, 35);
   }
-  
+
+  // Fecha generado
   const generatedText = `Generado: ${new Date().toLocaleDateString('es-ES')}`;
   const generatedWidth = doc.getTextWidth(generatedText);
   doc.text(generatedText, (pageWidth - generatedWidth) / 2, 45);
-  
+
   // Línea separadora
   doc.setLineWidth(0.5);
   doc.line(20, 55, pageWidth - 20, 55);
-  
+
   let startY = 70;
-  
-  // Mostrar estadísticas si están disponibles
-  if (exportData.statistics) {
+
+  // Estadísticas
+  const stats = isLegacyData ? (data as LegacyExportData).statistics : (data as ExportData).statistics;
+  if (stats) {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     const statsTitle = 'Estadísticas Generales';
     const statsTitleWidth = doc.getTextWidth(statsTitle);
     doc.text(statsTitle, (pageWidth - statsTitleWidth) / 2, startY);
-    
     startY += 15;
-    
-    // Mostrar estadísticas específicas según el tipo de reporte
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    
     if (isLegacyData) {
-      const legacyStats = exportData.statistics as LegacyExportData['statistics'];
+      const legacyStats = stats as LegacyExportData['statistics'];
       const leftColumnX = pageWidth / 2 - 60;
       const rightColumnX = pageWidth / 2 + 20;
-      
       doc.text(`Total de movimientos: ${legacyStats.totalMovements}`, leftColumnX, startY);
       doc.text(`Asignaciones: ${legacyStats.assignmentsCount}`, leftColumnX, startY + 10);
       doc.text(`Mantenimientos: ${legacyStats.maintenanceCount}`, leftColumnX, startY + 20);
-      
       doc.text(`Devoluciones: ${legacyStats.returnCount}`, rightColumnX, startY);
       doc.text(`Resguardo: ${legacyStats.safeguardCount}`, rightColumnX, startY + 10);
-      
       startY += 40;
     } else {
-      // Mostrar estadísticas genéricas de forma más profesional
-      const stats = exportData.statistics;
       const leftColumnX = pageWidth / 2 - 80;
       const rightColumnX = pageWidth / 2 + 20;
-      
-      // Mostrar estadísticas principales
-      if (stats.totalEmpleados !== undefined) {
-        doc.text(`Total Empleados: ${stats.totalEmpleados}`, leftColumnX, startY);
-        doc.text(`Empleados Activos: ${stats.empleadosActivos || 0}`, leftColumnX, startY + 10);
-        doc.text(`Empleados Inactivos: ${stats.empleadosInactivos || 0}`, leftColumnX, startY + 20);
-        doc.text(`Total Equipos Asignados: ${stats.totalEquiposAsignados || 0}`, rightColumnX, startY);
-        
-        // Mostrar distribución por empresa si existe
-        if (stats.porEmpresa) {
-          const empresaText = typeof stats.porEmpresa === 'string' 
-            ? stats.porEmpresa 
-            : Object.entries(stats.porEmpresa).map(([empresa, count]) => `${empresa}: ${count}`).join(', ');
-          doc.text(`Distribución por Empresa:`, leftColumnX, startY + 30);
-          doc.text(empresaText, leftColumnX + 5, startY + 40);
-        }
-        
-        // Mostrar distribución por departamento si existe
-        if (stats.porDepartamento) {
-          const deptText = typeof stats.porDepartamento === 'string' 
-            ? stats.porDepartamento 
-            : Object.entries(stats.porDepartamento).map(([dept, count]) => `${dept}: ${count}`).join(', ');
-          doc.text(`Distribución por Departamento:`, rightColumnX, startY + 30);
-          doc.text(deptText, rightColumnX + 5, startY + 40);
-        }
-        
-        startY += 60;
-      } else {
-        // Para otros tipos de reportes, mostrar estadísticas básicas
+      // Only show these fields if they exist
+      if ('totalEmpleados' in stats) {
+        doc.text(`Total Empleados: ${(stats as any).totalEmpleados}`, leftColumnX, startY);
+      }
+      if ('empleadosActivos' in stats) {
+        doc.text(`Empleados Activos: ${(stats as any).empleadosActivos || 0}`, leftColumnX, startY + 10);
+      }
+      if ('empleadosInactivos' in stats) {
+        doc.text(`Empleados Inactivos: ${(stats as any).empleadosInactivos || 0}`, leftColumnX, startY + 20);
+      }
+      if ('totalEquiposAsignados' in stats) {
+        doc.text(`Total Equipos Asignados: ${(stats as any).totalEquiposAsignados || 0}`, rightColumnX, startY);
+      }
+      if ('porEmpresa' in stats) {
+        const empresaText = typeof (stats as any).porEmpresa === 'string'
+          ? (stats as any).porEmpresa
+          : Object.entries((stats as any).porEmpresa).map(([empresa, count]) => `${empresa}: ${count}`).join(', ');
+        doc.text(`Distribución por Empresa:`, leftColumnX, startY + 30);
+        doc.text(empresaText, leftColumnX + 5, startY + 40);
+      }
+      if ('porDepartamento' in stats) {
+        const deptText = typeof (stats as any).porDepartamento === 'string'
+          ? (stats as any).porDepartamento
+          : Object.entries((stats as any).porDepartamento).map(([dept, count]) => `${dept}: ${count}`).join(', ');
+        doc.text(`Distribución por Departamento:`, rightColumnX, startY + 30);
+        doc.text(deptText, rightColumnX + 5, startY + 40);
+      }
+      startY += 60;
+      // Fallback: show up to 6 generic stats if above are missing
+      if (!('totalEmpleados' in stats) && !('empleadosActivos' in stats) && !('empleadosInactivos' in stats) && !('totalEquiposAsignados' in stats)) {
         const statsEntries = Object.entries(stats).slice(0, 6);
         statsEntries.forEach(([key, value], index) => {
           const x = index % 2 === 0 ? leftColumnX : rightColumnX;
@@ -197,20 +211,16 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
         startY += 30;
       }
     }
-    
-    // Línea separadora antes de la tabla
     doc.line(20, startY, pageWidth - 20, startY);
     startY += 15;
   }
-  
-  // Preparar datos de la tabla
-  let tableData: any[][];
-  let headers: string[];
+
+  // Tabla
+  let tableData: any[][] = [];
+  let headers: string[] = [];
   let columnStyles: Record<number, any> = {};
-  
   if (isLegacyData) {
-    // Formato legacy
-    tableData = exportData.movements.map(movement => [
+    tableData = (data as LegacyExportData).movements.map((movement: any) => [
       movement.fecha,
       movement.accion,
       movement.equipo,
@@ -220,46 +230,37 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
       movement.gerente || '-'
     ]);
     headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo', 'Gerente'];
-    
-    // Configuración de columnas optimizada para movimientos
     columnStyles = {
-      0: { halign: 'center', cellWidth: 25 }, // Fecha
-      1: { halign: 'center', cellWidth: 25 }, // Acción (más ancho)
-      2: { halign: 'left', cellWidth: 35 },   // Equipo
-      3: { halign: 'center', cellWidth: 20 }, // Serial
-      4: { halign: 'left', cellWidth: 30 },   // Asignado a
-      5: { halign: 'left', cellWidth: 40 },   // Motivo (más ancho)
-      6: { halign: 'center', cellWidth: 20 }  // Gerente
+      0: { halign: 'center', cellWidth: 25 },
+      1: { halign: 'center', cellWidth: 25 },
+      2: { halign: 'left', cellWidth: 35 },
+      3: { halign: 'center', cellWidth: 20 },
+      4: { halign: 'left', cellWidth: 30 },
+      5: { halign: 'left', cellWidth: 40 },
+      6: { halign: 'center', cellWidth: 20 }
     };
   } else {
-    // Formato nuevo con configuración de columnas
-    tableData = exportData.data.map(row => 
-      exportData.columns.map(col => row[col.key] || '-')
+    tableData = (data as ExportData).data.map((row: any) =>
+      (data as ExportData).columns.map((col: any) => row[col.key] || '-')
     );
-    headers = exportData.columns.map(col => col.title);
-    
-    // Calcular anchos de columna basados en la configuración y orientación
-    const availableWidth = needsLandscape ? 270 : 170; // Más espacio en landscape
-    const totalWidth = needsLandscape ? 250 : 150; // Aprovechar más espacio en landscape
-    
-    exportData.columns.forEach((col, index) => {
-      const cellWidth = (col.width / 100) * totalWidth;
+    headers = (data as ExportData).columns.map((col: any) => col.title);
+    (data as ExportData).columns.forEach((col: any, index: number) => {
+      const totalWidth = needsLandscape ? 250 : 150;
       columnStyles[index] = {
         halign: col.align || 'left',
-        cellWidth: cellWidth
+        cellWidth: (col.width / 100) * totalWidth
       };
     });
   }
-  
-  // Generar tabla
+
   autoTablePlugin(doc, {
     head: [headers],
     body: tableData,
     startY: startY,
-    margin: { left: 15, right: 15 }, // Márgenes más pequeños para aprovechar espacio
+    margin: { left: 15, right: 15 },
     styles: {
-      fontSize: needsLandscape ? 7 : 8, // Fuente más pequeña en landscape
-      cellPadding: needsLandscape ? 3 : 4, // Padding reducido en landscape
+      fontSize: needsLandscape ? 7 : 8,
+      cellPadding: needsLandscape ? 3 : 4,
       halign: 'center',
       valign: 'middle'
     },
@@ -274,160 +275,20 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
     },
     columnStyles: columnStyles
   });
-  
-  // Pie de página centrado
+
+  // Pie de página
   const finalY = (doc as any).lastAutoTable.finalY || 200;
   const footerY = Math.max(finalY + 20, pageHeight - 30);
-  
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
-  const reportType = isLegacyData ? 'movimientos' : exportData.reportType;
-  const footerText = `Sistema de Gestión de Activos IMGC - Reporte ${reportType} - Página 1`;
+  const reportTypeName = isLegacyData ? 'movimientos' : (data as ExportData).reportType;
+  const footerText = `Sistema de Gestión de Activos IMGC - Reporte ${reportTypeName} - Página 1`;
   const footerWidth = doc.getTextWidth(footerText);
   doc.text(footerText, (pageWidth - footerWidth) / 2, footerY);
-  
-  // Línea separadora del pie de página
   doc.setLineWidth(0.3);
   doc.line(20, footerY - 5, pageWidth - 20, footerY - 5);
-  
-  // Guardar el PDF
-  const reportTypeName = isLegacyData ? 'movimientos' : exportData.reportType;
+
+  // Guardar PDF
   const fileName = `reporte_${reportTypeName}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
-};
-
-export const exportToExcel = (data: ExportData | LegacyExportData) => {
-  // Crear un nuevo workbook
-  const workbook = XLSX.utils.book_new();
-  
-  // Determinar si es formato nuevo o legacy
-  const isLegacyData = 'movements' in data;
-  const exportData = isLegacyData ? data as LegacyExportData : data as ExportData;
-  
-  // Hoja de resumen
-  const title = isLegacyData ? 'REPORTE DE MOVIMIENTOS DE EQUIPOS' : exportData.title.toUpperCase();
-  const summaryData = [
-    [title],
-    [''],
-    ...(exportData.filters.startDate && exportData.filters.endDate ? [
-      ['Período:', `${exportData.filters.startDate} - ${exportData.filters.endDate}`]
-    ] : []),
-    ['Generado:', new Date().toLocaleDateString('es-ES')],
-    ['']
-  ];
-  
-  // Agregar estadísticas si están disponibles
-  if (exportData.statistics) {
-    summaryData.push(['ESTADÍSTICAS GENERALES']);
-    
-    if (isLegacyData) {
-      const legacyStats = exportData.statistics as LegacyExportData['statistics'];
-      summaryData.push(
-        ['Total de movimientos:', legacyStats.totalMovements],
-        ['Asignaciones:', legacyStats.assignmentsCount],
-        ['Mantenimientos:', legacyStats.maintenanceCount],
-        ['Devoluciones:', legacyStats.returnCount],
-        ['Resguardo:', legacyStats.safeguardCount],
-        [''],
-        ['MOVIMIENTOS POR EMPRESA'],
-        ...legacyStats.byCompany.map(item => [item.empresa, item.count]),
-        [''],
-        ['MOVIMIENTOS POR DEPARTAMENTO'],
-        ...legacyStats.byDepartment.map(item => [item.departamento, item.count]),
-        [''],
-        ['MOVIMIENTOS POR EMPLEADO'],
-        ...legacyStats.byEmployee.map(item => [item.empleado, item.count])
-      );
-    } else {
-      // Estadísticas genéricas
-      Object.entries(exportData.statistics).forEach(([key, value]) => {
-        summaryData.push([key, value]);
-      });
-    }
-  }
-  
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
-  
-  // Hoja de datos detallados
-  let dataSheet: any;
-  let sheetName: string;
-  
-  if (isLegacyData) {
-    // Formato legacy
-    const movementsData = [
-      ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo', 'Gerente'],
-      ...exportData.movements.map(movement => [
-        movement.fecha,
-        movement.accion,
-        movement.equipo,
-        movement.serial,
-        movement.asignadoA,
-        movement.motivo || '-',
-        movement.gerente || '-'
-      ])
-    ];
-    
-    dataSheet = XLSX.utils.aoa_to_sheet(movementsData);
-    sheetName = 'Movimientos';
-  } else {
-    // Formato nuevo
-    const tableData = [
-      exportData.columns.map(col => col.title),
-      ...exportData.data.map(row => 
-        exportData.columns.map(col => row[col.key] || '-')
-      )
-    ];
-    
-    dataSheet = XLSX.utils.aoa_to_sheet(tableData);
-    sheetName = 'Datos';
-  }
-  
-  // Aplicar estilos a la hoja de datos
-  const range = XLSX.utils.decode_range(dataSheet['!ref'] || 'A1');
-  for (let row = range.s.r; row <= range.e.r; row++) {
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-      if (!dataSheet[cellAddress]) continue;
-      
-      if (row === 0) {
-        // Encabezados
-        dataSheet[cellAddress].s = {
-          font: { bold: true },
-          fill: { fgColor: { rgb: "2980B9" } },
-          alignment: { horizontal: "center" }
-        };
-      } else {
-        // Datos
-        dataSheet[cellAddress].s = {
-          alignment: { horizontal: "left" }
-        };
-      }
-    }
-  }
-  
-  // Ajustar ancho de columnas
-  if (isLegacyData) {
-    dataSheet['!cols'] = [
-      { wch: 12 }, // Fecha
-      { wch: 15 }, // Acción
-      { wch: 20 }, // Equipo
-      { wch: 15 }, // Serial
-      { wch: 25 }, // Asignado a
-      { wch: 30 }, // Motivo (más ancho)
-      { wch: 20 }  // Gerente
-    ];
-  } else {
-    // Usar configuración de columnas
-    dataSheet['!cols'] = exportData.columns.map(col => ({
-      wch: Math.max(col.width / 5, 10) // Convertir porcentaje a ancho de columna
-    }));
-  }
-  
-  XLSX.utils.book_append_sheet(workbook, dataSheet, sheetName);
-  
-  // Guardar el archivo
-  const reportTypeName = isLegacyData ? 'movimientos' : exportData.reportType;
-  const fileName = `reporte_${reportTypeName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  XLSX.writeFile(workbook, fileName);
-};
+}

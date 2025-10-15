@@ -1,9 +1,12 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth'; // Importa solo decrypt
 
 export async function GET(req: NextRequest) {
   try {
-    const session = req.cookies.get('session')?.value;
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
     if (!session) {
       return NextResponse.json({ user: null }, { status: 200 });
     }

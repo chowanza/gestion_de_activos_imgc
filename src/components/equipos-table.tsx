@@ -64,7 +64,8 @@ export interface Dispositivo {
     id: string; 
     nombre: string; 
     img?: string; 
-    marca: { nombre: string } 
+    marca: { nombre: string };
+    tipo?: string;
   } | null;
   ubicacion?: { 
     id: string; 
@@ -806,7 +807,7 @@ return (
         initialData={editingDispositivo ? { // CAMBIO 3: ASEGÚRATE DE PASAR EL ID
           id: editingDispositivo.id, // ¡ESTA LÍNEA ES CRUCIAL!
           serial: editingDispositivo.serial,
-          modeloId: editingDispositivo.modeloId,
+          modeloId: editingDispositivo.modelo?.id ?? "",
           estado: editingDispositivo.estado,
           codigoImgc: editingDispositivo.codigoImgc,
           ubicacionId: editingDispositivo.ubicacion?.id ?? null,
@@ -815,7 +816,7 @@ return (
           fechaCompra: editingDispositivo.fechaCompra ?? null,
           numeroFactura: editingDispositivo.numeroFactura ?? null,
           proveedor: editingDispositivo.proveedor ?? null,
-          monto: editingDispositivo.monto ?? null,
+          monto: editingDispositivo.monto !== null && editingDispositivo.monto !== undefined ? Number(editingDispositivo.monto) : null,
         } : null}
         modelos={modelos} 
         // La key es importante para que React reinicie el estado del formulario al cambiar de un dispositivo a otro

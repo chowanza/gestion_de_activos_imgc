@@ -49,12 +49,12 @@ export function requiereEmpleado(estado: EstadoEquipo): boolean {
 
 // Función para verificar si un estado permite asignación
 export function permiteAsignacion(estado: EstadoEquipo): boolean {
-  return [ESTADOS_EQUIPO.OPERATIVO, ESTADOS_EQUIPO.EN_MANTENIMIENTO].includes(estado);
+  return ([ESTADOS_EQUIPO.OPERATIVO, ESTADOS_EQUIPO.EN_MANTENIMIENTO] as EstadoEquipo[]).includes(estado);
 }
 
 // Función para verificar si un estado es neutro (puede existir con o sin empleado)
 export function esEstadoNeutro(estado: EstadoEquipo): boolean {
-  return ESTADOS_NEUTROS.includes(estado);
+  return (ESTADOS_NEUTROS as readonly EstadoEquipo[]).includes(estado);
 }
 
 // Función para validar consistencia entre estado y asignación

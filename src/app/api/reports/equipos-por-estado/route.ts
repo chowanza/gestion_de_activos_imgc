@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -137,7 +138,6 @@ export async function GET(request: NextRequest) {
         estado: comp.estado,
         fechaCompra: comp.fechaCompra,
         monto: comp.monto,
-        observaciones: comp.observaciones,
         asignacion: asignacionActual ? {
           fechaAsignacion: asignacionActual.date,
           empleado: empleadoAsignado ? 
@@ -177,7 +177,6 @@ export async function GET(request: NextRequest) {
         estado: disp.estado,
         fechaCompra: disp.fechaCompra,
         monto: disp.monto,
-        observaciones: disp.observaciones,
         asignacion: asignacionActual ? {
           fechaAsignacion: asignacionActual.date,
           empleado: empleadoAsignado ? 

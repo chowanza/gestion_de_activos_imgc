@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -197,7 +198,7 @@ export async function GET(request: NextRequest) {
       return {
         id: mod.id,
         fecha: mod.fecha,
-        accion: mod.accion || 'Modificación',
+        accion: 'Modificación',
         tipoMovimiento: 'Modificación',
         campo: mod.campo,
         categoriaModificacion: categoriaModificacion,
@@ -225,7 +226,6 @@ export async function GET(request: NextRequest) {
         descripcion: `${mod.campo}: "${mod.valorAnterior || 'N/A'}" → "${mod.valorNuevo || 'N/A'}"`,
         metadata: {
           computadorId: mod.computadorId,
-          dispositivoId: mod.dispositivoId,
           timestamp: mod.fecha
         }
       };
@@ -238,8 +238,12 @@ export async function GET(request: NextRequest) {
       
       // Obtener información del modelo
       let modeloInfo = 'N/A';
-      if (equipo?.computadorModelos?.[0]?.modeloEquipo) {
+      if (equipo && 'computadorModelos' in equipo && Array.isArray(equipo.computadorModelos) && equipo.computadorModelos[0]?.modeloEquipo) {
         const modelo = equipo.computadorModelos[0].modeloEquipo;
+        const marca = modelo.marcaModelos?.[0]?.marca;
+        modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
+      } else if (equipo && 'dispositivoModelos' in equipo && Array.isArray(equipo.dispositivoModelos) && equipo.dispositivoModelos[0]?.modeloEquipo) {
+        const modelo = equipo.dispositivoModelos[0].modeloEquipo;
         const marca = modelo.marcaModelos?.[0]?.marca;
         modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
       }

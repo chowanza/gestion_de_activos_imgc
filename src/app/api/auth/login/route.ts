@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -50,16 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Crear la respuesta con la cookie de sesión
     const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
-    
-    // Establecer la cookie de sesión
-    response.cookies.set('session', session, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 días
-      path: '/',
-    });
-
+    response.headers.append('Set-Cookie', `session=${session}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax;${process.env.NODE_ENV === 'production' ? ' Secure;' : ''}`);
     return response;
 
   } catch (error) {

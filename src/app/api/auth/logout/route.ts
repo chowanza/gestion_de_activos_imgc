@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteSession } from '@/lib/auth-server';
 import { AuditLogger } from '@/lib/audit-logger';
@@ -26,14 +27,7 @@ export async function POST(req: NextRequest) {
     );
 
     // 3. Elimina la cookie de sesión
-    response.cookies.set('session', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0, // Expira inmediatamente
-      path: '/',
-    });
-
+    response.headers.append('Set-Cookie', `session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax;${process.env.NODE_ENV === 'production' ? ' Secure;' : ''}`);
     return response;
   } catch (error) {
     console.error('[LOGOUT_ERROR]', error);
