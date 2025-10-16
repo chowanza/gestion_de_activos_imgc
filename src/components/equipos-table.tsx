@@ -1,17 +1,19 @@
 "use client"
 
-import { Checkbox } from "@radix-ui/react-checkbox";
-import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
-import React from "react";
-import {z} from "zod";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, Trash2, Shield } from "lucide-react";
-import { showToast } from "nextjs-toast-notify";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FilterIcon } from "lucide-react";
+import * as React from "react"
+import {
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import { z } from "zod"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import DispositivoForm from "./EquipoForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -829,8 +831,8 @@ return (
           <AlertDialogHeader>
             <AlertDialogTitle>Imagen del Modelo</AlertDialogTitle>
             <AlertDialogDescription>
-              {currentImage ? (
-                <img src={currentImage} alt="Imagen del Modelo" className="max-w-full h-auto object-contain" />
+                {currentImage ? (
+                <img src={currentImage} alt="Imagen del Modelo" className="max-w-full h-auto object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/img/logo.png'; }} />
               ) : (
                 "No hay imagen disponible."
               )}

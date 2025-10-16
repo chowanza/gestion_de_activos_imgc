@@ -68,5 +68,7 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // Exclude API, Next static assets, Next image optimizer, favicon, and public asset folders
+  // (img and uploads) so those files are served directly by Next.js in production.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|uploads|img).*)'],
 };

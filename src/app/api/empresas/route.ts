@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(bytes);
       await fs.writeFile(filePath, buffer);
 
-      logoPath = `/uploads/empresas/${fileName}`;
+  // Use API streaming URL so the file is immediately accessible without needing server restart
+  logoPath = `/api/uploads/empresas/${fileName}`;
     }
 
     // Crear la empresa

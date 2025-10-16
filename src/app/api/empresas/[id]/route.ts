@@ -197,7 +197,12 @@ export async function PUT(
       
       // Eliminar archivo anterior si existe y el nuevo no es una URL externa
       if (existingEmpresa.logo && !logo.startsWith('http')) {
-        const oldFilePath = path.join(process.cwd(), 'public', existingEmpresa.logo);
+        // Normalize stored path: if we stored '/api/uploads/...' convert to '/uploads/...'
+        let stored = existingEmpresa.logo;
+        if (stored.startsWith('/api/uploads/')) {
+          stored = stored.replace('/api/uploads/', '/uploads/');
+        }
+        const oldFilePath = path.join(process.cwd(), 'public', stored);
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {

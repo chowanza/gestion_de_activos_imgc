@@ -1,0 +1,164 @@
+{
+  "empresas": [
+    {
+      "id": "0f353412-ac45-4bbd-b103-9c57994da9b0",
+      "nombre": "HIERROS UNIDOS",
+      "descripcion": "INSUMOS METALICOS",
+      "createdAt": "2025-09-29T14:50:03.267Z",
+      "updatedAt": "2025-10-16T18:21:11.488Z",
+      "logo": "/api/uploads/empresas/1759157403265-mu0d3ocr0r.png"
+    },
+    {
+      "id": "18bf4f7c-b5c2-44a8-9218-d7ea51b10535",
+      "nombre": "PRUEBA",
+      "descripcion": null,
+      "createdAt": "2025-10-16T18:41:51.520Z",
+      "updatedAt": "2025-10-16T18:42:21.402Z",
+      "logo": "/uploads/empresas/1760640141393-wh71kvh1maq.jpg"
+    },
+    {
+      "id": "59e35aea-90cd-4cc4-99de-0ef93179fc4d",
+      "nombre": "SUBACUATICA DE VENEZUELA",
+      "descripcion": "MANTENIMIENTO DE CASCO VIA BUZO",
+      "createdAt": "2025-09-29T14:48:49.420Z",
+      "updatedAt": "2025-10-16T18:21:11.497Z",
+      "logo": "/api/uploads/empresas/1759157329418-usb4ftikco.jpg"
+    },
+    {
+      "id": "73008aae-6586-40fd-aa86-d9f52a78425c",
+      "nombre": "SAO",
+      "descripcion": "GESTION AMBIENTAL",
+      "createdAt": "2025-09-29T14:48:16.439Z",
+      "updatedAt": "2025-10-16T18:21:11.503Z",
+      "logo": "/api/uploads/empresas/1759157296437-4lgmwbqwse3.jpeg"
+    },
+    {
+      "id": "85531e55-3b48-47e0-9145-37d587c3ed3d",
+      "nombre": "IMGC INTERNACIONAL",
+      "descripcion": "MANEJO DE MATERIALES",
+      "createdAt": "2025-09-29T14:49:38.966Z",
+      "updatedAt": "2025-10-16T18:21:11.504Z",
+      "logo": "/api/uploads/empresas/1759157378964-hy3bri7jyit.png"
+    },
+    {
+      "id": "9420e2c6-5914-4b4c-9f9f-8ccb21508da3",
+      "nombre": "INVERSIONES 286 CORP",
+      "descripcion": "Alimentos y Bebidas",
+      "createdAt": "2025-09-29T14:39:36.794Z",
+      "updatedAt": "2025-10-16T18:21:11.506Z",
+      "logo": "/api/uploads/empresas/1759157250477-0jrkox2jj0gu.jpeg"
+    },
+    {
+      "id": "e7903c3a-9b0a-4ea6-a3f6-ede3d8990f30",
+      "nombre": "ALAS DEL SUR",
+      "descripcion": "TRANSPORTE AEREO",
+      "createdAt": "2025-09-29T14:47:55.369Z",
+      "updatedAt": "2025-10-16T18:56:43.707Z",
+      "logo": "/api/uploads/empresas/1759157275368-1tinirsp1ro.jpeg"
+    },
+    {
+      "id": "ea965df1-4bdc-400f-a189-87b8f1ceff87",
+      "nombre": "IMGC GROUP",
+      "descripcion": "Agenciamiento Naviero",
+      "createdAt": "2025-09-29T14:49:15.478Z",
+      "updatedAt": "2025-10-16T18:21:11.510Z",
+      "logo": "/api/uploads/empresas/1759157355476-eeg3ju2gap.png"
+    }
+  ],
+  "modelos": [
+    {
+      "id": "7a1d8113-294c-49c9-8683-581ba0050caf",
+      "nombre": "Routerboard RB 3011 Ui - AS-RM",
+      "tipo": "Switch",
+      "img": "/api/uploads/modelos/1759771707534-69v6vxu5msx.png"
+    },
+    {
+      "id": "d857b581-adcc-4639-a4ef-cc78ce47b73d",
+      "nombre": "Inspiron 15",
+      "tipo": "Laptop",
+      "img": "/api/uploads/modelos/1759765908255-8fg13c9n4d6.jpg"
+    },
+    {
+      "id": "f9852105-8689-4cf5-a02b-029d76b74fd3",
+      "nombre": "HeroBook Pro 14.1\"",
+      "tipo": "Laptop",
+      "img": "/api/uploads/modelos/1759764127104-hbhn2298h5d.jpg"
+    }
+  ],
+  "computs": [],
+  "empleados": [],
+  "asignaciones": [
+    {
+      "id": "1234f627-e08a-4c67-a1cc-d621d47987a2",
+      "date": "2025-10-08T17:12:37.334Z",
+      "notes": "Cambio de estado de DE_BAJA a OPERATIVO",
+      "actionType": "CAMBIO_ESTADO",
+      "motivo": "Recuperado",
+      "targetType": "SISTEMA",
+      "itemType": "Computador",
+      "createdAt": "2025-10-08T17:12:37.335Z",
+      "updatedAt": "2025-10-08T17:12:37.335Z",
+      "activo": false,
+      "targetEmpleadoId": null,
+      "computadorId": "1072e0ec-e533-4b6b-aafc-bd6b78c85d68",
+      "dispositivoId": null,
+      "gerenteId": null,
+      "ubicacionId": "18aa7383-4623-4694-b5f2-d1e7cfff2ec7",
+      "evidenciaFotos": "/uploads/interventions/1759943556998_ysa7rn.jpg"
+    },
+    {
+      "id": "1f05132a-fb9e-47f1-b4df-67247c9fbdd5",
+      "date": "2025-10-08T15:20:28.425Z",
+      "notes": "Asignación automática por cambio de estado a ASIGNADO",
+      "actionType": "ASIGNACION",
+      "motivo": "Cambio de estado",
+      "targetType": "Usuario",
+      "itemType": "Computador",
+      "createdAt": "2025-10-08T15:20:28.426Z",
+      "updatedAt": "2025-10-08T16:46:34.917Z",
+      "activo": false,
+      "targetEmpleadoId": "3ce9ce06-ece6-4846-b234-d63a78918a9c",
+      "computadorId": "1072e0ec-e533-4b6b-aafc-bd6b78c85d68",
+      "dispositivoId": null,
+      "gerenteId": null,
+      "ubicacionId": "18aa7383-4623-4694-b5f2-d1e7cfff2ec7",
+      "evidenciaFotos": "/uploads/interventions/1759936827925_8dpr0d.jpg"
+    },
+    {
+      "id": "628bb798-7121-4796-9c62-80a104fb0624",
+      "date": "2025-10-08T16:46:34.945Z",
+      "notes": "Devolución automática por cambio de estado de ASIGNADO a DE_BAJA",
+      "actionType": "DEVOLUCION",
+      "motivo": "Se daño",
+      "targetType": "Usuario",
+      "itemType": "Computador",
+      "createdAt": "2025-10-08T16:46:34.947Z",
+      "updatedAt": "2025-10-08T16:46:34.947Z",
+      "activo": false,
+      "targetEmpleadoId": "3ce9ce06-ece6-4846-b234-d63a78918a9c",
+      "computadorId": "1072e0ec-e533-4b6b-aafc-bd6b78c85d68",
+      "dispositivoId": null,
+      "gerenteId": null,
+      "ubicacionId": "18aa7383-4623-4694-b5f2-d1e7cfff2ec7",
+      "evidenciaFotos": "/uploads/interventions/1759941994192_04ynda.jpg"
+    },
+    {
+      "id": "fdcd872e-68d3-484f-987d-cd5ce516ed0c",
+      "date": "2025-10-08T17:13:00.476Z",
+      "notes": "Asignación automática por cambio de estado a ASIGNADO",
+      "actionType": "ASIGNACION",
+      "motivo": "Recuperado",
+      "targetType": "Usuario",
+      "itemType": "Computador",
+      "createdAt": "2025-10-08T17:13:00.478Z",
+      "updatedAt": "2025-10-08T17:13:00.478Z",
+      "activo": true,
+      "targetEmpleadoId": "3ce9ce06-ece6-4846-b234-d63a78918a9c",
+      "computadorId": "1072e0ec-e533-4b6b-aafc-bd6b78c85d68",
+      "dispositivoId": null,
+      "gerenteId": null,
+      "ubicacionId": "18aa7383-4623-4694-b5f2-d1e7cfff2ec7",
+      "evidenciaFotos": "/uploads/interventions/1759943580435_0ji3md.jpg"
+    }
+  ]
+}

@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
       
       await writeFile(filepath, buffer);
       
-      // Generate URL
-      const url = `/uploads/interventions/${filename}`;
-      uploadedUrls.push(url);
+  // Generate API URL so the file is served via the streaming endpoint immediately
+  const url = `/api/uploads/interventions/${filename}`;
+  uploadedUrls.push(url);
     }
 
     if (uploadedUrls.length === 0) {

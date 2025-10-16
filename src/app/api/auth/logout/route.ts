@@ -26,8 +26,27 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
 
-    // 3. Elimina la cookie de sesión
-    response.headers.append('Set-Cookie', `session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax;${process.env.NODE_ENV === 'production' ? ' Secure;' : ''}`);
+  // 3. Elimina la cookie de sesión
+    const forwardedProto = (req.headers.get('x-forwarded-proto') || '').toLowerCase();
+    const reqProto = (req as any).nextUrl?.protocol || '';
+    const isHttps = forwardedProto === 'https' || String(reqProto).toLowerCase() === 'https:';
+    const publicUrl = String(process.env.NEXT_PUBLIC_URL || '').toLowerCase();
+    const publicUrlIsHttps = publicUrl.startsWith('https://');
+    const cookieSecureEnv = String(process.env.COOKIE_SECURE || '').toLowerCase();
+    let secureFlag = '';
+    if (cookieSecureEnv === 'true') {
+      secureFlag = ' Secure;';
+    } else if (cookieSecureEnv === 'false') {
+      secureFlag = '';
+    } else {
+      secureFlag = (process.env.NODE_ENV === 'production' && (isHttps || publicUrlIsHttps)) ? ' Secure;' : '';
+    }
+    const cookieString = `session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax;${secureFlag}`;
+    if (String(process.env.COOKIE_DEBUG).toLowerCase() === 'true') {
+      console.log('[COOKIE_DEBUG] Clear-Cookie:', cookieString);
+      console.log('[COOKIE_DEBUG] Request headers:', Array.from(req.headers.entries()));
+    }
+    response.headers.append('Set-Cookie', cookieString);
     return response;
   } catch (error) {
     console.error('[LOGOUT_ERROR]', error);

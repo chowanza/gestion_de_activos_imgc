@@ -31,7 +31,8 @@ export async function POST(request: Request) {
             const buffer = Buffer.from(bytes);
             await fs.writeFile(filePath, buffer);
 
-            imagePath = `/uploads/modelos/${fileName}`;
+            // Use API streaming URL so the file is immediately accessible
+            imagePath = `/api/uploads/modelos/${fileName}`;
         }
 
         const nuevoModelo = await prisma.modeloEquipo.create({
@@ -76,7 +77,7 @@ export async function GET() {
       id: modelo.id,
       nombre: modelo.nombre,
       tipo: modelo.tipo,
-      img: modelo.img ? modelo.img.replace('/img/equipos/', '/uploads/modelos/') : null,
+  img: modelo.img ? modelo.img.replace('/img/equipos/', '/api/uploads/modelos/') : null,
       marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
     }));
 

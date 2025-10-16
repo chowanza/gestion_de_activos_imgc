@@ -20,8 +20,12 @@ async function ensureDirExists(dirPath: string) {
 // --- Helper para eliminar un archivo (si existe) ---
 async function deletePreviousImage(imagePath: string | null | undefined) {
     if (imagePath) {
-        // imagePath viene como /uploads/equipos/imagen.jpg, necesitamos la ruta completa del sistema
-        const fullPath = path.join(process.cwd(), 'public', imagePath);
+    // imagePath puede venir como /uploads/... o /api/uploads/... -> normalizar
+    let stored = imagePath;
+    if (stored.startsWith('/api/uploads/')) {
+      stored = stored.replace('/api/uploads/', '/uploads/');
+    }
+    const fullPath = path.join(process.cwd(), 'public', stored);
         try {
             await stat(fullPath); // Verifica si existe
             await unlink(fullPath); // Elimina el archivo

@@ -49,10 +49,35 @@ export async function POST(req: NextRequest) {
     
     await AuditLogger.logLogin(user.id, ipAddress, userAgent);
 
-    // Crear la respuesta con la cookie de sesión
-    const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
-    response.headers.append('Set-Cookie', `session=${session}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax;${process.env.NODE_ENV === 'production' ? ' Secure;' : ''}`);
-    return response;
+  // Crear la respuesta con la cookie de sesión
+  const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
+  // Add Secure flag only when running in production AND the request is actually HTTPS.
+    const forwardedProto = (req.headers.get('x-forwarded-proto') || '').toLowerCase();
+    const reqProto = (req as any).nextUrl?.protocol || '';
+    const isHttps = forwardedProto === 'https' || String(reqProto).toLowerCase() === 'https:';
+    // Also consider NEXT_PUBLIC_URL as a signal (useful when IIS/TLS terminates before proxy)
+    const publicUrl = String(process.env.NEXT_PUBLIC_URL || '').toLowerCase();
+    const publicUrlIsHttps = publicUrl.startsWith('https://');
+    // COOKIE_SECURE env var overrides behavior:
+    // - if COOKIE_SECURE === 'true' -> always set Secure
+    // - if COOKIE_SECURE === 'false' -> never set Secure
+    // - otherwise -> set Secure when NODE_ENV=production and (request is HTTPS or NEXT_PUBLIC_URL is https)
+    const cookieSecureEnv = String(process.env.COOKIE_SECURE || '').toLowerCase();
+    let secureFlag = '';
+    if (cookieSecureEnv === 'true') {
+      secureFlag = ' Secure;';
+    } else if (cookieSecureEnv === 'false') {
+      secureFlag = '';
+    } else {
+      secureFlag = (process.env.NODE_ENV === 'production' && (isHttps || publicUrlIsHttps)) ? ' Secure;' : '';
+    }
+    const cookieString = `session=${session}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax;${secureFlag}`;
+    if (String(process.env.COOKIE_DEBUG).toLowerCase() === 'true') {
+      console.log('[COOKIE_DEBUG] Set-Cookie:', cookieString);
+      console.log('[COOKIE_DEBUG] Request headers:', Array.from(req.headers.entries()));
+    }
+    response.headers.append('Set-Cookie', cookieString);
+  return response;
 
   } catch (error) {
     console.error('[LOGIN_API_ERROR]', error);

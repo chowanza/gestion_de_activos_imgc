@@ -1,18 +1,18 @@
 "use client";
 
-import * as React from "react";
+import * as React from "react"
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table";
+} from "@tanstack/react-table"
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -190,6 +190,7 @@ export function EmpresasTable() {
               src={logo}
               alt="Logo de la empresa"
               className="w-16 h-16 object-cover rounded-lg border"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/img/logo.png'; }}
             />
           ) : (
             <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-xs">

@@ -9,10 +9,17 @@ export async function getServerUser(request: NextRequest) {
       return null;
     }
 
+    if (String(process.env.COOKIE_DEBUG).toLowerCase() === 'true') {
+      console.log('[COOKIE_DEBUG] Incoming cookie value:', cookie.value);
+    }
+
     const session = await decrypt(cookie.value);
     return session;
   } catch (error) {
     console.error('Error getting server user:', error);
+    if (String(process.env.COOKIE_DEBUG).toLowerCase() === 'true') {
+      console.error('[COOKIE_DEBUG] Decrypt error:', error);
+    }
     return null;
   }
 }
