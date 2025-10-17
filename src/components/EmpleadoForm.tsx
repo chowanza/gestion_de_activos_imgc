@@ -50,7 +50,7 @@ export interface EmpleadoFormData {
     fechaNacimiento: string;
     fechaIngreso: string;
     fechaDesincorporacion?: string;
-    fotoPerfil?: string;
+    fotoPerfil?: string | File | null;
     cargoId: string;
 }
 
@@ -90,7 +90,9 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     isEmpleadoDesactivado = false, // Por defecto es false
 }) => {
 
+    // formData holds string fields; fotoPerfilFile holds the selected File when present
     const [formData, setFormData] = useState<EmpleadoFormData>(initialState);
+    const [fotoPerfilFile, setFotoPerfilFile] = useState<File | null>(null);
     const [empresas, setEmpresas] = useState<Empresa[]>([]);
     const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
     const [cargos, setCargos] = useState<Cargo[]>([]);
@@ -153,7 +155,8 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
         if (initialData) {
             console.log('Cargando initialData:', initialData);
             setFormData(initialData);
-            if (initialData.fotoPerfil) {
+            // Only set previewImage when fotoPerfil is a string (URL). If it's a File, we keep previewImage null
+            if (initialData.fotoPerfil && typeof initialData.fotoPerfil === 'string') {
                 setPreviewImage(initialData.fotoPerfil);
             }
         }
@@ -199,12 +202,10 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
             reader.onload = (e) => {
                 const result = e.target?.result as string;
                 setPreviewImage(result);
-                setFormData(prev => ({
-                    ...prev,
-                    fotoPerfil: result
-                }));
             };
             reader.readAsDataURL(file);
+            setFotoPerfilFile(file);
+            // Do not set formData.fotoPerfil to the data URL; we will upload the File itself on submit
         }
     };
 
@@ -287,7 +288,13 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
             showToast.warning("Introduzca todos los campos obligatorios.", { position: "top-right" });
             return;
         }
-        await onSubmit(formData);
+            const submitData: EmpleadoFormData = {
+                ...formData,
+                // Provide the File if selected so the page can send FormData
+                fotoPerfil: fotoPerfilFile ?? formData.fotoPerfil,
+            };
+
+            await onSubmit(submitData);
     };
     
     // Preparar opciones para react-select
@@ -304,6 +311,9 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
     
     const selectedEmpresaValue = empresaOptions.find(option => option.value === formData.empresaId) || null;
     const selectedDepartamentoValue = departamentoOptions.find(option => option.value === formData.departamentoId) || null;
+
+    // Compute a safe image src for the preview: prefer the data-url previewImage, otherwise use the stored string URL
+    const imageSrc: string | undefined = previewImage ?? (typeof formData.fotoPerfil === 'string' ? formData.fotoPerfil : undefined);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -460,9 +470,9 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
                 <Label htmlFor="fotoPerfil">Foto de Perfil</Label>
                 <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center bg-gray-50">
-                        {previewImage || formData.fotoPerfil ? (
+                        {imageSrc ? (
                             <img 
-                                src={previewImage || formData.fotoPerfil} 
+                                src={imageSrc} 
                                 alt="Preview" 
                                 className="w-full h-full object-cover"
                             />

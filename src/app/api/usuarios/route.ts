@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import path from 'path';
+import { promises as fs } from 'fs';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 
@@ -127,7 +129,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Support both JSON and FormData (file upload for fotoPerfil)
+    const contentType = request.headers.get('content-type') || '';
+    let body: any = {};
+    let fotoPerfilFile: File | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      // Copy fields
+      for (const [key, value] of formData.entries()) {
+        if (key === 'fotoPerfil' && value instanceof File) {
+          fotoPerfilFile = value as File;
+        } else if (typeof value === 'string') {
+          body[key] = value;
+        }
+      }
+    } else {
+      body = await request.json();
+    }
     console.log('Datos recibidos en API:', body);
     
     const { cargoId, departamentoId, cedula, empresaId, ...rest } = body;
@@ -142,6 +161,19 @@ export async function POST(request: NextRequest) {
 
     // Procesar fechas y excluir empresaId (no existe en el modelo Empleado)
     const { fechaNacimiento, fechaIngreso, fechaDesincorporacion, fotoPerfil, ...otherFields } = rest;
+
+    // If a file was uploaded via FormData, save it to disk and set fotoPerfil accordingly
+    let savedFotoPerfil: string | null = null;
+    if (fotoPerfilFile) {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'usuarios');
+      await fs.mkdir(uploadDir, { recursive: true });
+      const fileExt = path.extname(fotoPerfilFile.name) || '.jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExt}`;
+      const filePath = path.join(uploadDir, fileName);
+      const bytes = await fotoPerfilFile.arrayBuffer();
+      await fs.writeFile(filePath, Buffer.from(bytes));
+      savedFotoPerfil = `/api/uploads/usuarios/${fileName}`;
+    }
     
     // Función para procesar fechas y evitar problemas de zona horaria
     const processDate = (dateString: string | null): string | null => {
@@ -163,7 +195,8 @@ export async function POST(request: NextRequest) {
       fechaNacimiento: processDate(fechaNacimiento),
       fechaIngreso: processDate(fechaIngreso),
       fechaDesincorporacion: processDate(fechaDesincorporacion),
-      fotoPerfil: fotoPerfil || null,
+      // Prefer uploaded file URL if present, otherwise use provided fotoPerfil string or null
+      fotoPerfil: savedFotoPerfil ?? (fotoPerfil || null),
     };
 
 

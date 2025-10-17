@@ -1551,5 +1551,128 @@ npx tsx scripts/check-modelos.ts
 
 ---
 
+## 🕵️ Auditoría de contexto (2025-10-16)
+
+Esta sección resume el estado actual del proyecto (frontend, backend, base de datos), el flujo de datos crítico, componentes clave, convenciones y tareas de mantenimiento ya realizadas (migraciones, backups, limpieza). Úsela como referencia operativa para cualquier IA o desarrollador nuevo.
+
+### 1) Resumen ejecutivo
+- Stack: Next.js (app router, v15.x) + TypeScript, React (server & client components), Prisma (v6) con SQL Server (datasource en `prisma/schema.prisma`).
+- Almacenamiento de archivos: local en `public/uploads/<categoria>/` y servido a través de endpoint streaming `/api/uploads/[...path]`.
+- Autenticación: cookie-based session (custom getServerUser + middleware). Algunas páginas usan cookies y por tanto se renderizan dinámicamente.
+
+### 2) Mapeo del flujo de datos (end-to-end)
+
+- Formulario (Frontend - ejemplo crear/editar Empresa)
+  - Componentes implicados: `src/components/EmpresaForm.tsx`, `src/components/empresas-table.tsx`, páginas: `src/app/(app)/empresas/[id]/page.tsx`.
+  - Flujo: el formulario construye un `FormData` y añade campos: `nombre`, `descripcion` y `logo` (File) y hace `fetch('/api/empresas', {method: 'POST', body: formData})`.
+
+- Ruta API (Backend)
+  - `src/app/api/empresas/route.ts` recibe `FormData`, crea `public/uploads/empresas` si es necesario, escribe el archivo y guarda la fila en la BD con `logo: '/api/uploads/empresas/<archivo>'`.
+  - Para edición `PUT /api/empresas/[id]` (archivo: `src/app/api/empresas/[id]/route.ts`) normaliza rutas previas (`/api/uploads/` -> `/uploads/`) para `unlink` en disco y actualiza el campo `logo` en BD.
+
+- Streaming (servir archivo)
+  - `GET /api/uploads/<...path>` implemented in `src/app/api/uploads/[...path]/route.ts`.
+  - Resuelve `public/uploads/<...path>` y devuelve el fichero con Content-Type correcto (image/jpeg, image/png, ...).
+
+- BD (Prisma)
+  - Insert/Update via `prisma.empresa.create()` / `prisma.empresa.update()` (ejemplo) en los handlers.
+  - Esquema principal: `prisma/schema.prisma` (modelos: Empresa, Empleado, Computador, Dispositivo, ModeloEquipo, Marca, AsignacionesEquipos, User, etc.).
+
+### 3) Componentes críticos y dónde encontrarlos
+
+- Autenticación & autorización:
+  - `src/middleware.ts` — protege rutas, usa `session` cookie y `decrypt` para validar. matcher excluye `api`, `_next`, `uploads`, `img`.
+  - `src/lib/auth-server.ts` & `getServerUser` (usado en APIs para auditoría/validación).
+
+- Uploads & serving:
+  - Upload handlers: `src/app/api/upload/images/route.ts`, `src/app/api/empresas/route.ts`, `src/app/api/modelos/route.ts` and `[id]/route.ts` variants.
+  - Streaming: `src/app/api/uploads/[...path]/route.ts` (serves files from `public/uploads`).
+
+- UI / Form flows:
+  - `src/components/EmpresaForm.tsx` / `EmpresaForm` and `empresas-table.tsx` — create/update flows for empresas.
+  - `src/components/ModeloForm.tsx` / `src/app/api/modelos` — modelos CRUD.
+  - `src/app/(app)/empleados/[id]/page.tsx` — employee profile page with fotoPerfil rendering.
+
+- Business logic / important API routes:
+  - `src/app/api/asignaciones` (assignments), `src/app/api/intervenciones` (interventions), `src/app/api/historial-*` (auditoría)
+
+### 4) Naming & folder conventions
+
+- Frontend components: `src/components/` - PascalCase filenames (e.g., `EquipmentTimeline.tsx`).
+- App pages: `src/app/` with app-router pattern and nested folders for routes.
+- API routes: `src/app/api/<resource>/route.ts` and `src/app/api/<resource>/<id>/route.ts` for id-specific operations.
+- Prisma models: lowerCamel or Pascal in `schema.prisma` (e.g., `Computador`, `AsignacionesEquipos`).
+- Upload filenames: `<timestamp>-<random>.<ext>` or `<timestamp>_<rand>.<ext>` (both patterns seen); stored on disk under `public/uploads/<categoria>/` and referenced in DB as `/api/uploads/<categoria>/<file>`.
+
+### 5) Scripts / Agents relevantes (ubicados en `scripts/`)
+
+- Database and maintenance scripts implemented during this session:
+  - `scripts/list-missing-uploads.ts` — scan DB fields that point to uploads and report missing files.
+  - `scripts/convert-uploads-to-api.ts` — dry-run and `--apply` conversion of DB values from `/uploads/...` -> `/api/uploads/...`.
+  - `scripts/backup-affected-uploads.ts` — backup the affected rows before migration.
+  - `scripts/clean-db-leave-admin.ts` — backup + delete almost all data preserving admin users (supports dry-run/--apply).
+  - `scripts/finalize-modelo-deletions.ts` — examines and deletes dependent relations then `modeloEquipo` rows.
+  - `scripts/test-upload-empresa.cjs`, `scripts/check-uploaded-file.cjs` — lightweight diagnostic/test scripts for uploads.
+
+### 6) DB / Prisma / SQL Server notes
+
+- Prisma generator configuration in `prisma/schema.prisma` uses the `sqlserver` provider.
+- Connection string: environment variable `DATABASE_URL` (format: mssql://<user>:<pass>@<host>:<port>;database=<db>;encrypt=true;... ) — confirm `env` file contains proper connection string for SQL Server.
+- Common Prisma tasks:
+  - Generate client: `npx prisma generate` (or `npm run build` which runs it)
+  - Apply migrations (dev): `npx prisma migrate dev` / production deploy: `npx prisma migrate deploy`.
+
+### 7) Recent changes & migration actions (done)
+
+- Implemented streaming endpoint `/api/uploads/[...path]` to serve local uploads consistently.
+- Normalized upload handlers to store `/api/uploads/...` in DB and updated delete logic to convert `/api/uploads/` -> `/uploads/` before unlink to target correct disk path.
+- Created migration scripts to update DB rows referencing `/uploads/` to `/api/uploads/` and created backups prior to apply.
+- Created and executed `scripts/clean-db-leave-admin.ts` to preserve the admin user and delete non-admin data (backup written to `scripts/backups/clean-db-backup-*.json`).
+
+### 8) Known issues & warnings
+
+- Next.js dynamic server warnings: app uses cookies and server-side dynamic usage in several routes (e.g., pages that call `cookies` or `getServerUser`). This is expected for auth'ed pages but note that pages using cookies cannot be statically prerendered.
+- Build-time TypeScript linting errors may appear when changing route code; ensure `npx tsc --noEmit` passes after edits.
+- After code changes to API routes, production server must be rebuilt and restarted (`npm run build && npm run start`) for changes to be active.
+
+### 9) Quick operational playbook (essential commands)
+
+- Build & start (production):
+  - npm run build
+  - npm run start
+
+- Typecheck: npx tsc --noEmit
+- Prisma client regenerate: npx prisma generate
+- Run migration scripts:
+  - Dry-run convert uploads: npx tsx scripts/convert-uploads-to-api.ts
+  - Apply convert uploads (after backup): npx tsx scripts/convert-uploads-to-api.ts --apply
+
+- Backup before cleanup: npx tsx scripts/backup-affected-uploads.ts
+- Clean DB preserving admin (DRY-RUN first): npx tsx scripts/clean-db-leave-admin.ts
+  - Apply: npx tsx scripts/clean-db-leave-admin.ts --apply
+
+- Test upload flow (local): node scripts/test-upload-empresa.cjs
+- Debug file presence: node scripts/check-uploaded-file.cjs
+
+### 10) Recommendations & next maintenance tasks
+
+1. Remove or secure debug endpoints once verified (`src/app/api/debug/*` and test scripts in `scripts/`).
+2. Add Range/partial-content support to `/api/uploads/[...path]/route.ts` so clients (browsers) can request partial content for large files.
+3. Add Cache-Control policies and ETag support (or use Next image optimizer if appropriate).
+4. Add automated rollback script for DB backups (readable JSON -> re-insert with correct FK order) if rollbacks are likely.
+5. Harden file deletion/GC: when deleting DB rows ensure on-disk images are removed transactionally (or via background job) and check for orphan files.
+6. Add automated integration tests for upload -> serve flow (CI) to prevent regressions.
+
+### 11) How to use this section
+
+- This audit should be the first reference for any operational request (deploy, debug, PR, data migrations). Keep it updated: add an entry here for any future scripts you add or major change to data flow.
+
+---
+
+## ✅ Cambio aplicado
+
+Se añadieron scripts y endpoints de mantenimiento y migración para arreglar el problema de imágenes en producción y realizar limpiezas seguras. Todos los scripts relacionados y resultados de ejecución pueden encontrarse en la carpeta `scripts/` y en los backups `scripts/backups/`.
+
+
 **Última actualización**: $(date)
 **Mantenido por**: Equipo de Desarrollo IMGC

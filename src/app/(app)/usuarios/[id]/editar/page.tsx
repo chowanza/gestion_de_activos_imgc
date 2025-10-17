@@ -35,11 +35,30 @@ export default function EditarEmpleadoPage() {
 
     const handleUpdateEmpleado = async (data: EmpleadoFormData) => {
         try {
-            const response = await fetch(`/api/usuarios/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
+            let response;
+            if (data.fotoPerfil && typeof data.fotoPerfil !== 'string') {
+                const formData = new FormData();
+                for (const key of Object.keys(data)) {
+                    const val: any = (data as any)[key];
+                    if (val === undefined || val === null) continue;
+                    if (key === 'fotoPerfil' && val instanceof File) {
+                        formData.append('fotoPerfil', val as File);
+                    } else {
+                        formData.append(key, String(val));
+                    }
+                }
+
+                response = await fetch(`/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+            } else {
+                response = await fetch(`/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+            }
 
             if (!response.ok) {
                 const errorData = await response.json();

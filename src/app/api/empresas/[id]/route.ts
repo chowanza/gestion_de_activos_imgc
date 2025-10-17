@@ -163,7 +163,8 @@ export async function PUT(
         const buffer = Buffer.from(bytes);
         await fs.writeFile(filePath, buffer);
 
-        logo = `/uploads/empresas/${fileName}`;
+  // Store API-serving URL so it's served via the streaming endpoint
+  logo = `/api/uploads/empresas/${fileName}`;
       }
     }
 
@@ -197,7 +198,23 @@ export async function PUT(
       
       // Eliminar archivo anterior si existe y el nuevo no es una URL externa
       if (existingEmpresa.logo && !logo.startsWith('http')) {
+<<<<<<< Updated upstream
         const oldFilePath = path.join(process.cwd(), 'public', existingEmpresa.logo);
+=======
+        // Normalize stored path (can be '/api/uploads/...' or '/uploads/...')
+        const stored = existingEmpresa.logo;
+
+        // Convert stored URL into a filesystem path under public/uploads
+        const toFsPath = (s: string) => {
+          let rel = s;
+          if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
+          else if (rel.startsWith('/uploads/')) rel = rel.replace(/^\/uploads\//, '');
+          // Join with explicit 'uploads' segment to avoid issues with leading slashes
+          return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
+        };
+
+        const oldFilePath = toFsPath(stored);
+>>>>>>> Stashed changes
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {

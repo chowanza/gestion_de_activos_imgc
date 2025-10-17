@@ -1,0 +1,32 @@
+{
+  "empresas": [
+    {
+      "id": "00d7a7be-1bd8-4c2a-9dcf-aa589897722c",
+      "nombre": "Empresa Test Upload 1760667436575",
+      "descripcion": "Descripcion test",
+      "createdAt": "2025-10-17T02:17:16.785Z",
+      "updatedAt": "2025-10-17T02:17:16.785Z",
+      "logo": "/api/uploads/empresas/1760667436781-srz796y81q.jpeg"
+    },
+    {
+      "id": "f8995df1-04b4-4810-87ae-25def68f49e8",
+      "nombre": "IMGC IRON",
+      "descripcion": null,
+      "createdAt": "2025-10-16T19:47:17.991Z",
+      "updatedAt": "2025-10-16T19:47:17.991Z",
+      "logo": "/api/uploads/empresas/1760644037988-o5me9howr1a.jpg"
+    },
+    {
+      "id": "fe337204-f869-4a52-bc3e-31fa8ff165ec",
+      "nombre": "Empresa Test Upload 1760644577762",
+      "descripcion": "Descripcion test",
+      "createdAt": "2025-10-16T19:56:17.869Z",
+      "updatedAt": "2025-10-16T19:56:17.869Z",
+      "logo": "/api/uploads/empresas/1760644577862-nw7dqkpok0o.jpeg"
+    }
+  ],
+  "modelos": [],
+  "computs": [],
+  "empleados": [],
+  "asignaciones": []
+}

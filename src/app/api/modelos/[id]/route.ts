@@ -19,6 +19,7 @@ async function ensureDirExists(dirPath: string) {
 
 // --- Helper para eliminar un archivo (si existe) ---
 async function deletePreviousImage(imagePath: string | null | undefined) {
+<<<<<<< Updated upstream
     if (imagePath) {
         // imagePath viene como /uploads/equipos/imagen.jpg, necesitamos la ruta completa del sistema
         const fullPath = path.join(process.cwd(), 'public', imagePath);
@@ -34,7 +35,31 @@ async function deletePreviousImage(imagePath: string | null | undefined) {
                 // Podrías decidir si este error debe detener la operación o solo registrarse
             }
         }
+=======
+  if (imagePath) {
+    // imagePath puede venir como '/api/uploads/...' o '/uploads/...' -> normalizar
+    const toFsPath = (s: string) => {
+      let rel = s;
+      if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
+      else if (rel.startsWith('/uploads/')) rel = rel.replace(/^\/uploads\//, '');
+      return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
+    };
+
+    const fullPath = toFsPath(imagePath);
+    try {
+      await stat(fullPath); // Verifica si existe
+      await unlink(fullPath); // Elimina el archivo
+      console.log(`Imagen anterior eliminada: ${fullPath}`);
+    } catch (e: any) {
+      if (e.code === 'ENOENT') {
+        console.log(`Imagen anterior no encontrada, no se eliminó nada: ${fullPath}`);
+      } else {
+        console.error(`Error al eliminar imagen anterior ${fullPath}:`, e);
+        // No detener la operación; solo registrar
+      }
+>>>>>>> Stashed changes
     }
+  }
 }
 
 
@@ -116,7 +141,8 @@ export async function PUT(request: NextRequest) {
       const buffer = Buffer.from(bytes);
       await writeFile(filePath, buffer);
 
-      finalImageUrl = `/uploads/modelos/${fileName}`;
+  // Store API URL so the file is served via streaming endpoint
+  finalImageUrl = `/api/uploads/modelos/${fileName}`;
     }
 
     // 5. Actualizar el modelo en la base de datos
@@ -173,13 +199,20 @@ export async function DELETE(request: NextRequest) {
 
     // Delete the image file
     if (modelo.img) {
-      const imagePath = path.join(process.cwd(), 'public', modelo.img);
+      // modelo.img may be stored as /api/uploads/... or /uploads/..., normalize to filesystem path
+      const toFsPath = (s: string) => {
+        let rel = s;
+        if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
+        else if (rel.startsWith('/uploads/')) rel = rel.replace(/^\/uploads\//, '');
+        return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
+      };
+      const imagePath = toFsPath(modelo.img);
       try {
         await unlink(imagePath);
         console.log(`Imagen eliminada: ${imagePath}`);
       } catch (unlinkError) {
         console.error("Error deleting image:", unlinkError);
-        // No retornar error aquí, solo registrar el error
+        // No returning error here; just log it
       }
     }
 
