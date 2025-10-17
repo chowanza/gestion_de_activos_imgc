@@ -1,4 +1,26 @@
 module.exports = {
+  apps: [
+    {
+      name: 'gestion_activos_imgc',
+      script: 'npm',
+      args: 'run start',
+      cwd: __dirname,
+      env: {
+        NODE_ENV: 'production'
+      },
+      // Optional PM2 options
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '512M',
+      error_file: './logs/pm2-error.log',
+      out_file: './logs/pm2-out.log',
+      combine_logs: true,
+      time: true
+    }
+  ]
+};
+module.exports = {
   apps: [{
     name: 'gestion-activos-imgc',
     script: 'npm',
