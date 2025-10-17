@@ -37,6 +37,12 @@ npx tsx scripts/backup-affected-uploads.ts
 # Output saved under scripts/backups/
 ```
 
+- Using the npm script from the repo root:
+
+```bash
+npm run backup:uploads
+```
+
 - Dry-run the rollback (prints updates that WOULD be applied):
 
 ```bash
