@@ -16,6 +16,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "migrate:deploy": "prisma migrate deploy && prisma db seed",
+    "migrate:apply": "npx tsx scripts/convert-uploads-to-api.ts --apply",
+    "rollback:uploads": "npx tsx scripts/rollback-restore-affected-uploads.ts --apply",
     "lint": "next lint",
     "seed": "node --loader ts-node/esm prisma/seed.ts"
   },
