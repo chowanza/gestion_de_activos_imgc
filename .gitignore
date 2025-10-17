@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Ignore uploaded media and temporary images
+/public/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif

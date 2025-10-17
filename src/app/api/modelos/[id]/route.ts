@@ -13,55 +13,36 @@ async function ensureDirExists(dirPath: string) {
             await mkdir(dirPath, { recursive: true });
         } else {
             throw e;
-        }
-    }
-}
-
-// --- Helper para eliminar un archivo (si existe) ---
-async function deletePreviousImage(imagePath: string | null | undefined) {
-<<<<<<< Updated upstream
-    if (imagePath) {
-        // imagePath viene como /uploads/equipos/imagen.jpg, necesitamos la ruta completa del sistema
-        const fullPath = path.join(process.cwd(), 'public', imagePath);
-        try {
-            await stat(fullPath); // Verifica si existe
-            await unlink(fullPath); // Elimina el archivo
-            console.log(`Imagen anterior eliminada: ${fullPath}`);
-        } catch (e: any) {
-            if (e.code === 'ENOENT') {
-                console.log(`Imagen anterior no encontrada, no se eliminó nada: ${fullPath}`);
-            } else {
-                console.error(`Error al eliminar imagen anterior ${fullPath}:`, e);
-                // Podrías decidir si este error debe detener la operación o solo registrarse
-            }
-        }
-=======
-  if (imagePath) {
-    // imagePath puede venir como '/api/uploads/...' o '/uploads/...' -> normalizar
-    const toFsPath = (s: string) => {
-      let rel = s;
-      if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
-      else if (rel.startsWith('/uploads/')) rel = rel.replace(/^\/uploads\//, '');
-      return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
-    };
-
-    const fullPath = toFsPath(imagePath);
-    try {
-      await stat(fullPath); // Verifica si existe
-      await unlink(fullPath); // Elimina el archivo
-      console.log(`Imagen anterior eliminada: ${fullPath}`);
-    } catch (e: any) {
-      if (e.code === 'ENOENT') {
-        console.log(`Imagen anterior no encontrada, no se eliminó nada: ${fullPath}`);
-      } else {
-        console.error(`Error al eliminar imagen anterior ${fullPath}:`, e);
-        // No detener la operación; solo registrar
-      }
->>>>>>> Stashed changes
     }
   }
 }
 
+// --- Helper para eliminar un archivo (si existe) ---
+async function deletePreviousImage(imagePath: string | null | undefined) {
+  if (!imagePath) return;
+
+  // imagePath puede venir como '/api/uploads/...' o '/uploads/...' -> normalizar
+  const toFsPath = (s: string) => {
+    let rel = s;
+    if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
+    else if (rel.startsWith('/uploads/')) rel = rel.replace(/^\/uploads\//, '');
+    return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
+  };
+
+  const fullPath = toFsPath(imagePath);
+  try {
+    await stat(fullPath); // Verifica si existe
+    await unlink(fullPath); // Elimina el archivo
+    console.log(`Imagen anterior eliminada: ${fullPath}`);
+  } catch (e: any) {
+    if (e.code === 'ENOENT') {
+      console.log(`Imagen anterior no encontrada, no se eliminó nada: ${fullPath}`);
+    } else {
+      console.error(`Error al eliminar imagen anterior ${fullPath}:`, e);
+      // No detener la operación; solo registrar
+    }
+  }
+}
 
 export async function GET(request: NextRequest) {
   await Promise.resolve();

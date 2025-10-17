@@ -1,18 +1,10 @@
 "use client"
 
-import { Checkbox } from "@radix-ui/react-checkbox";
-import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import React from "react";
-import {z} from "zod";
+import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { z } from "zod";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { ArchiveRestore, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, Trash2, Shield } from "lucide-react";
-import { showToast } from "nextjs-toast-notify";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FilterIcon } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import DispositivoForm from "./EquipoForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -25,52 +17,24 @@ import { useQueryClient } from "@tanstack/react-query";
 // UI primitives
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { showToast } from "nextjs-toast-notify";
-
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ColumnsIcon,
-  ImageIcon,
-  MoreHorizontalIcon,
-  PlusIcon,
-  EyeIcon,
-  FilterIcon,
-  CheckCircle2Icon,
-  User2Icon,
-  WrenchIcon,
-  Shield,
-  Trash2,
-  XCircleIcon,
-  MoreHorizontalIcon as MoreIcon
-} from "lucide-react";
-
+import { ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, EyeIcon, FilterIcon, CheckCircle2Icon, User2Icon, WrenchIcon, Shield, Trash2, XCircleIcon } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const dispositivoSchema = z.object({
-  id: z.string().optional(), // Es buena idea tener el id en el schema para la lógica unificada
+  id: z.string().optional(),
   serial: z.string().min(1, "El serial es requerido"),
   modeloId: z.string().min(1, "El Modelo es Requerido"),
-  estado: z.string().optional(), // El estado se asigna automáticamente como OPERATIVO
-  codigoImgc: z.string().min(1, "El Código IMGC es requerido"), // codigoImgc - OBLIGATORIO
+  estado: z.string().optional(),
+  codigoImgc: z.string().min(1, "El Código IMGC es requerido"),
   ubicacionId: z.string().nullable(),
   mac: z.string().nullable(),
-  // Nuevos campos de compra
   fechaCompra: z.string().nullable(),
   numeroFactura: z.string().nullable(),
   proveedor: z.string().nullable(),
   monto: z.string().transform((val) => val === '' ? null : parseFloat(val)).nullable(),
-  // Campo para empleado asignado
   empleado: z.object({
     id: z.string(),
     nombre: z.string(),

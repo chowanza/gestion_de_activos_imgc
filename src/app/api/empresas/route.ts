@@ -95,17 +95,13 @@ export async function POST(request: NextRequest) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
       const filePath = path.join(uploadDir, fileName);
 
-      // Guardar archivo
-      const bytes = await logoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      await fs.writeFile(filePath, buffer);
+  // Guardar archivo
+  const bytes = await logoFile.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  await fs.writeFile(filePath, buffer);
 
-<<<<<<< Updated upstream
-      logoPath = `/uploads/empresas/${fileName}`;
-=======
-    // Use API streaming URL so the file is immediately accessible without needing server restart
-    logoPath = `/api/uploads/empresas/${fileName}`;
->>>>>>> Stashed changes
+  // Use API streaming URL so the file is immediately accessible without needing server restart
+  logoPath = `/api/uploads/empresas/${fileName}`;
     }
 
     // Crear la empresa

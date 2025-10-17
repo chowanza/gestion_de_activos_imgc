@@ -198,13 +198,9 @@ export async function PUT(
       
       // Eliminar archivo anterior si existe y el nuevo no es una URL externa
       if (existingEmpresa.logo && !logo.startsWith('http')) {
-<<<<<<< Updated upstream
-        const oldFilePath = path.join(process.cwd(), 'public', existingEmpresa.logo);
-=======
         // Normalize stored path (can be '/api/uploads/...' or '/uploads/...')
         const stored = existingEmpresa.logo;
-
-        // Convert stored URL into a filesystem path under public/uploads
+  // Convert stored URL into a filesystem path under public/uploads
         const toFsPath = (s: string) => {
           let rel = s;
           if (rel.startsWith('/api/uploads/')) rel = rel.replace(/^\/api\/uploads\//, '');
@@ -214,7 +210,6 @@ export async function PUT(
         };
 
         const oldFilePath = toFsPath(stored);
->>>>>>> Stashed changes
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {

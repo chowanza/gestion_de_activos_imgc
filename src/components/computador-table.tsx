@@ -1,56 +1,23 @@
 "use client"
 
-import { Checkbox } from "@radix-ui/react-checkbox";
-import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import React from "react";
-import {z} from "zod";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, CheckCircle2Icon, Trash2, Shield } from "lucide-react";
-import { showToast } from "nextjs-toast-notify";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FilterIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { z } from "zod";
 import Link from "next/link";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import TableRowSkeleton from "@/utils/loading";
 
 // UI primitives used by this table
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-
 import { showToast } from "nextjs-toast-notify";
-
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ColumnsIcon,
-  ImageIcon,
-  MoreHorizontalIcon,
-  PlusIcon,
-  EyeIcon,
-  FilterIcon,
-  CheckCircle2Icon,
-  User2Icon,
-  WrenchIcon,
-  Shield,
-  Trash2,
-  XCircleIcon,
-} from "lucide-react";
+import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, CheckCircle2Icon, Trash2, Shield, FilterIcon } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
 
@@ -218,15 +185,11 @@ const columns: ColumnDef<Computador>[] = [
               ))}
             </select>
           </PopoverContent>
-        </Popover>
-      </div>
-    );
+          </Popover>
+        </div>
+      );
+    },
   },
-  cell: ({ row }) => {
-    const marcaNombre = row.original.modelo?.marca?.nombre;
-    return <div>{marcaNombre || "Sin marca"}</div>;
-  },
-},
   {
     accessorKey: "modelo.nombre",
     header: ({ column }) => {
