@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import path from 'path';
+import { promises as fs } from 'fs';
 
 // Helper function to format date to dd/mm/yy
 function formatDateToDDMMYY(dateString: string): string {
@@ -109,7 +111,21 @@ export async function PUT(request: NextRequest) {
         }
 
         // Extraemos los datos del cuerpo de la petición.
-        const { nombre, apellido, cargoId, ced, cedula, departamentoId, email, fechaNacimiento, fechaIngreso, fechaDesincorporacion, telefono, direccion, fotoPerfil } = body;
+    const { nombre, apellido, cargoId, ced, cedula, departamentoId, email, fechaNacimiento, fechaIngreso, fechaDesincorporacion, telefono, direccion } = body;
+
+    // Handle FormData fotoPerfil if present
+    let uploadedFotoPerfil: File | null = null;
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      for (const [k, v] of formData.entries()) {
+        if (k === 'fotoPerfil' && v instanceof File) {
+          uploadedFotoPerfil = v as File;
+        } else if (typeof v === 'string' && !(k in body)) {
+          body[k] = v;
+        }
+      }
+    }
         
 
         // Función para procesar fechas y evitar problemas de zona horaria
@@ -159,7 +175,33 @@ export async function PUT(request: NextRequest) {
         
         if (telefono !== undefined) dataToUpdate.telefono = telefono;
         if (direccion !== undefined) dataToUpdate.direccion = direccion;
-        if (fotoPerfil !== undefined) dataToUpdate.fotoPerfil = fotoPerfil;
+    // If a new uploaded file was provided, save it and delete the previous file safely
+    if (uploadedFotoPerfil) {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'usuarios');
+      await fs.mkdir(uploadDir, { recursive: true });
+      const fileExt = path.extname(uploadedFotoPerfil.name) || '.jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExt}`;
+      const filePath = path.join(uploadDir, fileName);
+      const bytes = await uploadedFotoPerfil.arrayBuffer();
+      await fs.writeFile(filePath, Buffer.from(bytes));
+
+      // Delete previous fotoPerfil from disk if it existed
+      if (empleadoOriginal?.fotoPerfil && !empleadoOriginal.fotoPerfil.startsWith('http')) {
+        const rel = empleadoOriginal.fotoPerfil.startsWith('/api/uploads/') ? empleadoOriginal.fotoPerfil.replace(/^\/api\/uploads\//, '') : empleadoOriginal.fotoPerfil.startsWith('/uploads/') ? empleadoOriginal.fotoPerfil.replace(/^\/uploads\//, '') : null;
+        if (rel) {
+          const oldFsPath = path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
+          try {
+            await fs.unlink(oldFsPath);
+          } catch (e) {
+            console.log('No se pudo eliminar fotoPerfil anterior:', e);
+          }
+        }
+      }
+
+      dataToUpdate.fotoPerfil = `/api/uploads/usuarios/${fileName}`;
+    } else if (body.fotoPerfil !== undefined) {
+      dataToUpdate.fotoPerfil = body.fotoPerfil;
+    }
         
         // Actualizar el empleado básico
         const updatedEmpleado = await prisma.empleado.update({

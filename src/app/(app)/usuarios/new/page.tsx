@@ -11,11 +11,31 @@ export default function NuevoEmpleadoPage() {
 
     const handleCreateEmpleado = async (data: EmpleadoFormData) => {
         try {
-            const response = await fetch('/api/usuarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
+            let response;
+            // If fotoPerfil is a File, send multipart/form-data using FormData
+            if (data.fotoPerfil && typeof data.fotoPerfil !== 'string') {
+                const formData = new FormData();
+                for (const key of Object.keys(data)) {
+                    const val: any = (data as any)[key];
+                    if (val === undefined || val === null) continue;
+                    if (key === 'fotoPerfil' && val instanceof File) {
+                        formData.append('fotoPerfil', val as File);
+                    } else {
+                        formData.append(key, String(val));
+                    }
+                }
+
+                response = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    body: formData
+                });
+            } else {
+                response = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+            }
 
             if (!response.ok) {
                 const errorData = await response.json();

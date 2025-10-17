@@ -18,6 +18,40 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import TableRowSkeleton from "@/utils/loading";
 
+// UI primitives used by this table
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
+import { showToast } from "nextjs-toast-notify";
+
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ColumnsIcon,
+  ImageIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  EyeIcon,
+  FilterIcon,
+  CheckCircle2Icon,
+  User2Icon,
+  WrenchIcon,
+  Shield,
+  Trash2,
+  XCircleIcon,
+} from "lucide-react";
+
 
 
 export const computadorSchema = z.object({

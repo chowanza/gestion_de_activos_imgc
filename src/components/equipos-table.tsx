@@ -22,6 +22,40 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import TableRowSkeleton from "@/utils/loading";
 import { useQueryClient } from "@tanstack/react-query";
 
+// UI primitives
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { showToast } from "nextjs-toast-notify";
+
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ColumnsIcon,
+  ImageIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  EyeIcon,
+  FilterIcon,
+  CheckCircle2Icon,
+  User2Icon,
+  WrenchIcon,
+  Shield,
+  Trash2,
+  XCircleIcon,
+  MoreHorizontalIcon as MoreIcon
+} from "lucide-react";
+
 
 export const dispositivoSchema = z.object({
   id: z.string().optional(), // Es buena idea tener el id en el schema para la lógica unificada
