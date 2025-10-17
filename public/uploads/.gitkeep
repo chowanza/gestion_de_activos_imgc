@@ -1,0 +1,2 @@
+Keep this directory so repository clones preserve the uploads folder structure.
+Actual uploaded files are ignored via `.gitignore`.
