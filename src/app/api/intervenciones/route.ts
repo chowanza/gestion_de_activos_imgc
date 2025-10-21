@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 import { getServerUser } from '@/lib/auth-server';
 import { AuditLogger } from '@/lib/audit-logger';
 
@@ -14,7 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fecha, notas, evidenciaFotos, equipmentId, equipmentType } = body;
+  const { fecha, notas, evidenciaFotos, equipmentId, equipmentType } = body;
+  // Sanitize evidenciaFotos: accept string, comma-joined arrays, or null
+  const evidenciaSanitized = sanitizeStringOrNull(evidenciaFotos);
 
     if (!fecha || !notas || !equipmentId || !equipmentType) {
       return NextResponse.json(
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
       data: {
         fecha: new Date(fecha),
         notas: notas.trim(),
-        evidenciaFotos: evidenciaFotos || null,
+  evidenciaFotos: evidenciaSanitized,
         computadorId: equipmentType === 'computador' ? equipmentId : null,
         dispositivoId: equipmentType === 'dispositivo' ? equipmentId : null,
         empleadoId: empleado?.id || null

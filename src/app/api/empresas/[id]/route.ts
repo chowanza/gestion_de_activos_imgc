@@ -4,6 +4,7 @@ import { AuditLogger } from '@/lib/auditLogger';
 import { getServerUser } from '@/lib/auth-server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 
 // GET /api/empresas/[id] - Obtener una empresa específica
 export async function GET(
@@ -191,7 +192,13 @@ export async function PUT(
     
     // Si se proporciona un nuevo logo (URL o archivo)
     if (logo) {
-      logoPath = logo;
+      // Sanitize incoming logo value (may be object from bad client)
+      const sanitized = sanitizeStringOrNull(logo);
+      if (sanitized !== null) {
+        logoPath = sanitized;
+      } else {
+        console.log('Ignoring invalid logo value for empresa update:', logo);
+      }
       
       // Si es un archivo subido (FormData), ya se manejó arriba
       // Si es una URL (JSON), usar directamente
@@ -209,7 +216,7 @@ export async function PUT(
           return path.join(process.cwd(), 'public', 'uploads', ...rel.split('/'));
         };
 
-        const oldFilePath = toFsPath(stored);
+  const oldFilePath = toFsPath(stored);
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {

@@ -288,10 +288,16 @@ const EmpleadoForm: React.FC<EmpleadoFormProps> = ({
             showToast.warning("Introduzca todos los campos obligatorios.", { position: "top-right" });
             return;
         }
+            // Ensure fotoPerfil is a valid type: File | string | null | undefined
+            let fotoValor: string | File | null | undefined = fotoPerfilFile ?? formData.fotoPerfil;
+            if (fotoValor && typeof fotoValor !== 'string' && !(fotoValor instanceof File)) {
+                // Avoid sending objects like {} which break server validation
+                fotoValor = undefined;
+            }
+
             const submitData: EmpleadoFormData = {
                 ...formData,
-                // Provide the File if selected so the page can send FormData
-                fotoPerfil: fotoPerfilFile ?? formData.fotoPerfil,
+                fotoPerfil: fotoValor as any,
             };
 
             await onSubmit(submitData);

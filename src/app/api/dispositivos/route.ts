@@ -169,9 +169,9 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Ubicación asignada durante la creación del dispositivo',
           motivo: motivoCreacion || 'Creación de dispositivo',
-          evidenciaFotos: evidenciaFotos && evidenciaFotos.length > 0 
-            ? evidenciaFotos.join(',') 
-            : null
+            evidenciaFotos: evidenciaFotos && evidenciaFotos.length > 0 
+              ? (await import('@/lib/sanitize')).sanitizeStringOrNull(evidenciaFotos) 
+              : null
         },
       });
     } else if (evidenciaFotos && evidenciaFotos.length > 0) {
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Evidencia fotográfica de la creación del dispositivo',
           motivo: motivoCreacion || 'Creación de dispositivo',
-          evidenciaFotos: evidenciaFotos.join(',')
+            evidenciaFotos: (await import('@/lib/sanitize')).sanitizeStringOrNull(evidenciaFotos)
         },
       });
     }

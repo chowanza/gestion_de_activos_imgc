@@ -200,7 +200,18 @@ export async function PUT(request: NextRequest) {
 
       dataToUpdate.fotoPerfil = `/api/uploads/usuarios/${fileName}`;
     } else if (body.fotoPerfil !== undefined) {
-      dataToUpdate.fotoPerfil = body.fotoPerfil;
+      // Only accept a string (path) or null for fotoPerfil. Some clients may send an
+      // empty object `{}` when no file was uploaded which causes Prisma validation
+      // errors (expects string or null). Ignore invalid types.
+      const fp = body.fotoPerfil;
+      if (fp === null) {
+        dataToUpdate.fotoPerfil = null;
+      } else if (typeof fp === 'string' && fp.trim() !== '') {
+        dataToUpdate.fotoPerfil = fp;
+      } else {
+        // invalid value (object, empty string, etc.) — ignore to avoid Prisma errors
+        console.log('Ignoring invalid fotoPerfil value in request body:', fp);
+      }
     }
         
         // Actualizar el empleado básico

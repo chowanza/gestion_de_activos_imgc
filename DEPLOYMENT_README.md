@@ -181,6 +181,57 @@ Comprobar headers `Accept-Ranges`, `ETag` y que la respuesta es 200 (o 206 si se
 
 ---
 
+## Troubleshooting de Autenticación (Entornos HTTP/Intranet)
+
+En entornos de intranet (LAN) es común que la aplicación se sirva sin TLS directamente por HTTP detrás de un reverse proxy interno (IIS, Nginx, Caddy). A continuación se detallan las consideraciones y pasos operativos para evitar problemas con el manejo de sesiones basadas en cookies.
+
+1) Riesgo de la flag Secure en cookies sobre HTTP
+- La cookie de sesión utiliza el atributo `Secure` para que el navegador sólo la envíe sobre conexiones HTTPS. Si la cookie se marca como `Secure` y la aplicación es accedida por HTTP (sin TLS), el navegador NO enviará la cookie y la sesión fallará (login aparentemente exitoso en el servidor, pero el cliente nunca la envía en requests posteriores).
+
+2) Dependencia de `X-Forwarded-Proto` y configuración del reverse proxy
+- Cuando la app está detrás de un reverse proxy que termina TLS, el proxy debe reenviar el encabezado `X-Forwarded-Proto: https` para indicar a la aplicación que la conexión cliente original fue sobre HTTPS. La app usa este encabezado para decidir si debe establecer la cookie con `secure=true`.
+- Si el reverse proxy no reenvía `X-Forwarded-Proto` (o no está correctamente configurado), la app podría no detectar HTTPS y/o marcar cookies incorrectamente.
+
+3) Instrucciones para configurar el reverse proxy
+- Nginx (ejemplo):
+
+    location / {
+      proxy_pass http://127.0.0.1:3000;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+    }
+
+- IIS (en caso de usar ARR/URL Rewrite): asegurarse de que el encabezado `X-Forwarded-Proto` sea reescrito al backend con el valor `https` cuando IIS esté terminando TLS.
+
+4) Valores de `NEXTAUTH_URL` y `NEXT_PUBLIC_APP_URL`
+- Si tu reverse proxy termina TLS (la app es accesible por https://...), `NEXTAUTH_URL` y `NEXT_PUBLIC_APP_URL` deben usar `https://`.
+- Si tu entorno es puramente HTTP (por ejemplo una intranet cerrada sin TLS), ambas variables deben usar `http://`.
+- Ejemplos:
+  - TLS activo y proxy: `NEXT_PUBLIC_APP_URL="https://app.ejemplo.local"`
+  - IntrAnet HTTP: `NEXT_PUBLIC_APP_URL="http://172.16.3.123:3000"`
+
+5) Comprobaciones rápidas y diagnóstico
+- Verificar que la respuesta de `/api/auth/login` incluya la cookie `session` (Set-Cookie) y que el navegador la almacene. En caso de que el navegador no la guarde, revisar si el atributo `Secure` está presente y si la conexión es HTTP.
+- Revisar encabezados del proxy: `X-Forwarded-Proto` debe existir y contener `https` cuando TLS se termina en el proxy.
+- Logs útiles:
+  - Servidor: revisar stdout/stderr del proceso Node/PM2 para ver si `login` o `logout` registraron Set-Cookie
+  - HTTP: usar `curl -i -v` contra `/api/auth/login` para inspeccionar `Set-Cookie` en la respuesta.
+
+6) Recomendación operativa
+- Para entornos de producción expuestos a Internet: usar TLS, configurar proxy para reenviar `X-Forwarded-Proto`, y forzar `secure=true` en cookies (la app ya lo hará automáticamente si detecta HTTPS).
+- Para intranets cerradas donde no se dispone de TLS: configurar `NEXT_PUBLIC_APP_URL` con `http://` y aceptar que las cookies no sean `Secure` (aunque esto es menos seguro y sólo recomendado en redes privadas controladas).
+
+7) Acción rápida para DevOps (checklist)
+- [ ] Configurar reverse proxy para reenviar `X-Forwarded-Proto`.
+- [ ] Establecer `NEXT_PUBLIC_APP_URL` y `NEXTAUTH_URL` acorde al esquema (http:// o https://).
+- [ ] Reiniciar la app y realizar el test de login (ver sección de smoke tests abajo).
+
+
 Si quieres, puedo:
 - Subir este README y hacer el commit aquí mismo.
 - Generar un script de Windows (PowerShell) que automatice los pasos de build y despliegue para esta app.

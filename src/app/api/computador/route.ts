@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import  prisma  from '@/lib/prisma';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -224,9 +225,7 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Ubicación asignada durante la creación del computador',
           motivo: motivoCreacion || 'Creación de computador',
-          evidenciaFotos: computadorData.evidenciaFotos && computadorData.evidenciaFotos.length > 0 
-            ? computadorData.evidenciaFotos.join(',') 
-            : null
+          evidenciaFotos: sanitizeStringOrNull(computadorData.evidenciaFotos),
         },
       });
     } else if (computadorData.evidenciaFotos && computadorData.evidenciaFotos.length > 0) {
@@ -241,7 +240,7 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Evidencia fotográfica de la creación del computador',
           motivo: motivoCreacion || 'Creación de computador',
-          evidenciaFotos: computadorData.evidenciaFotos.join(',')
+          evidenciaFotos: sanitizeStringOrNull(computadorData.evidenciaFotos)
         },
       });
     }

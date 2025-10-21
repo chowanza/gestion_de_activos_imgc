@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/auditLogger';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 
 export async function GET() {
   try {
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       nombre = body.nombre;
       descripcion = body.descripcion;
+      // If a logo is supplied as string in JSON, sanitize it
+      logoFile = null; // keep null
+      var logoFromJson = sanitizeStringOrNull(body.logo);
+      if (logoFromJson) {
+        // assign to logoPath below via variable capture
+      }
     } else {
       // Manejar FormData
       const formData = await request.formData();

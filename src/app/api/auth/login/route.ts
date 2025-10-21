@@ -49,9 +49,34 @@ export async function POST(req: NextRequest) {
     
     await AuditLogger.logLogin(user.id, ipAddress, userAgent);
 
-    // Crear la respuesta con la cookie de sesión
+    // Create the response and set the cookie using NextResponse.cookies API
     const response = NextResponse.json({ message: 'Login exitoso' }, { status: 200 });
-    response.headers.append('Set-Cookie', `session=${session}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax;${process.env.NODE_ENV === 'production' ? ' Secure;' : ''}`);
+
+    const forwardedProto = req.headers.get('x-forwarded-proto') || req.headers.get('x-forwarded-protocol');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || '';
+    const isSecureRequest = !!forwardedProto && forwardedProto.toLowerCase().startsWith('https');
+    const appUrlIsHttps = appUrl.toLowerCase().startsWith('https');
+    let setSecure = isSecureRequest || appUrlIsHttps;
+
+    // Allow overriding the secure cookie behavior via env var for intranet setups
+    const cookieForce = process.env.COOKIE_FORCE_SECURE; // 'true' | 'false' | undefined
+    if (cookieForce === 'true' || cookieForce === 'false') {
+      setSecure = cookieForce === 'true';
+    }
+
+    console.log('[LOGIN] x-forwarded-proto=', forwardedProto, 'appUrl=', appUrl, 'cookieForce=', cookieForce, 'setSecure=', setSecure);
+
+    // Use NextResponse.cookies.set for correctness across environments
+    response.cookies.set({
+      name: 'session',
+      value: session,
+      httpOnly: true,
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+      sameSite: 'lax',
+      secure: Boolean(setSecure),
+    });
+
     return response;
 
   } catch (error) {

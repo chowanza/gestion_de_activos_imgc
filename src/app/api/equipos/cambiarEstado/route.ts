@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 import { TODOS_ESTADOS, esEstadoValido, requiereEmpleado } from '@/lib/estados-equipo';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   const user = await getServerUser(request);
@@ -238,6 +239,9 @@ export async function POST(request: NextRequest) {
         notes = `Cambio de estado de ${estadoActual} a ${nuevoEstado}`;
       }
 
+      // Sanitize evidenciaFotos before storing
+      const evidenciaSanitized = sanitizeStringOrNull(evidenciaFotos);
+
       const nuevaAsignacion = await prisma.asignacionesEquipos.create({
         data: {
           date: new Date(),
@@ -249,7 +253,7 @@ export async function POST(request: NextRequest) {
           dispositivoId: tipoEquipo === 'dispositivo' ? equipoId : null,
           motivo: motivo,
           notes: notes,
-          evidenciaFotos: evidenciaFotos || null, // Agregar evidencia fotográfica
+          evidenciaFotos: evidenciaSanitized,
           ubicacionId: ubicacionId || null, // Agregar ubicación
           activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
         },

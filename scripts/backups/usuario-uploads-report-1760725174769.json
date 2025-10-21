@@ -1,0 +1,10 @@
+[
+  {
+    "id": "ffb7cf6b-6d83-401e-9c21-f8556e41aaae",
+    "nombre": "Jorge",
+    "apellido": "Rodriguez",
+    "fotoPerfil": "/api/uploads/usuarios/1760708795179-ozdk7b03kc.png",
+    "expectedPath": "C:\\Users\\luisi\\Documents\\imgc\\gestion_de_activos_imgc\\public\\uploads\\usuarios\\1760708795179-ozdk7b03kc.png",
+    "exists": false
+  }
+]

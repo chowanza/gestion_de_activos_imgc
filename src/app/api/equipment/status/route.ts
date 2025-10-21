@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { sanitizeStringOrNull } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   try {
@@ -222,12 +223,14 @@ export async function POST(request: NextRequest) {
           });
 
       // Crear registro en el historial de asignaciones
+      const evidenciaSanitized = sanitizeStringOrNull(assignmentData.evidenciaFotos);
+
       const assignmentRecord = await tx.asignacionesEquipos.create({
         data: {
           actionType: assignmentData.actionType,
           motivo: assignmentData.motivo,
           notes: assignmentData.notas,
-          evidenciaFotos: assignmentData.evidenciaFotos, // Agregar evidencia fotográfica
+          evidenciaFotos: evidenciaSanitized, // Agregar evidencia fotográfica
           ubicacionId: assignmentData.ubicacionId,
           gerenteId: assignmentData.gerenteId,
           targetType: assignmentData.targetType || 'Sistema',
