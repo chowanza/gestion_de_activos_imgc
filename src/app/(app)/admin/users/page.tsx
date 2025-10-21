@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 interface User {
   id: string;
   username: string;
+  email: string | null;
   role: string;
   createdAt: string;
 }
@@ -30,6 +31,7 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
     role: 'No-Admin'
   });
@@ -80,7 +82,7 @@ export default function AdminUsersPage() {
 
       showToast.success('Usuario creado exitosamente');
       setIsCreateDialogOpen(false);
-      setFormData({ username: '', password: '', role: 'No-Admin' });
+      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al crear usuario');
@@ -97,6 +99,7 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: formData.username,
+          email: formData.email,
           role: formData.role
         })
       });
@@ -109,7 +112,7 @@ export default function AdminUsersPage() {
       showToast.success('Usuario actualizado exitosamente');
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      setFormData({ username: '', password: '', role: 'No-Admin' });
+      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al actualizar usuario');
@@ -142,6 +145,7 @@ export default function AdminUsersPage() {
     setEditingUser(user);
     setFormData({
       username: user.username,
+      email: user.email || '',
       password: '', // No mostrar contraseña
       role: user.role
     });
@@ -192,6 +196,15 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div>
+                <Label htmlFor="email">Email (opcional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+              <div>
                 <Label htmlFor="password">Contraseña</Label>
                 <Input
                   id="password"
@@ -236,6 +249,7 @@ export default function AdminUsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Usuario</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead>Fecha de Creación</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
@@ -245,6 +259,7 @@ export default function AdminUsersPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell>{user.email || 'Sin email'}</TableCell>
                   <TableCell>
                     <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
                       {user.role}
@@ -291,6 +306,15 @@ export default function AdminUsersPage() {
                 value={formData.username}
                 onChange={(e) => setFormData({...formData, username: e.target.value})}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email (opcional)</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
             </div>
             <div>

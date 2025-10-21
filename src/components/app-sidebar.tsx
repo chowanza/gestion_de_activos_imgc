@@ -4,7 +4,8 @@ import React, { useEffect } from 'react';
 import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem, 
          SidebarMenuButton, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { ChartPie, Printer, Tag, Laptop, Factory, 
-         UsersIcon, Globe, History, LogOut, Building2, MapPin, Monitor, BarChart3, Cpu
+         UsersIcon, Globe, History, LogOut, Building2, MapPin, Monitor, BarChart3, Cpu,
+         Key
 } from 'lucide-react';
 import Link from 'next/link';
 import { NavMain } from './nav-main';
@@ -33,6 +34,7 @@ const navData = {
   ],
   navAdmin: [
     { title: "Gestión de Usuarios", url: "/admin/users", icon: UsersIcon },
+    { title: "Recuperar Contraseña", url: "/auth/forgot-password", icon: Key },
   ],
 };
 

@@ -17,12 +17,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { username, password, role } = body;
+    const { username, email, password, role } = body;
 
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ username }],
+        OR: [
+          { username },
+          ...(email ? [{ email }] : [])
+        ],
       },
     });
 
@@ -40,6 +43,7 @@ export async function POST(request: NextRequest) {
     const newUser = await prisma.user.create({
       data: {
         username,
+        email: email || null,
         role,
         password: hashedPassword,
       },
