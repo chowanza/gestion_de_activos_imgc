@@ -492,6 +492,14 @@ export default function DepartamentoDetailsPage() {
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
+            onClick={() => router.push('/equipos')}
+            className="flex items-center space-x-2"
+          >
+            <Monitor className="h-4 w-4" />
+            <span>Ver Equipos</span>
+          </Button>
+          <Button 
+            variant="outline" 
             onClick={handleEditDepartamento}
             className="flex items-center space-x-2"
           >
