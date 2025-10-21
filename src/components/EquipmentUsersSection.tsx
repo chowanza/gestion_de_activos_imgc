@@ -144,17 +144,17 @@ export function EquipmentUsersSection({ equipo }: EquipmentUsersSectionProps) {
                   <h3 className="text-sm font-medium text-gray-800">
                     {equipo.empleado.nombre} {equipo.empleado.apellido}
                   </h3>
-                  {equipo.empleado.cargo && (
-                    <p className="text-xs text-gray-600">{typeof equipo.empleado.cargo === 'string' ? equipo.empleado.cargo : equipo.empleado.cargo?.nombre || 'Sin cargo'}</p>
+                  {equipo.empleado.cargo && (typeof equipo.empleado.cargo === 'string' || equipo.empleado.cargo.nombre) && (
+                    <p className="text-xs text-gray-600">{typeof equipo.empleado.cargo === 'string' ? equipo.empleado.cargo : equipo.empleado.cargo.nombre}</p>
                   )}
-                  {equipo.empleado.departamento && (
+                  {equipo.empleado.departamento && (typeof equipo.empleado.departamento === 'string' || equipo.empleado.departamento.nombre) && (
                     <p className="text-xs text-gray-500">
-                      Dpto: {typeof equipo.empleado.departamento === 'string' ? equipo.empleado.departamento : equipo.empleado.departamento?.nombre || 'Sin departamento'}
+                      Dpto: {typeof equipo.empleado.departamento === 'string' ? equipo.empleado.departamento : equipo.empleado.departamento.nombre}
                     </p>
                   )}
-                  {equipo.empleado.empresa && (
+                  {equipo.empleado.empresa && (typeof equipo.empleado.empresa === 'string' || equipo.empleado.empresa.nombre) && (
                     <p className="text-xs text-gray-500">
-                      Empresa: {typeof equipo.empleado.empresa === 'string' ? equipo.empleado.empresa : equipo.empleado.empresa?.nombre || 'Sin empresa'}
+                      Empresa: {typeof equipo.empleado.empresa === 'string' ? equipo.empleado.empresa : equipo.empleado.empresa.nombre}
                     </p>
                   )}
                 </div>
