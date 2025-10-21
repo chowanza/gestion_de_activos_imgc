@@ -3,7 +3,7 @@
 
 import { useSession } from './useSession';
 
-export type UserRole = 'admin' | 'viewer' | 'assigner';
+export type UserRole = 'admin' | 'user';
 
 export interface RolePermissions {
   canView: boolean;
@@ -35,7 +35,7 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageAsignaciones: true,
     canViewAuditLogs: true,
   },
-  viewer: {
+  user: {
     canView: true,
     canCreate: false,
     canUpdate: false,
@@ -47,21 +47,7 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageComputadores: false,
     canManageDispositivos: false,
     canManageAsignaciones: false,
-    canViewAuditLogs: true,
-  },
-  assigner: {
-    canView: true,
-    canCreate: true,
-    canUpdate: true,
-    canDelete: true,
-    canAssign: true,
-    canManageUsers: true,
-    canManageEmpresas: false,
-    canManageDepartamentos: true,
-    canManageComputadores: true,
-    canManageDispositivos: true,
-    canManageAsignaciones: true,
-    canViewAuditLogs: true,
+    canViewAuditLogs: false,
   },
 };
 
@@ -112,7 +98,6 @@ export function usePermissions() {
     hasAllPermissions,
     canAccess,
     isAdmin: userRole === 'admin',
-    isViewer: userRole === 'viewer',
-    isAssigner: userRole === 'assigner',
+    isUser: userRole === 'user',
   };
 }

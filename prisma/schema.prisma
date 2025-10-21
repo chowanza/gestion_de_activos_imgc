@@ -132,7 +132,7 @@ model User {
   id          String                 @id @default(uuid())
   username    String                 @unique
   password    String
-  role        String                 @default("viewer")
+  role        String                 @default("No-Admin")
   movimientos HistorialMovimientos[]
 }
 

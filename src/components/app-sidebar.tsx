@@ -31,6 +31,9 @@ const navData = {
     { title: "Reportes", url: "/reportes", icon: BarChart3 },
     { title: "Historial", url: "/historial", icon: History },
   ],
+  navAdmin: [
+    { title: "Gestión de Usuarios", url: "/admin/users", icon: UsersIcon },
+  ],
 };
 
 // Define las props que el componente aceptará
@@ -59,6 +62,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         return true;
     }
   });
+
+  const filteredNavAdmin = isAdmin ? navData.navAdmin : [];
   
   
 useEffect(() => {
@@ -114,6 +119,12 @@ useEffect(() => {
           </SidebarHeader>
           <SidebarContent className="bg-[#000000] px-4 py-2">
             <NavMain items={filteredNavMain} />
+            {filteredNavAdmin.length > 0 && (
+              <>
+                <div className="h-px bg-gray-700 my-2" />
+                <NavMain items={filteredNavAdmin} />
+              </>
+            )}
           </SidebarContent>
           <SidebarFooter className="bg-[#000000] px-8 py-10">
             <NavUser user={userData} />

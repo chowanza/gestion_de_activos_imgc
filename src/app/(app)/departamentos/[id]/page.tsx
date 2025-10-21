@@ -492,33 +492,17 @@ export default function DepartamentoDetailsPage() {
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
-            onClick={() => router.push('/equipos')}
-            className="flex items-center space-x-2"
-          >
-            <Monitor className="h-4 w-4" />
-            <span>Ver Equipos</span>
-          </Button>
-          <Button 
-            variant="outline" 
             onClick={handleEditDepartamento}
-            className="flex items-center space-x-2"
-          >
-            <Edit className="h-4 w-4" />
-            <span>Editar</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Información General */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building2 className="h-5 w-5 mr-2" />
-            Información General
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={handleEditDepartamento}
+                className="flex items-center space-x-2"
+              >
+                <Edit className="h-4 w-4" />
+                <span>Editar</span>
+              </Button>
+            </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Empresa</label>
               <div className="flex items-center space-x-2">
@@ -796,7 +780,7 @@ export default function DepartamentoDetailsPage() {
                 {getAllComputadores().map((computador) => (
                   <div key={computador.id} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold">{computador.serial}</p>
                         <p className="text-sm text-gray-600">
                           {computador.marca?.nombre || 'Sin marca'} {computador.modelo?.nombre || 'Sin modelo'}
@@ -805,9 +789,19 @@ export default function DepartamentoDetailsPage() {
                           Asignado a: {(computador as any).asignadoA}
                         </p>
                       </div>
-                      <Badge className={getEstadoColor(computador.estado)}>
-                        {computador.estado}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getEstadoColor(computador.estado)}>
+                          {computador.estado}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/computadores/${computador.id}/details`)}
+                          className="h-8 px-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -835,7 +829,7 @@ export default function DepartamentoDetailsPage() {
                 {getAllDispositivos().map((dispositivo) => (
                   <div key={dispositivo.id} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold">{dispositivo.serial}</p>
                         <p className="text-sm text-gray-600">
                           {dispositivo.marca?.nombre || 'Sin marca'} {dispositivo.modelo?.nombre || 'Sin modelo'}
@@ -844,9 +838,19 @@ export default function DepartamentoDetailsPage() {
                           Asignado a: {(dispositivo as any).asignadoA}
                         </p>
                       </div>
-                      <Badge className={getEstadoColor(dispositivo.estado)}>
-                        {dispositivo.estado}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getEstadoColor(dispositivo.estado)}>
+                          {dispositivo.estado}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dispositivos/${dispositivo.id}/details`)}
+                          className="h-8 px-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

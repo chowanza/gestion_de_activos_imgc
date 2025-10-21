@@ -5,5 +5,5 @@ import { useSession } from './useSession';
 
 export const useIsAdmin = () => {
   const { data: session } = useSession();
-  return session?.role === 'admin';
+  return session?.role === 'Admin';
 };
