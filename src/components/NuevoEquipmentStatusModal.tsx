@@ -209,7 +209,7 @@ export default function NuevoEquipmentStatusModal({
         }
 
         const uploadResult = await uploadResponse.json();
-        imageUrls = uploadResult.urls || [];
+        imageUrls = uploadResult.images || [];
       }
 
       const assignmentData = {

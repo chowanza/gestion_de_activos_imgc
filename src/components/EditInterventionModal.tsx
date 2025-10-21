@@ -154,7 +154,7 @@ export default function EditInterventionModal({
         }
 
         const uploadResult = await uploadResponse.json();
-        imageUrls = [...imageUrls, ...(uploadResult.urls || [])];
+        imageUrls = [...imageUrls, ...(uploadResult.images || [])];
       }
 
       const response = await fetch(`/api/intervenciones/${intervention.id}`, {

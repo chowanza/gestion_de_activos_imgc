@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: `${uploadedUrls.length} imagen(es) subida(s) exitosamente`,
-      urls: uploadedUrls
+      images: uploadedUrls
     });
 
   } catch (error) {

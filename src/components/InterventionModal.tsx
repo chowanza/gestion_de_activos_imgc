@@ -120,7 +120,7 @@ export default function InterventionModal({
         }
 
         const uploadResult = await uploadResponse.json();
-        imageUrls = uploadResult.urls || [];
+        imageUrls = uploadResult.images || [];
       }
 
       // Create intervention record
