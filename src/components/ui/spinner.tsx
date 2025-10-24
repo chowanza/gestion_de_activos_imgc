@@ -30,34 +30,25 @@ const Spinner = React.forwardRef<HTMLSpanElement, SpinnerProps>(
   ({ className, size, loading = true, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "span";
 
-    const [bgColorClass, filteredClassName] = React.useMemo(() => {
-      const bgClass = className?.match(/(?:dark:bg-|bg-)[a-zA-Z0-9-]+/g) || [];
-      const filteredClasses = className?.replace(/(?:dark:bg-|bg-)[a-zA-Z0-9-]+/g, '').trim();
-      return [bgClass, filteredClasses];
-    }, [className]);
-
     if (!loading) return null;
 
     return (
       <Comp
-        className={cn(spinnerVariants({ size, className: filteredClassName }))}
+        className={cn(spinnerVariants({ size, className }))}
         ref={ref}
         {...props}
       >
-        {Array.from({ length: 8 }).map((_, i) => (
+        {/* Two large concentric rings: orange (outer) and blue (inner) */}
+        <span className="relative block w-full h-full">
           <span
-            key={i}
-            className="absolute top-0 left-1/2 w-[12.5%] h-full animate-spinner-leaf-fade"
-            style={{
-              transform: `rotate(${i * 45}deg)`,
-              animationDelay: `${-(7 - i) * 100}ms`,
-            }}
-          >
-            <span
-              className={cn("block w-full h-[30%] rounded-full", bgColorClass)}
-            ></span>
-          </span>
-        ))}
+            className="absolute inset-0 rounded-full border-[3px] border-t-transparent border-orange-500 animate-spin"
+            style={{ animationDuration: '1.2s' }}
+          />
+          <span
+            className="absolute inset-1/4 rounded-full border-[3px] border-t-transparent border-blue-500 animate-spin"
+            style={{ animationDuration: '0.9s', animationDirection: 'reverse' as any }}
+          />
+        </span>
       </Comp>
     );
   }

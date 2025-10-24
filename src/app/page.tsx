@@ -183,6 +183,9 @@ export default function LoginPage() {
                 </div>
               )}
             </Button>
+            <div className="mt-3 text-right">
+              <a href="/auth/forgot-password" className="text-sm text-primary hover:underline">¿Olvidaste tu contraseña?</a>
+            </div>
           </form>
 
           {/* Footer */}

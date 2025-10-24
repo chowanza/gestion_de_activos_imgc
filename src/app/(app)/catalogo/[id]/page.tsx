@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2, MapPin, Eye } from "lucide-react";
 import { showToast } from "nextjs-toast-notify";
 import Link from "next/link";
+import { Spinner } from '@/components/ui/spinner';
 
 interface ModeloDetails {
   id: string;
@@ -135,7 +136,9 @@ export default function ModeloDetailsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="w-40 h-40">
+          <Spinner size="lg" className="w-40 h-40" />
+        </div>
       </div>
     );
   }

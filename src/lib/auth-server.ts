@@ -10,6 +10,31 @@ export async function getServerUser(request: NextRequest) {
     }
 
     const session = await decrypt(cookie.value);
+
+    // DEV OVERRIDE: if environment variable DEV_SUPERADMIN_USERNAME or DEV_SUPERADMIN_EMAIL
+    // is set, force this session to have Admin privileges for development user matching that identifier.
+    try {
+      const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
+      const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
+
+      const sessionUsername = (session as any)?.username;
+      const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
+
+      if (
+        (devUsername && sessionUsername === devUsername) ||
+        (devEmail && sessionEmail === devEmail)
+      ) {
+        // Force admin role and mark as super admin in the session payload
+        (session as any).role = 'Admin';
+        (session as any).isSuperAdmin = true;
+        // Optionally grant a wildcard permissions flag that can be used by permission checks
+        (session as any).permissions = ['*'];
+      }
+    } catch (e) {
+      // Non-fatal: don't break session retrieval if env var handling fails
+      console.warn('DEV_SUPERADMIN override check failed:', e);
+    }
+
     return session;
   } catch (error) {
     console.error('Error getting server user:', error);
@@ -30,6 +55,27 @@ export async function getSessionUser() {
     }
 
     const session = await decrypt(sessionCookie.value);
+
+    // Same DEV override for layouts that use cookies() (no request object)
+    try {
+      const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
+      const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
+
+      const sessionUsername = (session as any)?.username;
+      const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
+
+      if (
+        (devUsername && sessionUsername === devUsername) ||
+        (devEmail && sessionEmail === devEmail)
+      ) {
+        (session as any).role = 'Admin';
+        (session as any).isSuperAdmin = true;
+        (session as any).permissions = ['*'];
+      }
+    } catch (e) {
+      console.warn('DEV_SUPERADMIN override check failed (layout):', e);
+    }
+
     return session;
   } catch (error) {
     console.error('Error getting session user:', error);

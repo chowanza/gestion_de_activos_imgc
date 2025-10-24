@@ -33,8 +33,7 @@ const navData = {
     { title: "Historial", url: "/historial", icon: History },
   ],
   navAdmin: [
-    { title: "Gestión de Usuarios", url: "/admin/users", icon: UsersIcon },
-    { title: "Recuperar Contraseña", url: "/auth/forgot-password", icon: Key },
+    { title: "Gestión de Cuentas", url: "/gestion-de-cuentas", icon: UsersIcon },
   ],
 };
 
@@ -58,7 +57,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     switch(item.title) {
       case 'Modelos':
       case 'Empleados':
-      case 'Departamentos':
         return false;
       default:
         return true;
@@ -147,6 +145,12 @@ useEffect(() => {
           </SidebarHeader>
           <SidebarContent className="bg-[#000000] px-6 py-10">
             <NavMain items={filteredNavMain}/>
+            {filteredNavAdmin.length > 0 && (
+              <>
+                <div className="h-px bg-gray-700 my-2" />
+                <NavMain items={filteredNavAdmin} />
+              </>
+            )}
           </SidebarContent>
           <SidebarFooter className="bg-[#000000] px-2 py-4">
             <NavUser user={userData} />

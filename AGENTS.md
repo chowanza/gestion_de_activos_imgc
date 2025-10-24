@@ -1676,3 +1676,25 @@ Se añadieron scripts y endpoints de mantenimiento y migración para arreglar el
 
 **Última actualización**: $(date)
 **Mantenido por**: Equipo de Desarrollo IMGC
+
+---
+
+## 🧭 Gestión de Cuentas (UI)
+
+Se añadió una nueva ruta y página administrativa para la gestión de cuentas:
+
+- **Ruta**: `/gestion-de-cuentas`
+- **Archivo**: `src/app/(app)/gestion-de-cuentas/page.tsx`
+
+Funcionalidad implementada (frontend):
+- Listado de usuarios (consume `GET /api/users`)
+- Búsqueda por usuario/email
+- Filtrado por rol
+- Crear usuario (POST `/api/users`)
+- Editar usuario (PUT `/api/users/:id`)
+- Eliminar usuario (DELETE `/api/users/:id`)
+- Reset de contraseña (POST `/api/users/:id/password-reset`) — el token creado se muestra al admin y se copia al portapapeles (el envío de email no está implementado en el backend actualmente)
+
+Nota operativa: esta página reutiliza los componentes UI existentes (Dialog, Table, Inputs) y asume que el usuario que la utiliza tiene rol Admin.
+
+Dev helper: hay una anulación de desarrollo disponible en `src/lib/auth-server.ts` que permite forzar el rol Admin para un usuario de desarrollo configurado mediante las variables de entorno `DEV_SUPERADMIN_USERNAME` o `DEV_SUPERADMIN_EMAIL`. No habilitar estas variables en producción.
