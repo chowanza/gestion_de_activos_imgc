@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, ArrowRight, Cpu, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { LoadingLogin } from '@/utils/LoadingLogin';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 
 
 
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
       {/* Loading overlay */}
       {isLoading && (
-          <LoadingLogin  message='AUTENTICANDO...' />
+          <LoadingIndicator message='AUTENTICANDO...' />
       )}
 
       {/* Floating elements */}

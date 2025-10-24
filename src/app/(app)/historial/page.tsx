@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Filter, Clock, User, Activity, Eye, Edit, Trash2, Plus, ArrowRightLeft, Globe, Monitor, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PermissionGuard } from '@/components/PermissionGuard';
+import { LoadingSpinner } from '@/utils/loading';
 import { useRouter } from 'next/navigation';
 
 interface AuditLog {
@@ -166,10 +167,7 @@ export default function HistorialPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando historial...</p>
-        </div>
+        <LoadingSpinner message="Cargando historial..." size="md" />
       </div>
     );
   }

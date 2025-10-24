@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { showToast } from 'nextjs-toast-notify';
 import { Upload, X, Image as ImageIcon, Loader2, Edit } from 'lucide-react';
+import { LoadingSpinner } from '@/utils/loading';
 
 interface EditInterventionModalProps {
   isOpen: boolean;
@@ -328,7 +329,7 @@ export default function EditInterventionModal({
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Edit className="mr-2 h-4 w-4" />}
+              {loading ? <LoadingSpinner size="sm" className="mr-2" /> : <Edit className="mr-2 h-4 w-4" />}
               {loading ? 'Actualizando...' : 'Actualizar Intervención'}
             </Button>
           </DialogFooter>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingSpinner } from "@/utils/loading";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "nextjs-toast-notify";
@@ -471,8 +472,7 @@ export default function EmpleadoDetailsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <Spinner className="h-8 w-8" />
-          <span className="ml-2">Cargando detalles del empleado...</span>
+          <LoadingSpinner message="Cargando detalles del empleado..." size="lg" />
         </div>
       </div>
     );

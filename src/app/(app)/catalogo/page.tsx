@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingSpinner } from "@/utils/loading";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showToast } from "nextjs-toast-notify";
 import { 
@@ -173,8 +173,7 @@ export default function CatalogoPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <Spinner className="h-8 w-8" />
-          <span className="ml-2">Cargando catálogo...</span>
+          <LoadingSpinner message="Cargando catálogo..." size="md" />
         </div>
       </div>
     );

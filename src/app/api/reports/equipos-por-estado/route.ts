@@ -45,8 +45,14 @@ export async function GET(request: NextRequest) {
               }
             }
           },
+          // Obtener la asignación más reciente (por fecha).
+          // Antes se filtraba sólo por `activo: true`, lo que dejaba algunos
+          // equipos sin ubicación en el reporte si la asignación no estaba marcada
+          // como activa. Tomamos la asignación más reciente independientemente
+          // del flag `activo` para mostrar la ubicación física actual.
           asignaciones: {
-            where: { activo: true },
+            orderBy: { date: 'desc' },
+            take: 1,
             include: {
               targetEmpleado: {
                 include: {
@@ -87,7 +93,8 @@ export async function GET(request: NextRequest) {
             }
           },
           asignaciones: {
-            where: { activo: true },
+            orderBy: { date: 'desc' },
+            take: 1,
             include: {
               targetEmpleado: {
                 include: {
@@ -140,15 +147,19 @@ export async function GET(request: NextRequest) {
         monto: comp.monto,
         asignacion: asignacionActual ? {
           fechaAsignacion: asignacionActual.date,
-          empleado: empleadoAsignado ? 
+          // Incluir flag activo
+          activo: !!asignacionActual.activo,
+          // Mostrar empleado / empresa / departamento SÓLO si el equipo está en estado ASIGNADO
+          empleado: (comp.estado === 'ASIGNADO' && asignacionActual.activo && empleadoAsignado) ?
             `${empleadoAsignado.nombre} ${empleadoAsignado.apellido}` : 'Sin asignar',
-          cedula: empleadoAsignado?.ced || 'N/A',
-          cargo: organizacionAsignada?.cargo?.nombre || 'Sin cargo',
-          departamento: organizacionAsignada?.departamento?.nombre || 'Sin departamento',
-          empresa: organizacionAsignada?.empresa?.nombre || 'Sin empresa',
+          cedula: (comp.estado === 'ASIGNADO' && empleadoAsignado) ? empleadoAsignado?.ced || 'N/A' : 'N/A',
+          cargo: (comp.estado === 'ASIGNADO' && organizacionAsignada) ? organizacionAsignada?.cargo?.nombre || 'Sin cargo' : 'Sin cargo',
+          departamento: (comp.estado === 'ASIGNADO' && organizacionAsignada) ? organizacionAsignada?.departamento?.nombre || 'Sin departamento' : 'Sin departamento',
+          empresa: (comp.estado === 'ASIGNADO' && organizacionAsignada) ? organizacionAsignada?.empresa?.nombre || 'Sin empresa' : 'Sin empresa',
           ubicacion: asignacionActual.ubicacion?.nombre || 'Sin ubicación',
           motivo: asignacionActual.motivo || 'Sin motivo'
         } : null,
+        // La ubicación actual se toma de la asignación más reciente (aunque no esté activa)
         ubicacionActual: asignacionActual?.ubicacion?.nombre || 'Sin asignar'
       };
     });

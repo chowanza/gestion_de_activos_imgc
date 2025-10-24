@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 import { showToast } from 'nextjs-toast-notify';
+import { LoadingSpinner } from '@/utils/loading';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -114,7 +115,7 @@ export default function ForgotPasswordPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoadingSpinner size="sm" className="mr-2" />
                   Enviando...
                 </>
               ) : (

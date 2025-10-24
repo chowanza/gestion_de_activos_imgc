@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FilterIcon } from "lucide-react"
 import Link from "next/link";
+import { LoadingSpinner } from "@/utils/loading";
 import { formatDate } from "@/utils/formatDate";
 
 
@@ -259,9 +260,7 @@ React.useEffect(() => {
           <CardTitle className="text-2xl font-bold">Asignaciones</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
-          <div className="flex items-center justify-center">
-            <div className="text-muted-foreground">Cargando...</div>
-          </div>
+          <LoadingSpinner message="Cargando..." size="md" />
         </CardContent>
       </Card>
     );

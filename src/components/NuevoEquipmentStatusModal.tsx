@@ -15,6 +15,7 @@ import { Loader2, User, Wrench, Shield, MapPin, CheckCircle2, Trash2, AlertCircl
 import ReactSelect from 'react-select';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
 import { ESTADOS_EQUIPO, requiereEmpleado, permiteAsignacion } from '@/lib/estados-equipo';
+import { LoadingSpinner } from '@/utils/loading';
 
 interface NuevoEquipmentStatusModalProps {
   isOpen: boolean;
@@ -689,7 +690,7 @@ export default function NuevoEquipmentStatusModal({
               Cancelar
             </Button>
             <Button onClick={handleSubmit} disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading && <LoadingSpinner size="sm" className="mr-2" />}
               {nuevoEstado === equipment.estado ? 'Actualizar' : `Cambiar a ${nuevoEstado}`}
             </Button>
           </div>

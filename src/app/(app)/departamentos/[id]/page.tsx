@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingSpinner } from "@/utils/loading";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -450,8 +451,7 @@ export default function DepartamentoDetailsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <Spinner className="h-8 w-8" />
-          <span className="ml-2">Cargando detalles del departamento...</span>
+          <LoadingSpinner message="Cargando detalles del departamento..." size="lg" />
         </div>
       </div>
     );
@@ -478,84 +478,70 @@ export default function DepartamentoDetailsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{departamento.nombre}</h1>
-            <p className="text-gray-600">Detalles del departamento</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={handleEditDepartamento}
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={handleEditDepartamento}
-                className="flex items-center space-x-2"
-              >
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold">{departamento?.nombre}</h1>
+                <p className="text-gray-600">Detalles del departamento</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" onClick={handleEditDepartamento} className="flex items-center space-x-2">
                 <Edit className="h-4 w-4" />
                 <span>Editar</span>
               </Button>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Empresa</label>
-              <div className="flex items-center space-x-2">
-                <p className="text-lg font-semibold">
-                  {departamento.empresaDepartamentos && departamento.empresaDepartamentos.length > 0 
-                    ? departamento.empresaDepartamentos[0].empresa.nombre 
-                    : 'Sin empresa'}
-                </p>
-                {departamento.empresaDepartamentos && departamento.empresaDepartamentos.length > 0 && (
-                  <Link href={`/empresas/${departamento.empresaDepartamentos[0].empresa.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver Empresa
-                    </Button>
-                  </Link>
+
+              <div>
+                <div className="text-sm font-medium text-gray-500">Empresa</div>
+                <div className="flex items-center space-x-2">
+                  <p className="text-lg font-semibold">{departamento?.empresaDepartamentos?.[0]?.empresa?.nombre ?? 'Sin empresa'}</p>
+                  {departamento?.empresaDepartamentos?.[0]?.empresa?.id && (
+                    <Link href={`/empresas/${departamento.empresaDepartamentos[0].empresa.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver Empresa
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">{departamento?.empresaDepartamentos?.[0]?.empresa?.descripcion ?? ''}</p>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-gray-500">Gerente</div>
+                {departamento?.gerencias?.[0]?.gerente ? (
+                  <div>
+                    <p className="text-lg font-semibold">{departamento.gerencias[0].gerente.nombre} {departamento.gerencias[0].gerente.apellido}</p>
+                    <p className="text-sm text-gray-600">Cédula: {departamento.gerencias[0].gerente.ced}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Sin gerente asignado</p>
                 )}
               </div>
-              {departamento.empresaDepartamentos && departamento.empresaDepartamentos.length > 0 && departamento.empresaDepartamentos[0].empresa.descripcion && (
-                <p className="text-sm text-gray-600">{departamento.empresaDepartamentos[0].empresa.descripcion}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Gerente</label>
-              {departamento.gerencias && departamento.gerencias.length > 0 ? (
-                <div>
-                  <p className="text-lg font-semibold">
-                    {departamento.gerencias[0].gerente.nombre} {departamento.gerencias[0].gerente.apellido}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Cédula: {departamento.gerencias[0].gerente.ced}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-gray-500">Sin gerente asignado</p>
-              )}
             </div>
           </div>
-          
-          <Separator />
-          
+
+          <Separator className="my-4" />
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2">
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
-              <p className="text-2xl font-bold">{departamento._count.empleadoOrganizaciones}</p>
+              <p className="text-2xl font-bold">{departamento?._count?.empleadoOrganizaciones ?? 0}</p>
               <p className="text-sm text-gray-600">Empleados</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2">
                 <Briefcase className="h-6 w-6 text-green-600" />
               </div>
-              <p className="text-2xl font-bold">{departamento._count.departamentoCargos}</p>
+              <p className="text-2xl font-bold">{departamento?._count?.departamentoCargos ?? 0}</p>
               <p className="text-sm text-gray-600">Cargos</p>
             </div>
             <div 

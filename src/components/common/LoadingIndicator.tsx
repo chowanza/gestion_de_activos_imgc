@@ -1,0 +1,21 @@
+import React from 'react'
+
+interface LoadingIndicatorProps {
+  message?: string;
+}
+
+export const LoadingIndicator = ({ message = "Cargando..." }: LoadingIndicatorProps) => {
+  return (
+    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <div className="relative w-28 h-28">
+              <div className="absolute inset-0 border-4 border-orange-500/30 rounded-full animate-ping"></div>
+              <div className="absolute inset-2 border-4 border-t-orange-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-4 border-4 border-r-blue-500 border-t-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-6 border-4 border-b-blue-500 border-t-transparent border-r-transparent border-l-transparent rounded-full animate-spin-slow"></div>
+            </div>
+            <div className="mt-4 text-orange-500 font-mono text-sm tracking-wider">{message}</div>
+          </div>
+    </div>
+  )
+}

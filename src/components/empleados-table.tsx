@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import TableRowSkeleton from "@/utils/loading";
+import TableRowSkeleton, { LoadingSpinner } from "@/utils/loading";
 
 export const empleadoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
@@ -772,9 +772,7 @@ if (!table || !columns || columns.length === 0 || isLoading) {
         <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="flex items-center justify-center h-32">
-          <div className="text-muted-foreground">Cargando tabla...</div>
-        </div>
+        <LoadingSpinner message="Cargando tabla..." />
       </CardContent>
     </Card>
   );

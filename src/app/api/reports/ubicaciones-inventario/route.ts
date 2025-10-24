@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
     const ubicaciones = await prisma.ubicacion.findMany({
       where: ubicacionWhere,
       include: {
+        // Incluir asignaciones ordenadas por fecha descendente para poder
+        // tomar la asignación más reciente por equipo (evitamos filtrar por `activo`)
         asignacionesEquipos: {
-          where: { activo: true },
+          orderBy: { date: 'desc' },
           include: {
             computador: {
               include: {
@@ -84,43 +86,37 @@ export async function GET(request: NextRequest) {
     // Procesar datos de ubicaciones
     const processedUbicaciones = ubicaciones.map(ubicacion => {
       const asignaciones = ubicacion.asignacionesEquipos || [];
-      
-      // Procesar equipos por ubicación
-      const equipos = asignaciones.map(asignacion => {
+
+      // Tomar la asignación más reciente por equipo (evitar duplicados si hay varias asignaciones)
+      const equiposMap = new Map<string, any>();
+      for (const asignacion of asignaciones) {
         const equipo = asignacion.computador || asignacion.dispositivo;
+        if (!equipo) continue;
+        const equipoId = equipo.id;
+        // Si ya tenemos una entrada para este equipo, la omitimos (las asignaciones vienen ordenadas por date desc)
+        if (equiposMap.has(equipoId)) continue;
+
         const tipoEquipo = asignacion.itemType;
-        
+
         // Obtener información del modelo del equipo
         let modeloInfo = 'N/A';
-        if (
-          equipo &&
-          'computadorModelos' in equipo &&
-          Array.isArray(equipo.computadorModelos) &&
-          equipo.computadorModelos.length > 0 &&
-          equipo.computadorModelos[0]?.modeloEquipo
-        ) {
+        if (equipo && 'computadorModelos' in equipo && Array.isArray(equipo.computadorModelos) && equipo.computadorModelos.length > 0 && equipo.computadorModelos[0]?.modeloEquipo) {
           const modelo = equipo.computadorModelos[0].modeloEquipo;
           const marca = Array.isArray(modelo.marcaModelos) && modelo.marcaModelos.length > 0 ? modelo.marcaModelos[0].marca : undefined;
           modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
-        } else if (
-          equipo &&
-          'dispositivoModelos' in equipo &&
-          Array.isArray(equipo.dispositivoModelos) &&
-          equipo.dispositivoModelos.length > 0 &&
-          equipo.dispositivoModelos[0]?.modeloEquipo
-        ) {
+        } else if (equipo && 'dispositivoModelos' in equipo && Array.isArray(equipo.dispositivoModelos) && equipo.dispositivoModelos.length > 0 && equipo.dispositivoModelos[0]?.modeloEquipo) {
           const modelo = equipo.dispositivoModelos[0].modeloEquipo;
           const marca = Array.isArray(modelo.marcaModelos) && modelo.marcaModelos.length > 0 ? modelo.marcaModelos[0].marca : undefined;
           modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
         }
 
-        // Obtener información del empleado asignado
+        // Obtener información del empleado asignado (si corresponde)
         const organizacion = asignacion.targetEmpleado?.organizaciones?.[0];
         const departamento = organizacion?.departamento;
         const empresa = organizacion?.empresa;
         const cargo = organizacion?.cargo;
 
-        return {
+        const equipoObj = {
           id: equipo?.id || 'N/A',
           tipo: tipoEquipo,
           serial: equipo?.serial || 'N/A',
@@ -128,17 +124,27 @@ export async function GET(request: NextRequest) {
           modelo: modeloInfo,
           estado: equipo?.estado || 'N/A',
           fechaAsignacion: asignacion.date,
-          empleado: {
-            nombre: asignacion.targetEmpleado ? 
-              `${asignacion.targetEmpleado.nombre} ${asignacion.targetEmpleado.apellido}` : 'Sin asignar',
+          // Si el equipo no está en estado ASIGNADO no mostramos empleado/empresa/departamento
+          empleado: (equipo?.estado === 'ASIGNADO' && asignacion.targetEmpleado) ? {
+            nombre: `${asignacion.targetEmpleado.nombre} ${asignacion.targetEmpleado.apellido}`,
             cedula: asignacion.targetEmpleado?.ced || 'N/A',
             cargo: cargo?.nombre || 'Sin cargo',
             departamento: departamento?.nombre || 'Sin departamento',
             empresa: empresa?.nombre || 'Sin empresa'
+          } : {
+            nombre: 'Sin asignar',
+            cedula: 'N/A',
+            cargo: 'Sin cargo',
+            departamento: 'Sin departamento',
+            empresa: 'Sin empresa'
           },
           motivo: asignacion.motivo || 'Sin motivo especificado'
         };
-      });
+
+        equiposMap.set(equipoId, equipoObj);
+      }
+
+      const equipos = Array.from(equiposMap.values());
 
       // Aplicar filtro de estado si se especifica
       let equiposFiltrados = equipos;

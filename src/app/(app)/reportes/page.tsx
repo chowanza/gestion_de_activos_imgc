@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Download, FileText, BarChart3, TrendingUp, Users, Building, Cpu, Monitor } from 'lucide-react';
+import { Calendar, Download, FileText, BarChart3, TrendingUp, Users, Building, Cpu, Monitor, Filter, Search, Eye, EyeOff, ChevronDown, ChevronUp, HardDrive } from 'lucide-react';
 import { showToast } from 'nextjs-toast-notify';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
 import { formatDate } from '@/utils/formatDate';
 import { exportToPDF, exportToExcel, ExportData } from '@/utils/exportUtils';
 import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
+import { LoadingSpinner } from '@/utils/loading';
 
 // Componentes dinámicos para evitar problemas de hidratación
 const DynamicReactSelect = dynamicImport(() => import('react-select'), {
@@ -100,6 +101,7 @@ interface ReportData {
 export default function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [filtersVisible, setFiltersVisible] = useState(true);
   
   // Filtros
   const [reportType, setReportType] = useState('empleados-actuales');
@@ -172,14 +174,7 @@ export default function ReportesPage() {
       requiresDates: false,
       hasSubTypes: false
     },
-    {
-      value: 'audit-logger',
-      label: '6. Movimientos (Audit Logger)',
-      description: 'Registro completo de todos los movimientos y cambios del sistema',
-      endpoint: '/api/reports/audit-logger',
-      requiresDates: true,
-      hasSubTypes: false
-    }
+    
   ];
 
   // Establecer fechas por defecto (últimos 30 días)
@@ -315,13 +310,7 @@ export default function ReportesPage() {
           if (selectedEmpleado?.value) params.append('ubicacionId', selectedEmpleado.value);
           break;
           
-        case 'audit-logger':
-          if (actionType && actionType !== 'all') params.append('actionType', actionType);
-          if (itemType && itemType !== 'all') params.append('itemType', itemType);
-          if (selectedEmpresa?.value) params.append('empresaId', selectedEmpresa.value);
-          if (selectedDepartamento?.value) params.append('departamentoId', selectedDepartamento.value);
-          if (selectedEmpleado?.value) params.append('usuarioId', selectedEmpleado.value);
-          break;
+        
       }
 
       console.log(`🔍 Generando reporte: ${reportType} con endpoint: ${selectedReportType.endpoint}`);
@@ -379,16 +368,7 @@ export default function ReportesPage() {
             motivo: movement.motivo || '-',
             gerente: movement.gerente || '-'
           })) || [],
-          statistics: {
-            totalMovements: reportData.estadisticas?.totalMovimientos || 0,
-            assignmentsCount: reportData.estadisticas?.porTipoAccion?.['Asignación'] || 0,
-            maintenanceCount: reportData.estadisticas?.porTipoAccion?.['Mantenimiento'] || 0,
-            returnCount: reportData.estadisticas?.porTipoAccion?.['Devolución'] || 0,
-            safeguardCount: reportData.estadisticas?.porTipoAccion?.['Resguardo'] || 0,
-            byCompany: Object.entries(reportData.estadisticas?.porEmpresa || {}).map(([empresa, count]) => ({ empresa, count })),
-            byDepartment: [],
-            byEmployee: []
-          },
+          // statistics removed per request: only table will be exported
           filters: {
             startDate,
             endDate,
@@ -409,19 +389,7 @@ export default function ReportesPage() {
           title: selectedReportType.label,
           data: data,
           columns: columns,
-          statistics: reportData.estadisticas ? {
-            ...reportData.estadisticas,
-            // Convertir objetos complejos a strings para PDF
-            porEmpresa: typeof reportData.estadisticas.porEmpresa === 'object' 
-              ? JSON.stringify(reportData.estadisticas.porEmpresa) 
-              : reportData.estadisticas.porEmpresa,
-            porDepartamento: typeof reportData.estadisticas.porDepartamento === 'object' 
-              ? JSON.stringify(reportData.estadisticas.porDepartamento) 
-              : reportData.estadisticas.porDepartamento,
-            porCargo: typeof reportData.estadisticas.porCargo === 'object' 
-              ? JSON.stringify(reportData.estadisticas.porCargo) 
-              : reportData.estadisticas.porCargo
-          } : {},
+          // statistics removed per request: only table will be exported
           filters: {
             startDate,
             endDate,
@@ -499,7 +467,8 @@ export default function ReportesPage() {
           estado: equipo.estado || 'N/A',
           empleado: equipo.asignacion?.empleado || 'Sin asignar',
           departamento: equipo.asignacion?.departamento || 'Sin departamento',
-          empresa: equipo.asignacion?.empresa || 'Sin empresa'
+          empresa: equipo.asignacion?.empresa || 'Sin empresa',
+          ubicacion: equipo.asignacion?.ubicacion || equipo.ubicacionActual || equipo.ubicacion?.nombre || 'Sin ubicación'
         }));
         
       case 'ubicaciones-inventario':
@@ -528,18 +497,7 @@ export default function ReportesPage() {
           empresa: activo.asignacion?.empresa || 'Sin empresa'
         }));
         
-      case 'audit-logger':
-        return (reportData.movimientos || []).map((movimiento: any) => ({
-          fecha: movimiento.fecha ? formatDate(movimiento.fecha) : 'N/A',
-          accion: movimiento.accion || 'N/A',
-          tipoMovimiento: movimiento.tipoMovimiento || 'N/A',
-          tipoEquipo: movimiento.equipo?.tipo || 'N/A',
-          serial: movimiento.equipo?.serial || 'N/A',
-          modelo: movimiento.equipo?.modelo || 'N/A',
-          empleado: movimiento.empleadoAsignado?.nombre || 'Sin asignar',
-          empresa: movimiento.empleadoAsignado?.empresa || 'Sin empresa',
-          descripcion: movimiento.descripcion || 'Sin descripción'
-        }));
+      
         
       default:
         return [];
@@ -569,12 +527,12 @@ export default function ReportesPage() {
             { key: 'fecha', title: 'Fecha', width: 12, align: 'center' as const },
             { key: 'accion', title: 'Acción', width: 12, align: 'center' as const },
             { key: 'tipoEquipo', title: 'Tipo', width: 10, align: 'center' as const },
-            { key: 'equipo.serial', title: 'Serial', width: 12, align: 'center' as const },
-            { key: 'equipo.modelo', title: 'Modelo', width: 20, align: 'left' as const },
-            { key: 'empleado.nombre', title: 'Empleado', width: 16, align: 'left' as const },
-            { key: 'empleado.departamento', title: 'Departamento', width: 14, align: 'left' as const },
-            { key: 'empleado.empresa', title: 'Empresa', width: 12, align: 'left' as const },
-            { key: 'ubicacion.nombre', title: 'Ubicación', width: 12, align: 'left' as const },
+            { key: 'serial', title: 'Serial', width: 12, align: 'center' as const },
+            { key: 'modelo', title: 'Modelo', width: 20, align: 'left' as const },
+            { key: 'empleado', title: 'Empleado', width: 16, align: 'left' as const },
+            { key: 'departamento', title: 'Departamento', width: 14, align: 'left' as const },
+            { key: 'empresa', title: 'Empresa', width: 12, align: 'left' as const },
+            { key: 'ubicacion', title: 'Ubicación', width: 12, align: 'left' as const },
             { key: 'motivo', title: 'Motivo', width: 20, align: 'left' as const }
           ];
         } else {
@@ -583,9 +541,9 @@ export default function ReportesPage() {
             { key: 'accion', title: 'Acción', width: 12, align: 'center' as const },
             { key: 'campo', title: 'Campo', width: 12, align: 'center' as const },
             { key: 'categoriaModificacion', title: 'Categoría', width: 12, align: 'center' as const },
-            { key: 'equipo.serial', title: 'Serial', width: 12, align: 'center' as const },
-            { key: 'equipo.modelo', title: 'Modelo', width: 20, align: 'left' as const },
-            { key: 'empleadoAsignado.nombre', title: 'Empleado', width: 16, align: 'left' as const },
+            { key: 'serial', title: 'Serial', width: 12, align: 'center' as const },
+            { key: 'modelo', title: 'Modelo', width: 20, align: 'left' as const },
+            { key: 'empleadoAsignado', title: 'Empleado', width: 16, align: 'left' as const },
             { key: 'descripcion', title: 'Descripción', width: 25, align: 'left' as const }
           ];
         }
@@ -597,49 +555,37 @@ export default function ReportesPage() {
           { key: 'codigoImgc', title: 'Código IMGC', width: 15, align: 'center' as const },
           { key: 'modelo', title: 'Modelo', width: 25, align: 'left' as const },
           { key: 'estado', title: 'Estado', width: 12, align: 'center' as const },
-          { key: 'asignacion.empleado', title: 'Empleado', width: 20, align: 'left' as const },
-          { key: 'asignacion.departamento', title: 'Departamento', width: 18, align: 'left' as const },
-          { key: 'asignacion.empresa', title: 'Empresa', width: 15, align: 'left' as const }
+          { key: 'empleado', title: 'Empleado', width: 20, align: 'left' as const },
+          { key: 'departamento', title: 'Departamento', width: 18, align: 'left' as const },
+          { key: 'empresa', title: 'Empresa', width: 15, align: 'left' as const },
+          { key: 'ubicacion', title: 'Ubicación', width: 18, align: 'left' as const }
         ];
         
       case 'ubicaciones-inventario':
+        // Use flattened keys that match getPDFDataForReportType output
         return [
           { key: 'nombre', title: 'Ubicación', width: 20, align: 'left' as const },
           { key: 'direccion', title: 'Dirección', width: 25, align: 'left' as const },
           { key: 'piso', title: 'Piso', width: 8, align: 'center' as const },
           { key: 'sala', title: 'Sala', width: 10, align: 'center' as const },
-          { key: 'estadisticas.totalEquipos', title: 'Total Equipos', width: 12, align: 'center' as const },
-          { key: 'estadisticas.computadores', title: 'Computadores', width: 12, align: 'center' as const },
-          { key: 'estadisticas.dispositivos', title: 'Dispositivos', width: 12, align: 'center' as const },
-          { key: 'estadisticas.empleadosUnicos', title: 'Empleados', width: 10, align: 'center' as const }
+          { key: 'totalEquipos', title: 'Total Equipos', width: 12, align: 'center' as const },
+          { key: 'computadores', title: 'Computadores', width: 12, align: 'center' as const },
+          { key: 'dispositivos', title: 'Dispositivos', width: 12, align: 'center' as const },
+          { key: 'empleadosUnicos', title: 'Empleados', width: 10, align: 'center' as const }
         ];
         
       case 'catalogo-actual':
+        // Mostrar únicamente los campos del dossier / sección "Catálogo"
         return [
-          { key: 'tipo', title: 'Tipo', width: 12, align: 'center' as const },
-          { key: 'serial', title: 'Serial', width: 15, align: 'center' as const },
-          { key: 'codigoImgc', title: 'Código IMGC', width: 15, align: 'center' as const },
-          { key: 'marca', title: 'Marca', width: 12, align: 'left' as const },
-          { key: 'modelo', title: 'Modelo', width: 20, align: 'left' as const },
-          { key: 'tipoEquipo', title: 'Tipo Equipo', width: 12, align: 'left' as const },
+          { key: 'marca', title: 'Marca', width: 18, align: 'left' as const },
+          { key: 'modelo', title: 'Modelo', width: 22, align: 'left' as const },
+          { key: 'tipoEquipo', title: 'Tipo Equipo', width: 14, align: 'left' as const },
           { key: 'estado', title: 'Estado', width: 10, align: 'center' as const },
-          { key: 'asignacion.asignado', title: 'Asignado', width: 10, align: 'center' as const },
-          { key: 'asignacion.empleado', title: 'Empleado', width: 18, align: 'left' as const },
-          { key: 'asignacion.empresa', title: 'Empresa', width: 15, align: 'left' as const }
+          { key: 'codigoImgc', title: 'Código IMGC', width: 12, align: 'center' as const },
+          { key: 'serial', title: 'Serial', width: 14, align: 'center' as const }
         ];
         
-      case 'audit-logger':
-        return [
-          { key: 'fecha', title: 'Fecha', width: 12, align: 'center' as const },
-          { key: 'accion', title: 'Acción', width: 12, align: 'center' as const },
-          { key: 'tipoMovimiento', title: 'Tipo', width: 12, align: 'center' as const },
-          { key: 'equipo.tipo', title: 'Equipo', width: 10, align: 'center' as const },
-          { key: 'equipo.serial', title: 'Serial', width: 12, align: 'center' as const },
-          { key: 'equipo.modelo', title: 'Modelo', width: 20, align: 'left' as const },
-          { key: 'empleadoAsignado.nombre', title: 'Empleado', width: 16, align: 'left' as const },
-          { key: 'empleadoAsignado.empresa', title: 'Empresa', width: 12, align: 'left' as const },
-          { key: 'descripcion', title: 'Descripción', width: 25, align: 'left' as const }
-        ];
+      
         
       default:
         return [];
@@ -665,8 +611,7 @@ export default function ReportesPage() {
         return reportData.ubicaciones || [];
       case 'catalogo-actual':
         return reportData.activos || [];
-      case 'audit-logger':
-        return reportData.movimientos || [];
+      
       default:
         return [];
     }
@@ -723,8 +668,7 @@ export default function ReportesPage() {
         return reportData.ubicaciones?.length || 0;
       case 'catalogo-actual':
         return reportData.activos?.length || 0;
-      case 'audit-logger':
-        return reportData.movimientos?.length || 0;
+      
       default:
         return 0;
     }
@@ -742,13 +686,14 @@ export default function ReportesPage() {
           return ['Fecha', 'Acción', 'Campo', 'Categoría', 'Serial', 'Modelo', 'Empleado', 'Descripción'];
         }
       case 'equipos-por-estado':
-        return ['Tipo', 'Serial', 'Código IMGC', 'Modelo', 'Estado', 'Empleado', 'Departamento', 'Empresa'];
+        // Mostrar el estado actual de los equipos. Se pueden filtrar por estado desde los controles.
+        return ['Tipo', 'Serial', 'Código IMGC', 'Modelo', 'Estado', 'Empleado', 'Departamento', 'Empresa', 'Ubicación'];
       case 'ubicaciones-inventario':
         return ['Ubicación', 'Dirección', 'Piso', 'Sala', 'Total Equipos', 'Computadores', 'Dispositivos', 'Empleados'];
       case 'catalogo-actual':
-        return ['Tipo', 'Serial', 'Código IMGC', 'Marca', 'Modelo', 'Tipo Equipo', 'Estado', 'Asignado', 'Empleado', 'Empresa'];
-      case 'audit-logger':
-        return ['Fecha', 'Acción', 'Tipo', 'Equipo', 'Serial', 'Modelo', 'Empleado', 'Empresa', 'Descripción'];
+        // Sólo mostrar los campos que pertenecen al catálogo/dossier
+        return ['Marca', 'Modelo', 'Tipo Equipo', 'Estado', 'Código IMGC', 'Serial'];
+      
       default:
         return [];
     }
@@ -845,7 +790,8 @@ export default function ReportesPage() {
           { content: <Badge className={getStatusBadgeColor(equipo.estado)}>{equipo.estado}</Badge>, className: '' },
           { content: equipo.asignacion?.empleado || 'Sin asignar', className: equipo.asignacion ? 'font-medium' : 'text-gray-500' },
           { content: equipo.asignacion?.departamento || 'Sin departamento', className: 'text-sm text-gray-500' },
-          { content: equipo.asignacion?.empresa || 'Sin empresa', className: 'text-sm text-gray-500' }
+          { content: equipo.asignacion?.empresa || 'Sin empresa', className: 'text-sm text-gray-500' },
+          { content: equipo.asignacion?.ubicacion || equipo.ubicacionActual || equipo.ubicacion?.nombre || 'Sin ubicación', className: 'text-sm text-gray-500' }
         ]);
         
       case 'ubicaciones-inventario':
@@ -861,31 +807,17 @@ export default function ReportesPage() {
         ]);
         
       case 'catalogo-actual':
+        // Mostrar sólo los campos del catálogo/dossier (sin información de asignación)
         return (reportData.activos || []).map((activo: any) => [
-          { content: <Badge className={getStatusBadgeColor(activo.tipo)}>{activo.tipo}</Badge>, className: '' },
-          { content: activo.serial, className: 'font-medium' },
-          { content: activo.codigoImgc, className: 'font-mono text-sm' },
-          { content: activo.marca, className: '' },
-          { content: activo.modelo, className: '' },
-          { content: activo.tipoEquipo, className: 'text-sm text-gray-500' },
-          { content: <Badge className={getStatusBadgeColor(activo.estado)}>{activo.estado}</Badge>, className: '' },
-          { content: <Badge className={activo.asignacion.asignado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>{activo.asignacion.asignado ? 'Sí' : 'No'}</Badge>, className: 'text-center' },
-          { content: activo.asignacion.empleado, className: activo.asignacion.asignado ? 'font-medium' : 'text-gray-500' },
-          { content: activo.asignacion.empresa, className: 'text-sm text-gray-500' }
+          { content: activo.marca || 'N/A', className: 'font-medium' },
+          { content: activo.modelo || 'N/A', className: '' },
+          { content: activo.tipoEquipo || 'N/A', className: 'text-sm text-gray-500' },
+          { content: <Badge className={getStatusBadgeColor(activo.estado)}>{activo.estado || 'N/A'}</Badge>, className: 'text-center' },
+          { content: activo.codigoImgc || 'N/A', className: 'font-mono text-sm' },
+          { content: activo.serial || 'N/A', className: 'font-mono text-sm' }
         ]);
         
-      case 'audit-logger':
-        return (reportData.movimientos || []).map((movimiento: any) => [
-          { content: formatDate(movimiento.fecha), className: 'font-mono text-sm' },
-          { content: <Badge className={getActionBadgeColor(movimiento.accion)}>{movimiento.accion}</Badge>, className: '' },
-          { content: <Badge className={getStatusBadgeColor(movimiento.tipoMovimiento)}>{movimiento.tipoMovimiento}</Badge>, className: '' },
-          { content: <Badge className={getStatusBadgeColor(movimiento.equipo.tipo)}>{movimiento.equipo.tipo}</Badge>, className: '' },
-          { content: movimiento.equipo.serial, className: 'font-medium' },
-          { content: movimiento.equipo.modelo, className: '' },
-          { content: movimiento.empleadoAsignado?.nombre || 'Sin asignar', className: movimiento.empleadoAsignado ? 'font-medium' : 'text-gray-500' },
-          { content: movimiento.empleadoAsignado?.empresa || 'Sin empresa', className: 'text-sm text-gray-500' },
-          { content: <div className="text-sm max-w-xs truncate">{movimiento.descripcion}</div>, className: '' }
-        ]);
+      
         
       case 'modificaciones-hardware':
         return (reportData.modificaciones || []).map((modificacion: any) => [
@@ -951,375 +883,451 @@ export default function ReportesPage() {
     }
   };
 
-  // Función para generar las tarjetas de estadísticas dinámicamente
-  const getStatisticsCards = () => {
-    if (!reportData) return [];
-    
-    const stats = reportData.estadisticas;
-    if (!stats) return [];
-
-    const cards = [];
-
-    // Tarjeta principal con total
-    const totalKey = Object.keys(stats).find(key => key.includes('total'));
-    if (totalKey) {
-      cards.push(
-        <Card key="total">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              {totalKey === 'totalMovimientos' ? 'Total Movimientos' :
-               totalKey === 'totalAsignaciones' ? 'Total Asignaciones' :
-               totalKey === 'totalActivos' ? 'Total Activos' :
-               totalKey === 'totalModificaciones' ? 'Total Modificaciones' :
-               totalKey === 'totalEdiciones' ? 'Total Ediciones' :
-               'Total'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats[totalKey]}</div>
-            {reportData.rangoFechas && (
-              <p className="text-xs text-gray-500">
-                En {reportData.rangoFechas.dias} días
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      );
-    }
-
-    // Tarjetas para estadísticas por categoría
-    Object.entries(stats).forEach(([key, value]) => {
-      if (key.includes('por') && typeof value === 'object' && value !== null) {
-        const title = key === 'porTipoAccion' ? 'Por Tipo de Acción' :
-                     key === 'porTipoEquipo' ? 'Por Tipo de Equipo' :
-                     key === 'porEmpresa' ? 'Por Empresa' :
-                     key === 'porDepartamento' ? 'Por Departamento' :
-                     key === 'porEstado' ? 'Por Estado' :
-                     key === 'porCategoria' ? 'Por Categoría' :
-                     key === 'porCampo' ? 'Por Campo' :
-                     key === 'porImpacto' ? 'Por Impacto' :
-                     'Por ' + key.replace('por', '');
-
-        cards.push(
-          <Card key={key}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {Object.entries(value as Record<string, number>).slice(0, 5).map(([item, count]) => (
-                  <div key={item} className="flex justify-between">
-                    <span className="text-sm truncate">{item}</span>
-                    <Badge variant="outline">{count}</Badge>
-                  </div>
-                ))}
-                {Object.keys(value as Record<string, number>).length > 5 && (
-                  <div className="text-xs text-gray-500 text-center">
-                    +{Object.keys(value as Record<string, number>).length - 5} más
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      }
-    });
-
-    // Tarjetas especiales para ciertos tipos de reportes
-    if (reportType === 'activos-por-estado') {
-      if (stats.asignados !== undefined || stats.noAsignados !== undefined) {
-        cards.push(
-          <Card key="asignacion-status">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Estado de Asignación</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Asignados</span>
-                  <Badge className="bg-green-100 text-green-800">{stats.asignados || 0}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Sin Asignar</span>
-                  <Badge className="bg-gray-100 text-gray-800">{stats.noAsignados || 0}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      }
-    }
-
-    if (reportType === 'ediciones-metadatos') {
-      if (stats.edicionesAltoImpacto !== undefined) {
-        cards.push(
-          <Card key="impact-breakdown">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Por Nivel de Impacto</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Alto Impacto</span>
-                  <Badge className="bg-red-100 text-red-800">{stats.edicionesAltoImpacto || 0}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Medio Impacto</span>
-                  <Badge className="bg-yellow-100 text-yellow-800">{stats.edicionesMedioImpacto || 0}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Bajo Impacto</span>
-                  <Badge className="bg-green-100 text-green-800">{stats.edicionesBajoImpacto || 0}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Requiere Auditoría</span>
-                  <Badge className="bg-orange-100 text-orange-800">{stats.requiereAuditoria || 0}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      }
-    }
-
-    return cards;
-  };
+  // Statistics UI removed per request — report UI shows only the data table now
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FEF6EE] to-[#F0E6D8] text-gray-800">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 max-w-7xl">
+        {/* Header Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reportes de Movimientos</h1>
-          <p className="text-gray-600">Análisis detallado de asignaciones y cambios de estado de equipos</p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-[#167DBA] rounded-xl shadow-lg">
+              <BarChart3 className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-1">Reportes</h1>
+              <p className="text-lg text-gray-600">Análisis detallado de asignaciones, movimientos y estado de equipos</p>
+            </div>
+          </div>
+
+          {/* Quick Stats Overview - REMOVED */}
+          {/* {reportData && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">Total Registros</p>
+                      <p className="text-3xl font-bold">{getDataCount()}</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-blue-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm font-medium">Tipo de Reporte</p>
+                      <p className="text-lg font-semibold truncate">{reportData.reportTitle}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-green-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-medium">Filtros Activos</p>
+                      <p className="text-3xl font-bold">
+                        {[selectedEmpresa, selectedDepartamento, selectedEmpleado, actionType !== 'all' ? actionType : null, itemType !== 'all' ? itemType : null, estadoEquipo !== 'all' ? estadoEquipo : null].filter(Boolean).length}
+                      </p>
+                    </div>
+                    <Filter className="h-8 w-8 text-purple-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-medium">Estado</p>
+                      <p className="text-lg font-semibold">Listo</p>
+                    </div>
+                    <div className="h-8 w-8 bg-orange-400 rounded-full flex items-center justify-center">
+                      <div className="h-3 w-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )} */}
         </div>
 
-        {/* Filtros */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Filtros del Reporte
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div>
-                <Label>Tipo de Reporte</Label>
-                <Select value={reportType} onValueChange={setReportType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un tipo de reporte" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reportTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div>
-                          <div className="font-medium">{type.label}</div>
-                          <div className="text-sm text-gray-500">{type.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Selector de Sub-Tipo para Asignaciones & Modificaciones */}
-              {reportTypes.find(rt => rt.value === reportType)?.hasSubTypes && (
+        {/* Filters Section */}
+        <Card className="mb-6 shadow-lg border-gray-200 bg-white">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Filter className="h-5 w-5 text-blue-600" />
+                </div>
                 <div>
-                  <Label>Sub-Tipo de Reporte</Label>
-                  <Select value={subReportType} onValueChange={setSubReportType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un sub-tipo" />
+                  <CardTitle className="text-xl">Filtros de Búsqueda</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">Configura los parámetros para generar tu reporte personalizado</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFiltersVisible(!filtersVisible)}
+                className="flex items-center gap-2"
+              >
+                {filtersVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {filtersVisible ? 'Ocultar' : 'Mostrar'} Filtros
+                {filtersVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+
+          {filtersVisible && (
+            <CardContent className="space-y-6">
+              {/* Primary Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Tipo de Reporte
+                  </Label>
+                  <Select value={reportType} onValueChange={setReportType}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Seleccione un tipo de reporte" />
                     </SelectTrigger>
                     <SelectContent>
-                      {reportTypes.find(rt => rt.value === reportType)?.subTypes?.map((subType) => (
-                        <SelectItem key={subType.value} value={subType.value}>
-                          <div>
-                            <div className="font-medium">{subType.label}</div>
-                            <div className="text-sm text-gray-500">{subType.description}</div>
+                      {reportTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="py-1">
+                            <div className="font-medium text-sm">{type.label}</div>
+                            <div className="text-xs text-gray-500 mt-1">{type.description}</div>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-              
-              <div>
-                <Label htmlFor="startDate">Fecha Inicio</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  disabled={!reportTypes.find(rt => rt.value === reportType)?.requiresDates}
-                />
-              </div>
-              <div>
-                <Label htmlFor="endDate">Fecha Fin</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  disabled={!reportTypes.find(rt => rt.value === reportType)?.requiresDates}
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div>
-                <Label>Tipo de Acción</Label>
-                <Select value={actionType} onValueChange={setActionType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las acciones" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las acciones</SelectItem>
-                    <SelectItem value="Asignación">Asignación</SelectItem>
-                    <SelectItem value="Devolución">Devolución</SelectItem>
-                    <SelectItem value="Cambio de Estado">Cambio de Estado</SelectItem>
-                    <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Categoría de Equipo</Label>
-                <Select value={itemType} onValueChange={setItemType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las categorías" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
-                    <SelectItem value="Computador">Computadores</SelectItem>
-                    <SelectItem value="Dispositivo">Dispositivos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Estado Actual del Equipo</Label>
-                <Select value={estadoEquipo} onValueChange={setEstadoEquipo}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los estados" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value={ESTADOS_EQUIPO.ASIGNADO}>Asignado</SelectItem>
-                    <SelectItem value={ESTADOS_EQUIPO.OPERATIVO}>Operativo</SelectItem>
-                    <SelectItem value={ESTADOS_EQUIPO.EN_MANTENIMIENTO}>En Mantenimiento</SelectItem>
-                    <SelectItem value={ESTADOS_EQUIPO.EN_RESGUARDO}>En Resguardo</SelectItem>
-                    <SelectItem value={ESTADOS_EQUIPO.DE_BAJA}>De Baja</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                {/* Sub-type selector for reports that need it */}
+                {reportTypes.find(rt => rt.value === reportType)?.hasSubTypes && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">Sub-Tipo</Label>
+                    <Select value={subReportType} onValueChange={setSubReportType}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Seleccione un sub-tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {reportTypes.find(rt => rt.value === reportType)?.subTypes?.map((subType) => (
+                          <SelectItem key={subType.value} value={subType.value}>
+                            <div className="py-1">
+                              <div className="font-medium text-sm">{subType.label}</div>
+                              <div className="text-xs text-gray-500 mt-1">{subType.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <Label>Empresa</Label>
-                <DynamicReactSelect
-                  value={selectedEmpresa}
-                  onChange={setSelectedEmpresa}
-                  options={empresas}
-                  styles={reactSelectStyles}
-                  placeholder="Todas las empresas"
-                  isClearable
-                />
-              </div>
-              <div>
-                <Label>Departamento</Label>
-                <DynamicReactSelect
-                  value={selectedDepartamento}
-                  onChange={setSelectedDepartamento}
-                  options={departamentos}
-                  styles={reactSelectStyles}
-                  placeholder="Todos los departamentos"
-                  isClearable
-                />
-              </div>
-              <div>
-                <Label>Empleado</Label>
-                <DynamicReactSelect
-                  value={selectedEmpleado}
-                  onChange={setSelectedEmpleado}
-                  options={empleados}
-                  styles={reactSelectStyles}
-                  placeholder="Todos los empleados"
-                  isClearable
-                />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Fecha Inicio
+                  </Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    disabled={!reportTypes.find(rt => rt.value === reportType)?.requiresDates}
+                    className="h-11"
+                  />
+                </div>
 
-            <div className="flex gap-2">
-              <Button onClick={generateReport} disabled={loading}>
-                {loading ? 'Generando...' : 'Generar Reporte'}
-              </Button>
-              {reportData && (
-                <>
-                  <Button variant="outline" onClick={() => exportReport('pdf')}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Exportar PDF
-                  </Button>
-                  <Button variant="outline" onClick={() => exportReport('excel')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar Excel
-                  </Button>
-                </>
-              )}
-            </div>
-          </CardContent>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Fecha Fin
+                  </Label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    disabled={!reportTypes.find(rt => rt.value === reportType)?.requiresDates}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              {/* Secondary Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Tipo de Acción</Label>
+                  <Select value={actionType} onValueChange={setActionType}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Todas las acciones" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las acciones</SelectItem>
+                      <SelectItem value="Asignación">Asignación</SelectItem>
+                      <SelectItem value="Devolución">Devolución</SelectItem>
+                      <SelectItem value="Cambio de Estado">Cambio de Estado</SelectItem>
+                      <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Categoría de Equipo</Label>
+                  <Select value={itemType} onValueChange={setItemType}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Todas las categorías" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      <SelectItem value="Computador">Computadores</SelectItem>
+                      <SelectItem value="Dispositivo">Dispositivos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700">Estado del Equipo</Label>
+                  <Select value={estadoEquipo} onValueChange={setEstadoEquipo}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Todos los estados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los estados</SelectItem>
+                      <SelectItem value={ESTADOS_EQUIPO.ASIGNADO}>Asignado</SelectItem>
+                      <SelectItem value={ESTADOS_EQUIPO.OPERATIVO}>Operativo</SelectItem>
+                      <SelectItem value={ESTADOS_EQUIPO.EN_MANTENIMIENTO}>En Mantenimiento</SelectItem>
+                      <SelectItem value={ESTADOS_EQUIPO.EN_RESGUARDO}>En Resguardo</SelectItem>
+                      <SelectItem value={ESTADOS_EQUIPO.DE_BAJA}>De Baja</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Búsqueda Rápida
+                  </Label>
+                  <Input
+                    placeholder="Buscar por nombre, serial..."
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              {/* Organization Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Empresa
+                  </Label>
+                  <DynamicReactSelect
+                    value={selectedEmpresa}
+                    onChange={setSelectedEmpresa}
+                    options={empresas}
+                    styles={reactSelectStyles}
+                    placeholder="Todas las empresas"
+                    isClearable
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Departamento
+                  </Label>
+                  <DynamicReactSelect
+                    value={selectedDepartamento}
+                    onChange={setSelectedDepartamento}
+                    options={departamentos}
+                    styles={reactSelectStyles}
+                    placeholder="Todos los departamentos"
+                    isClearable
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Empleado
+                  </Label>
+                  <DynamicReactSelect
+                    value={selectedEmpleado}
+                    onChange={setSelectedEmpleado}
+                    options={empleados}
+                    styles={reactSelectStyles}
+                    placeholder="Todos los empleados"
+                    isClearable
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                <Button
+                  onClick={generateReport}
+                  disabled={loading}
+                  size="lg"
+                  className="shadow-lg"
+                >
+                  {loading ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Generando Reporte...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="h-5 w-5 mr-2" />
+                      Generar Reporte
+                    </>
+                  )}
+                </Button>
+
+                {reportData && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => exportReport('pdf')}
+                      className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => exportReport('excel')}
+                      className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
+                    >
+                      <Download className="h-5 w-5 mr-2" />
+                      Exportar Excel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
-        {/* Resultados */}
+        {/* Results Section */}
         {reportData && (
-          <Tabs defaultValue="data" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="data">Datos</TabsTrigger>
-              <TabsTrigger value="stats">Estadísticas</TabsTrigger>
-            </TabsList>
+          <div className="space-y-6">
+            <Tabs defaultValue="data" className="w-full">
+              <div className="flex items-center justify-between mb-6">
+                <TabsList className="bg-gray-100 p-1">
+                  <TabsTrigger
+                    value="data"
+                    className="data-[state=active]:bg-white data-[state=active]:text-[#167DBA] flex items-center gap-2 px-6 py-3"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Datos del Reporte
+                  </TabsTrigger>
+                    {/* Estadísticas tab removed - showing only data table */}
+                </TabsList>
 
-            <TabsContent value="data">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{reportData.reportTitle || 'Datos del Reporte'}</span>
-                    <Badge variant="outline">
-                      {getDataCount()} registros
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {getTableHeaders().map((header, index) => (
-                            <TableHead key={index}>{header}</TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {getTableRows().map((row: any, index: number) => (
-                          <TableRow key={index}>
-                            {row.map((cell: any, cellIndex: number) => (
-                              <TableCell key={cellIndex} className={cell.className}>
-                                {cell.content}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="stats">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {getStatisticsCards()}
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  Reporte generado exitosamente
+                </div>
               </div>
-            </TabsContent>
-          </Tabs>
+
+              <TabsContent value="data" className="space-y-6">
+                <Card className="shadow-lg border-gray-200 bg-white">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[#167DBA] rounded-lg">
+                          <FileText className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-2xl">{reportData.reportTitle || 'Datos del Reporte'}</CardTitle>
+                          <p className="text-gray-600 mt-1">Vista detallada de todos los registros encontrados</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="px-4 py-2 text-lg font-semibold bg-blue-50 text-blue-700 border-blue-200">
+                        {getDataCount()} registros
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-lg border bg-white overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
+                              {getTableHeaders().map((header, index) => (
+                                <TableHead key={index} className="font-semibold text-gray-700 py-4 px-6">
+                                  {header}
+                                </TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {getTableRows().map((row: any, index: number) => (
+                              <TableRow
+                                key={index}
+                                className="hover:bg-gray-50/50 transition-colors border-b border-gray-100"
+                              >
+                                {row.map((cell: any, cellIndex: number) => (
+                                  <TableCell key={cellIndex} className={`py-4 px-6 ${cell.className || ''}`}>
+                                    {cell.content}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Statistics content removed - reports only show the data table now */}
+            </Tabs>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && !reportData && (
+          <Card className="shadow-lg border-gray-200 bg-white">
+            <CardContent className="p-12">
+              <LoadingSpinner message="Generando reporte..." size="lg" />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Empty State */}
+        {!loading && !reportData && (
+          <Card className="shadow-lg border-gray-200 bg-white">
+            <CardContent className="p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-gray-100 rounded-full">
+                  <BarChart3 className="h-12 w-12 text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay datos para mostrar</h3>
+                  <p className="text-gray-600 mb-6">Configura los filtros y genera un reporte para ver los resultados.</p>
+                  <Button
+                    onClick={generateReport}
+                    className="shadow-lg"
+                  >
+                    <BarChart3 className="h-5 w-5 mr-2" />
+                    Generar Reporte
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

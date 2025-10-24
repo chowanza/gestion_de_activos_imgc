@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label";
 import CreatableSelect from 'react-select/creatable'; // For CreatableSelect
 import { ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, FilterIcon, MoreHorizontalIcon, PlusIcon, XIcon } from "lucide-react"; // Assuming lucide-react for icons
 import { toast as showToast } from "sonner"; // Assuming sonner for toasts
-import TableRowSkeleton from '@/utils/loading';
+import TableRowSkeleton, { LoadingSpinner } from '@/utils/loading';
 import { AlertDialog } from '@radix-ui/react-alert-dialog';
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import Link from 'next/link';
@@ -541,9 +541,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                     <CardTitle className="text-2xl font-bold">Departamentos</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                    <div className="flex items-center justify-center h-32">
-                        <div className="text-muted-foreground">Cargando tabla...</div>
-                    </div>
+                    <LoadingSpinner message="Cargando tabla..." />
                 </CardContent>
             </Card>
         );

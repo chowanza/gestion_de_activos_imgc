@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showToast } from "nextjs-toast-notify";
 import { Monitor, Smartphone, Plus, Search, Loader2 } from "lucide-react";
+import { LoadingSpinner } from "@/utils/loading";
 
 interface Equipo {
   id: string;
@@ -195,10 +196,7 @@ export default function AsignarEquipoUnificadoModal({
               <div className="grid gap-2">
                 <Label htmlFor="equipo">Computador Disponible</Label>
                 {loadingEquipos ? (
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Cargando computadores...</span>
-                  </div>
+                  <LoadingSpinner message="Cargando computadores..." size="md" />
                 ) : (
                   <Select value={equipoId} onValueChange={setEquipoId}>
                     <SelectTrigger className="h-12">
@@ -243,10 +241,7 @@ export default function AsignarEquipoUnificadoModal({
               <div className="grid gap-2">
                 <Label htmlFor="equipo-dispositivo">Dispositivo Disponible</Label>
                 {loadingEquipos ? (
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Cargando dispositivos...</span>
-                  </div>
+                  <LoadingSpinner message="Cargando dispositivos..." size="md" />
                 ) : (
                   <Select value={equipoId} onValueChange={setEquipoId}>
                     <SelectTrigger className="h-12">
@@ -302,10 +297,7 @@ export default function AsignarEquipoUnificadoModal({
           <div className="grid gap-2">
             <Label htmlFor="ubicacion">Ubicación</Label>
             {loadingUbicaciones ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                <span>Cargando ubicaciones...</span>
-              </div>
+              <LoadingSpinner message="Cargando ubicaciones..." size="sm" />
             ) : (
               <Select value={ubicacionId} onValueChange={setUbicacionId}>
                 <SelectTrigger>

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/utils/loading';
 import { 
   Table, 
   TableBody, 
@@ -223,10 +224,7 @@ export default function UbicacionDetailsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Cargando ubicación...</p>
-        </div>
+        <LoadingSpinner message="Cargando ubicación..." size="md" />
       </div>
     );
   }
@@ -262,7 +260,9 @@ export default function UbicacionDetailsPage() {
         if (!computadoresMap.has(computadorId)) {
           computadoresMap.set(computadorId, {
             ...asignacion.computador!,
-            empleado: asignacion.targetEmpleado ? {
+              // Mostrar empleado sólo si la asignación está activa
+              // Mostrar empleado sólo si la asignación está activa Y el equipo está en estado ASIGNADO
+              empleado: (asignacion.activo && asignacion.targetEmpleado && asignacion.computador?.estado === 'ASIGNADO') ? {
               id: asignacion.targetEmpleado.id,
               nombre: asignacion.targetEmpleado.nombre,
               apellido: asignacion.targetEmpleado.apellido,
@@ -272,7 +272,7 @@ export default function UbicacionDetailsPage() {
                   nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
                 }
               }
-            } : undefined
+              } : undefined
           });
         }
       });
@@ -293,7 +293,9 @@ export default function UbicacionDetailsPage() {
         if (!dispositivosMap.has(dispositivoId)) {
           dispositivosMap.set(dispositivoId, {
             ...asignacion.dispositivo!,
-            empleado: asignacion.targetEmpleado ? {
+              // Mostrar empleado sólo si la asignación está activa
+              // Mostrar empleado sólo si la asignación está activa Y el equipo está en estado ASIGNADO
+              empleado: (asignacion.activo && asignacion.targetEmpleado && asignacion.dispositivo?.estado === 'ASIGNADO') ? {
               id: asignacion.targetEmpleado.id,
               nombre: asignacion.targetEmpleado.nombre,
               apellido: asignacion.targetEmpleado.apellido,
@@ -303,7 +305,7 @@ export default function UbicacionDetailsPage() {
                   nombre: asignacion.targetEmpleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
                 }
               }
-            } : undefined
+              } : undefined
           });
         }
       });

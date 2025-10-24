@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Lock, ArrowLeft, CheckCircle } from 'lucide-react';
 import { showToast } from 'nextjs-toast-notify';
+import { LoadingSpinner } from '@/utils/loading';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -96,10 +97,7 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <span className="ml-2">Validando enlace...</span>
-            </div>
+            <LoadingSpinner message="Validando enlace..." />
           </CardContent>
         </Card>
       </div>
@@ -210,7 +208,7 @@ export default function ResetPasswordPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoadingSpinner size="sm" className="mr-2" />
                   Restableciendo...
                 </>
               ) : (

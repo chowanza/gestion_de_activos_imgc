@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showToast } from "nextjs-toast-notify";
+import { LoadingSpinner } from "@/utils/loading";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useRouter } from "next/navigation";
@@ -160,8 +161,7 @@ export default function AdminUsersPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          <span className="ml-2">Cargando usuarios...</span>
+          <LoadingSpinner message="Cargando usuarios..." size="lg" />
         </div>
       </div>
     );
