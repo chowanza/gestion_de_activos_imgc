@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission } from '@/lib/role-middleware';
 
 export async function GET(request: NextRequest) {
   try {
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
     const { searchParams } = new URL(request.url);
     const empleadoId = searchParams.get('empleadoId');

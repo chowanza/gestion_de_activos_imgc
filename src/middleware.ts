@@ -22,7 +22,6 @@ const protectedRoutes = [
 const adminOnlyRoutes = [
   '/usuarios',
   '/modelos',
-  '/departamentos',
   '/user', // Quizás quieras renombrar a /users/ o /gestion-usuarios
 ];
 

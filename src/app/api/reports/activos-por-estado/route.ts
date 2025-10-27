@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 
 export async function GET(request: NextRequest) {
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const { searchParams } = new URL(request.url);
     const estadoEquipo = searchParams.get('estadoEquipo');

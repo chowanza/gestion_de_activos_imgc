@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 // GET /api/cargos - Obtener todos los cargos
 export async function GET(request: NextRequest) {
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const { searchParams } = new URL(request.url);
     const departamentoId = searchParams.get('departamentoId');
@@ -48,6 +51,9 @@ export async function GET(request: NextRequest) {
 // POST /api/cargos - Crear nuevo cargo
 export async function POST(request: NextRequest) {
   try {
+    const deny = await requireAnyPermission(['canCreate','canManageDepartamentos'])(request as any);
+    if (deny) return deny;
+
     const body = await request.json();
     const { nombre, descripcion, departamentoId } = body;
 

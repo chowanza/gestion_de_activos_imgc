@@ -14,6 +14,7 @@ import { showToast } from "nextjs-toast-notify";
 import { LoadingSpinner } from "@/utils/loading";
 import { Plus, Edit, Trash2, Users, Key } from "lucide-react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useSession } from "@/hooks/useSession";
 import { useRouter } from "next/navigation";
 
 interface User {
@@ -34,17 +35,22 @@ export default function GestionDeCuentasPage() {
     username: '',
     email: '',
     password: '',
-    role: 'No-Admin'
+    role: 'user'
   });
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
   const isAdmin = useIsAdmin();
+  const { status: sessionStatus } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAdmin) {
+    // Wait until session is loaded before deciding to redirect.
+    if (sessionStatus === 'loading') return;
+
+    // If session is loaded and user is not admin, redirect them.
+    if (sessionStatus !== 'authenticated' || !isAdmin) {
       router.push('/dashboard');
     }
   }, [isAdmin, router]);
@@ -216,15 +222,15 @@ export default function GestionDeCuentasPage() {
 
         <div className="flex items-center space-x-3">
           <Input placeholder="Buscar usuarios..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v)}>
+                    <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Filtrar por rol" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {roles.map(r => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
+                        {roles.map(r => (
+                          <SelectItem key={r} value={r}>{(r || '').toString().charAt(0).toUpperCase() + (r || '').toString().slice(1)}</SelectItem>
+                        ))}
               </SelectContent>
             </Select>
 
@@ -259,8 +265,8 @@ export default function GestionDeCuentasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="No-Admin">No-Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="user">No-Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -298,7 +304,7 @@ export default function GestionDeCuentasPage() {
                   <TableCell className="font-medium">{user.username}</TableCell>
                   <TableCell>{user.email || 'Sin email'}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>{user.role}</Badge>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{(user.role || '').toString().charAt(0).toUpperCase() + (user.role || '').toString().slice(1)}</Badge>
                   </TableCell>
                   <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-ES') : '-'}</TableCell>
                   <TableCell className="text-right">
@@ -337,14 +343,14 @@ export default function GestionDeCuentasPage() {
               <Input id="edit-email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
             </div>
             <div>
-              <Label htmlFor="edit-role">Rol</Label>
+                  <Label htmlFor="edit-role">Rol</Label>
               <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="No-Admin">No-Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">No-Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>

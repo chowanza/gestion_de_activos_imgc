@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 import { Prisma } from '@prisma/client';
 import { dispositivoSchema } from '@/components/equipos-table';
 
@@ -7,6 +8,10 @@ import { dispositivoSchema } from '@/components/equipos-table';
 
 // --- GET (Obtener un equipo por ID) ---
 export async function GET(request: NextRequest) {
+  // Require view permission for dispositivos
+  const check = await requirePermission('canView')(request);
+  if (check instanceof NextResponse) return check;
+
   const { searchParams } = new URL(request.url);
   const asignado = searchParams.get('asignado');
 
@@ -197,7 +202,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-     await Promise.resolve();
+  await Promise.resolve();
+    // Require permission to manage dispositivos
+    const check = await requirePermission('canManageDispositivos')(request);
+    if (check instanceof NextResponse) return check;
     const id = request.nextUrl.pathname.split('/')[3];
     try {
         const equipoExistente = await prisma.dispositivo.findUnique({ where: { id } });
@@ -314,7 +322,10 @@ export async function PUT(request: NextRequest) {
 
 // --- DELETE (Eliminar un equipo por ID) ---
 export async function DELETE(request: NextRequest) {
-    await Promise.resolve();
+  await Promise.resolve();
+  // Require permission to manage dispositivos
+  const check = await requirePermission('canManageDispositivos')(request);
+  if (check instanceof NextResponse) return check;
     const id = request.nextUrl.pathname.split('/')[3];
     try {
         // 1. Obtener el equipo para saber la ruta de su imagen (si tiene)

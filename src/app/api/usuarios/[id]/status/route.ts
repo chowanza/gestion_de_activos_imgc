@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAnyPermission } from '@/lib/role-middleware';
 export const dynamic = 'force-dynamic';
 import { getServerUser } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require permission to manage users or departments
+    const deny = await requireAnyPermission(['canManageUsers','canManageDepartamentos'])(request as any);
+    if (deny) return deny;
     const id = request.nextUrl.pathname.split('/')[3];
     const body = await request.json();
     const { accion, fecha, motivo } = body; // accion: 'activar' | 'desactivar'

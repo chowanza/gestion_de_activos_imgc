@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +10,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
 
     const departamento = await prisma.departamento.findUnique({
@@ -156,6 +159,8 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const deny = await requireAnyPermission(['canUpdate','canManageDepartamentos','canManageEmpresas'])(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
 
     const { nombre, empresaId, gerenteId } = body;
@@ -364,6 +369,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const deny = await requireAnyPermission(['canDelete','canManageDepartamentos','canManageEmpresas'])(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
 
     // Obtener el departamento antes de eliminarlo para auditoría

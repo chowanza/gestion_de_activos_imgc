@@ -27,8 +27,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is admin
-    if (user.role !== 'Admin') {
+    // Check if user is admin (normalize casing)
+    const role = (user.role || '').toString().toLowerCase();
+    if (role !== 'admin') {
       return NextResponse.json(
         { message: 'Solo los administradores pueden restablecer su contraseña por email' },
         { status: 403 }

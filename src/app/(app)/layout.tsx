@@ -1,6 +1,7 @@
 
 import { ReactNode } from "react";
 import { getSessionUser } from "@/lib/auth-server";
+export const dynamic = 'force-dynamic';
 import AppLayoutClient from "./AppLayoutClient";
 import { redirect } from "next/navigation";
 

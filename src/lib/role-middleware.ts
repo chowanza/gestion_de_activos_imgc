@@ -1,86 +1,10 @@
 // src/lib/role-middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from './prisma';
+import { getServerUser } from './auth-server';
+import { getRolePermissions, RolePermissions, UserRole } from './permissions';
 
-export type UserRole = 'admin' | 'user' | 'viewer' | 'assigner';
-
-export interface RolePermissions {
-  canView: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canAssign: boolean;
-  canManageUsers: boolean;
-  canManageEmpresas: boolean;
-  canManageDepartamentos: boolean;
-  canManageComputadores: boolean;
-  canManageDispositivos: boolean;
-  canManageAsignaciones: boolean;
-  canViewAuditLogs: boolean;
-}
-
-export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
-  admin: {
-    canView: true,
-    canCreate: true,
-    canUpdate: true,
-    canDelete: true,
-    canAssign: true,
-    canManageUsers: true,
-    canManageEmpresas: true,
-    canManageDepartamentos: true,
-    canManageComputadores: true,
-    canManageDispositivos: true,
-    canManageAsignaciones: true,
-    canViewAuditLogs: true,
-  },
-  user: {
-    canView: true,
-    canCreate: true,
-    canUpdate: true,
-    canDelete: true,
-    canAssign: true,
-    canManageUsers: false,
-    canManageEmpresas: false,
-    canManageDepartamentos: true,
-    canManageComputadores: true,
-    canManageDispositivos: true,
-    canManageAsignaciones: true,
-    canViewAuditLogs: false,
-  },
-  viewer: {
-    canView: true,
-    canCreate: false,
-    canUpdate: false,
-    canDelete: false,
-    canAssign: false,
-    canManageUsers: false,
-    canManageEmpresas: false,
-    canManageDepartamentos: false,
-    canManageComputadores: false,
-    canManageDispositivos: false,
-    canManageAsignaciones: false,
-    canViewAuditLogs: false,
-  },
-  assigner: {
-    canView: true,
-    canCreate: false,
-    canUpdate: false,
-    canDelete: false,
-    canAssign: true,
-    canManageUsers: false,
-    canManageEmpresas: false,
-    canManageDepartamentos: false,
-    canManageComputadores: false,
-    canManageDispositivos: false,
-    canManageAsignaciones: true,
-    canViewAuditLogs: false,
-  },
-};
-
-export function getRolePermissions(role: UserRole): RolePermissions {
-  return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.viewer;
-}
+export type { UserRole, RolePermissions };
 
 export function hasPermission(role: UserRole, permission: keyof RolePermissions): boolean {
   const permissions = getRolePermissions(role);
@@ -91,10 +15,15 @@ export function hasPermission(role: UserRole, permission: keyof RolePermissions)
 export function requirePermission(permission: keyof RolePermissions) {
   return async (request: NextRequest, userId?: string) => {
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Usuario no autenticado' },
-        { status: 401 }
-      );
+      // try to extract from request/session
+      const extracted = await getUserIdFromRequest(request);
+      if (!extracted) {
+        return NextResponse.json(
+          { error: 'Usuario no autenticado' },
+          { status: 401 }
+        );
+      }
+      userId = extracted;
     }
 
     try {
@@ -110,7 +39,7 @@ export function requirePermission(permission: keyof RolePermissions) {
         );
       }
 
-      const userRole = user.role as UserRole;
+      const userRole = (user.role as unknown as UserRole) || 'viewer';
       
       if (!hasPermission(userRole, permission)) {
         return NextResponse.json(
@@ -134,10 +63,14 @@ export function requirePermission(permission: keyof RolePermissions) {
 export function requireAnyPermission(permissions: (keyof RolePermissions)[]) {
   return async (request: NextRequest, userId?: string) => {
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Usuario no autenticado' },
-        { status: 401 }
-      );
+      const extracted = await getUserIdFromRequest(request);
+      if (!extracted) {
+        return NextResponse.json(
+          { error: 'Usuario no autenticado' },
+          { status: 401 }
+        );
+      }
+      userId = extracted;
     }
 
     try {
@@ -153,7 +86,7 @@ export function requireAnyPermission(permissions: (keyof RolePermissions)[]) {
         );
       }
 
-      const userRole = user.role as UserRole;
+      const userRole = (user.role as unknown as UserRole) || 'viewer';
       
       const hasAnyPermission = permissions.some(permission => 
         hasPermission(userRole, permission)
@@ -181,10 +114,14 @@ export function requireAnyPermission(permissions: (keyof RolePermissions)[]) {
 export function requireAllPermissions(permissions: (keyof RolePermissions)[]) {
   return async (request: NextRequest, userId?: string) => {
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Usuario no autenticado' },
-        { status: 401 }
-      );
+      const extracted = await getUserIdFromRequest(request);
+      if (!extracted) {
+        return NextResponse.json(
+          { error: 'Usuario no autenticado' },
+          { status: 401 }
+        );
+      }
+      userId = extracted;
     }
 
     try {
@@ -200,7 +137,7 @@ export function requireAllPermissions(permissions: (keyof RolePermissions)[]) {
         );
       }
 
-      const userRole = user.role as UserRole;
+      const userRole = (user.role as unknown as UserRole) || 'viewer';
       
       const hasAllPermissions = permissions.every(permission => 
         hasPermission(userRole, permission)
@@ -226,10 +163,16 @@ export function requireAllPermissions(permissions: (keyof RolePermissions)[]) {
 
 // Helper para obtener el ID del usuario desde el token/sesión
 export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  // Aquí implementarías la lógica para extraer el userId del token JWT
-  // o de la sesión. Por ahora retornamos null como placeholder.
-  // En una implementación real, esto vendría del middleware de autenticación.
-  return null;
+  try {
+    const session = await getServerUser(request as any);
+    if (!session) return null;
+    // session shape may vary: try common fields
+    const id = (session as any).sub || (session as any).id || (session as any).user?.id;
+    return typeof id === 'string' ? id : null;
+  } catch (e) {
+    console.warn('getUserIdFromRequest failed:', e);
+    return null;
+  }
 }
 
 

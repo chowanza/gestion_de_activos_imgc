@@ -23,5 +23,6 @@ export const useSession = () => {
     fetchSession();
   }, []);
 
-  return { data: session, status: loading ? 'loading' : 'authenticated' };
+  const status = loading ? 'loading' : (session ? 'authenticated' : 'unauthenticated');
+  return { data: session, status } as { data: any; status: 'loading' | 'authenticated' | 'unauthenticated' };
 };

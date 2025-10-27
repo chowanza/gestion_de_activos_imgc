@@ -45,6 +45,7 @@ import { useDataRefresh, DATA_REFRESH_EVENTS } from "@/hooks/useDataRefresh";
 import { useRouter } from "next/navigation";
 
 // Types
+import { usePermissions } from '@/hooks/usePermissions';
 export interface Empresa {
   id: string;
   nombre: string;
@@ -87,6 +88,8 @@ export function EmpresasTable() {
   const router = useRouter();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const { hasAnyPermission } = usePermissions();
+  const canManageEmpresas = hasAnyPermission(['canManageEmpresas','canCreate','canUpdate','canDelete']);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -228,6 +231,19 @@ export function EmpresasTable() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleEditEmpresa(empresa)}>
               Editar Empresa
+            {canManageEmpresas && (
+              <>
+                <DropdownMenuItem onClick={() => handleEditEmpresa(empresa)}>
+                  Editar Empresa
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleDeleteEmpresa(empresa)}
+                  className="text-red-600"
+                >
+                  Eliminar Empresa
+                </DropdownMenuItem>
+              </>
+            )}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => handleDeleteEmpresa(empresa)}
@@ -404,10 +420,12 @@ export function EmpresasTable() {
               </DropdownMenu>
             </div>
 
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Agregar Empresa
-            </Button>
+            {canManageEmpresas && (
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Agregar Empresa
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>

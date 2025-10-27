@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
+import { requireAnyPermission } from '@/lib/role-middleware';
 
 export async function POST(request: NextRequest) {
+  // Permission: must be allowed to assign or manage assignments/equipment
+  const deny = await requireAnyPermission(['canAssign','canManageAsignaciones','canManageComputadores','canManageDispositivos'])(request as any);
+  if (deny) return deny;
+
   const user = await getServerUser(request);
 
   try {

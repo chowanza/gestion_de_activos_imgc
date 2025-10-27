@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const { searchParams } = new URL(request.url);
     const ubicacionId = searchParams.get('ubicacionId');
@@ -83,92 +86,137 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Ubicaciones encontradas: ${ubicaciones.length}`);
 
-    // Procesar datos de ubicaciones
+    // Usar la vista vw_ubicacion_actual como fuente de la ubicación actual por equipo.
+    const ubicacionIds = ubicaciones.map(u => u.id);
+
+    // Intentar usar la vista vw_ubicacion_actual como fuente de la ubicación actual por equipo.
+    let vwRows: any[] = [];
+    try {
+      const inClause = ubicacionIds.length > 0 ? `('${ubicacionIds.join("','")}')` : `('')`;
+      vwRows = await prisma.$queryRawUnsafe(`
+        SELECT tipo, equipoId, ubicacionId, date, targetEmpleadoId, asignacionId
+        FROM dbo.vw_ubicacion_actual
+        WHERE ubicacionId IN ${inClause}
+        ORDER BY date DESC
+      `);
+    } catch (vwErr) {
+      console.warn('Advertencia: vw_ubicacion_actual no disponible, usando fallback por última asignación', vwErr);
+      // FALLBACK: recuperar todas las asignaciones y construir latestByEquipo en memoria
+      const allAsigns = await prisma.asignacionesEquipos.findMany({
+        where: { OR: [{ computadorId: { not: null } }, { dispositivoId: { not: null } }] },
+        orderBy: { date: 'desc' },
+        select: { id: true, computadorId: true, dispositivoId: true, ubicacionId: true, date: true, targetEmpleadoId: true, itemType: true }
+      });
+
+      const latestByEquipo = new Map<string, any>();
+      for (const a of allAsigns) {
+        const key = a.computadorId ? `C:${a.computadorId}` : a.dispositivoId ? `D:${a.dispositivoId}` : null;
+        if (!key) continue;
+        if (!latestByEquipo.has(key)) latestByEquipo.set(key, a);
+      }
+
+      // Construir vwRows desde latestByEquipo, pero solo para las ubicaciones solicitadas
+      for (const [key, a] of latestByEquipo) {
+        if (!a.ubicacionId) continue;
+        if (ubicacionIds.length > 0 && !ubicacionIds.includes(a.ubicacionId)) continue;
+        vwRows.push({
+          tipo: a.computadorId ? 'C' : 'D',
+          equipoId: a.computadorId || a.dispositivoId,
+          ubicacionId: a.ubicacionId,
+          date: a.date,
+          targetEmpleadoId: a.targetEmpleadoId,
+          asignacionId: a.id
+        });
+      }
+      // ordenar por date desc
+      vwRows.sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
+    }
+
+    // Agrupar por ubicacionId
+    const rowsByUbicacion = new Map<string, any[]>();
+    for (const r of vwRows) {
+      const uId = r.ubicacionId || 'null';
+      if (!rowsByUbicacion.has(uId)) rowsByUbicacion.set(uId, []);
+      rowsByUbicacion.get(uId)!.push(r);
+    }
+
+    // Batch fetch equipos (computadores y dispositivos) y empleados referenciados
+    const computadorIds = vwRows.filter(r => r.tipo === 'C').map(r => r.equipoId).filter(Boolean);
+    const dispositivoIds = vwRows.filter(r => r.tipo === 'D').map(r => r.equipoId).filter(Boolean);
+    const empleadoIds = Array.from(new Set(vwRows.map(r => r.targetEmpleadoId).filter(Boolean)));
+
+    const [computadores, dispositivos, empleadosData] = await Promise.all([
+      computadorIds.length ? prisma.computador.findMany({ where: { id: { in: computadorIds } }, include: { computadorModelos: { include: { modeloEquipo: { include: { marcaModelos: { include: { marca: true } } } } } } } }) : [],
+      dispositivoIds.length ? prisma.dispositivo.findMany({ where: { id: { in: dispositivoIds } }, include: { dispositivoModelos: { include: { modeloEquipo: { include: { marcaModelos: { include: { marca: true } } } } } } } }) : [],
+      empleadoIds.length ? prisma.empleado.findMany({ where: { id: { in: empleadoIds } }, include: { organizaciones: { where: { activo: true }, include: { empresa: true, departamento: true, cargo: true } } } }) : []
+    ]);
+
+    const computadoresMap = new Map(computadores.map(c => [c.id, c]));
+    const dispositivosMap = new Map(dispositivos.map(d => [d.id, d]));
+    const empleadosMap = new Map(empleadosData.map(e => [e.id, e]));
+
+    // Procesar ubicaciones construyendo equipos a partir de las filas de la vista
     const processedUbicaciones = ubicaciones.map(ubicacion => {
-      const asignaciones = ubicacion.asignacionesEquipos || [];
+      const rows = rowsByUbicacion.get(ubicacion.id) || [];
 
-      // Tomar la asignación más reciente por equipo (evitar duplicados si hay varias asignaciones)
-      const equiposMap = new Map<string, any>();
-      for (const asignacion of asignaciones) {
-        const equipo = asignacion.computador || asignacion.dispositivo;
-        if (!equipo) continue;
-        const equipoId = equipo.id;
-        // Si ya tenemos una entrada para este equipo, la omitimos (las asignaciones vienen ordenadas por date desc)
-        if (equiposMap.has(equipoId)) continue;
+      const equipos = rows.map((r: any) => {
+        const equipo = r.tipo === 'C' ? computadoresMap.get(r.equipoId) : dispositivosMap.get(r.equipoId);
+        const empleado = r.targetEmpleadoId ? empleadosMap.get(r.targetEmpleadoId) : null;
 
-        const tipoEquipo = asignacion.itemType;
-
-        // Obtener información del modelo del equipo
+        // Modelo y marca
         let modeloInfo = 'N/A';
-        if (equipo && 'computadorModelos' in equipo && Array.isArray(equipo.computadorModelos) && equipo.computadorModelos.length > 0 && equipo.computadorModelos[0]?.modeloEquipo) {
-          const modelo = equipo.computadorModelos[0].modeloEquipo;
-          const marca = Array.isArray(modelo.marcaModelos) && modelo.marcaModelos.length > 0 ? modelo.marcaModelos[0].marca : undefined;
-          modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
-        } else if (equipo && 'dispositivoModelos' in equipo && Array.isArray(equipo.dispositivoModelos) && equipo.dispositivoModelos.length > 0 && equipo.dispositivoModelos[0]?.modeloEquipo) {
-          const modelo = equipo.dispositivoModelos[0].modeloEquipo;
-          const marca = Array.isArray(modelo.marcaModelos) && modelo.marcaModelos.length > 0 ? modelo.marcaModelos[0].marca : undefined;
-          modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
+        if (equipo) {
+          const equipoAny: any = equipo;
+          if (r.tipo === 'C' && equipoAny.computadorModelos?.[0]?.modeloEquipo) {
+            const modelo = equipoAny.computadorModelos[0].modeloEquipo;
+            const marca = modelo.marcaModelos?.[0]?.marca;
+            modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
+          }
+          if (r.tipo === 'D' && equipoAny.dispositivoModelos?.[0]?.modeloEquipo) {
+            const modelo = equipoAny.dispositivoModelos[0].modeloEquipo;
+            const marca = modelo.marcaModelos?.[0]?.marca;
+            modeloInfo = marca ? `${marca.nombre} ${modelo.nombre}` : modelo.nombre;
+          }
         }
 
-        // Obtener información del empleado asignado (si corresponde)
-        const organizacion = asignacion.targetEmpleado?.organizaciones?.[0];
-        const departamento = organizacion?.departamento;
-        const empresa = organizacion?.empresa;
-        const cargo = organizacion?.cargo;
+        const estado = equipo?.estado || 'N/A';
 
-        const equipoObj = {
-          id: equipo?.id || 'N/A',
-          tipo: tipoEquipo,
+        const empleadoObj = (estado === 'ASIGNADO' && empleado) ? {
+          nombre: `${empleado.nombre || ''} ${empleado.apellido || ''}`.trim(),
+          cedula: empleado.ced || 'N/A',
+          cargo: empleado.organizaciones?.[0]?.cargo?.nombre || 'Sin cargo',
+          departamento: empleado.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+          empresa: empleado.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa'
+        } : {
+          nombre: 'Sin asignar', cedula: 'N/A', cargo: 'Sin cargo', departamento: 'Sin departamento', empresa: 'Sin empresa'
+        };
+
+        return {
+          id: r.equipoId || 'N/A',
+          tipo: r.tipo === 'C' ? 'Computador' : 'Dispositivo',
           serial: equipo?.serial || 'N/A',
           codigoImgc: equipo?.codigoImgc || 'N/A',
           modelo: modeloInfo,
-          estado: equipo?.estado || 'N/A',
-          fechaAsignacion: asignacion.date,
-          // Si el equipo no está en estado ASIGNADO no mostramos empleado/empresa/departamento
-          empleado: (equipo?.estado === 'ASIGNADO' && asignacion.targetEmpleado) ? {
-            nombre: `${asignacion.targetEmpleado.nombre} ${asignacion.targetEmpleado.apellido}`,
-            cedula: asignacion.targetEmpleado?.ced || 'N/A',
-            cargo: cargo?.nombre || 'Sin cargo',
-            departamento: departamento?.nombre || 'Sin departamento',
-            empresa: empresa?.nombre || 'Sin empresa'
-          } : {
-            nombre: 'Sin asignar',
-            cedula: 'N/A',
-            cargo: 'Sin cargo',
-            departamento: 'Sin departamento',
-            empresa: 'Sin empresa'
-          },
-          motivo: asignacion.motivo || 'Sin motivo especificado'
+          estado,
+          fechaAsignacion: r.date,
+          empleado: empleadoObj,
+          motivo: 'Asignación actual'
         };
-
-        equiposMap.set(equipoId, equipoObj);
-      }
-
-      const equipos = Array.from(equiposMap.values());
+      });
 
       // Aplicar filtro de estado si se especifica
       let equiposFiltrados = equipos;
       if (estadoEquipo) {
-        equiposFiltrados = equipos.filter(equipo => equipo.estado === estadoEquipo);
+        equiposFiltrados = equipos.filter(e => e.estado === estadoEquipo);
       }
 
-      // Calcular estadísticas de la ubicación
       const stats = {
         totalEquipos: equiposFiltrados.length,
         computadores: equiposFiltrados.filter(e => e.tipo === 'Computador').length,
         dispositivos: equiposFiltrados.filter(e => e.tipo === 'Dispositivo').length,
-        porEstado: equiposFiltrados.reduce((acc, equipo) => {
-          acc[equipo.estado] = (acc[equipo.estado] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        porEmpresa: equiposFiltrados.reduce((acc, equipo) => {
-          acc[equipo.empleado.empresa] = (acc[equipo.empleado.empresa] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        porDepartamento: equiposFiltrados.reduce((acc, equipo) => {
-          acc[equipo.empleado.departamento] = (acc[equipo.empleado.departamento] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
+        porEstado: equiposFiltrados.reduce((acc, equipo) => { acc[equipo.estado] = (acc[equipo.estado] || 0) + 1; return acc; }, {} as Record<string, number>),
+        porEmpresa: equiposFiltrados.reduce((acc, equipo) => { acc[equipo.empleado.empresa] = (acc[equipo.empleado.empresa] || 0) + 1; return acc; }, {} as Record<string, number>),
+        porDepartamento: equiposFiltrados.reduce((acc, equipo) => { acc[equipo.empleado.departamento] = (acc[equipo.empleado.departamento] || 0) + 1; return acc; }, {} as Record<string, number>),
         empleadosUnicos: new Set(equiposFiltrados.map(e => e.empleado.cedula)).size
       };
 

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requireAnyPermission } from '@/lib/role-middleware';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require update/manage permissions for equipment status changes
+    const deny = await requireAnyPermission(['canUpdate','canManageComputadores','canManageDispositivos','canManageAsignaciones','canAssign'])(request as any);
+    if (deny) return deny;
     const body = await request.json();
     const { 
       equipmentId, 

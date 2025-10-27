@@ -33,6 +33,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { CatalogoForm } from "@/components/catalogo-form";
+import { usePermissions } from '@/hooks/usePermissions';
 import { TiposEquiposModal } from "@/components/tipos-equipos-modal";
 import { MarcasModal } from "@/components/marcas-modal";
 
@@ -86,6 +87,8 @@ export default function CatalogoPage() {
   const [showMarcasModal, setShowMarcasModal] = useState(false);
   const [editingModelo, setEditingModelo] = useState<ModeloDispositivo | null>(null);
   const [activeTab, setActiveTab] = useState("computadoras");
+  const { hasAnyPermission } = usePermissions();
+  const canManageCatalog = hasAnyPermission(['canCreate','canManageComputadores','canManageDispositivos','canManageEmpresas']);
 
   useEffect(() => {
     fetchData();
@@ -188,18 +191,22 @@ export default function CatalogoPage() {
           <p className="text-gray-600">Gestiona modelos y tipos de equipos</p>
         </div>
         <div className="flex space-x-2">
-          <Button onClick={() => setShowTiposModal(true)} variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Gestionar Tipos
-          </Button>
-          <Button onClick={() => setShowMarcasModal(true)} variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            Gestionar Marcas
-          </Button>
-          <Button onClick={() => setShowModeloForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Modelo
-          </Button>
+          {canManageCatalog && (
+            <>
+              <Button onClick={() => setShowTiposModal(true)} variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Gestionar Tipos
+              </Button>
+              <Button onClick={() => setShowMarcasModal(true)} variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Gestionar Marcas
+              </Button>
+              <Button onClick={() => setShowModeloForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Modelo
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

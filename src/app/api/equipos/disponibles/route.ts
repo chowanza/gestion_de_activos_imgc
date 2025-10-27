@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
+import { requirePermission } from '@/lib/role-middleware';
 
 export async function GET(request: NextRequest) {
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const { searchParams } = new URL(request.url);
     const tipo = searchParams.get('tipo'); // 'computador' o 'dispositivo'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 // GET /api/cargos/[id] - Obtener cargo por ID
 export async function GET(
@@ -9,6 +10,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
 
     const cargo = await prisma.cargo.findUnique({
       where: { id },
@@ -50,6 +53,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const deny = await requireAnyPermission(['canUpdate','canManageDepartamentos'])(request as any);
+    if (deny) return deny;
     const body = await request.json();
     const { nombre, descripcion } = body;
 
@@ -115,6 +120,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const deny = await requireAnyPermission(['canDelete','canManageDepartamentos'])(request as any);
+    if (deny) return deny;
 
     // Verificar si el cargo tiene empleados asignados
     const empleadosCount = await prisma.empleadoEmpresaDepartamentoCargo.count({

@@ -46,6 +46,7 @@ import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDe
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDepartamentoRefresh } from '@/hooks/useDataRefresh';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Zod Schema for form validation
 export const deptoSchema = z.object({
@@ -324,6 +325,8 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
     const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
     const [empleados, setEmpleados] = React.useState<{ id: string; nombre: string; apellido: string; }[]>([]);
     const [isLoading, setLoading] = React.useState(true)
+    const { hasAnyPermission } = usePermissions();
+    const canManageDepartamentos = hasAnyPermission(['canManageDepartamentos','canManageEmpresas','canCreate','canUpdate','canDelete']);
 
 
 
@@ -411,15 +414,19 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                             <DropdownMenuItem onClick={() => handleViewDetails(depto)}>
                                 Ver Detalles
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenEditModal(depto)}>
-                                Editar Departamento
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                    Eliminar Departamento
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
+                            {canManageDepartamentos && (
+                                <>
+                                    <DropdownMenuItem onClick={() => handleOpenEditModal(depto)}>
+                                        Editar Departamento
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            Eliminar Departamento
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <AlertDialogContent>
@@ -500,6 +507,12 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                 fetch('/api/usuarios')
             ]);
 
+            if (departamentosResponse.status === 403) {
+                showToast.error('No tienes permisos para ver los departamentos', { position: 'top-right' });
+                setDepartamentos([]);
+                setLoading(false);
+                return;
+            }
             if (!departamentosResponse.ok) {
                 throw new Error(`Error fetching departamentos: ${departamentosResponse.statusText}`);
             }
@@ -727,10 +740,12 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <Button onClick={() => setIsCreateModalOpen(true)}>
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            Agregar Departamento
-                        </Button>
+                        {canManageDepartamentos && (
+                            <Button onClick={() => setIsCreateModalOpen(true)}>
+                                <PlusIcon className="mr-2 h-4 w-4" />
+                                Agregar Departamento
+                            </Button>
+                        )}
                     </div>
                 </div>
             </CardHeader>

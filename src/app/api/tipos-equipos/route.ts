@@ -3,11 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requireAnyPermission } from '@/lib/role-middleware';
+import { requirePermission } from '@/lib/role-middleware';
 
 // Obtener todos los tipos únicos de equipos
 export async function GET(request: NextRequest) {
   try {
     const user = await getServerUser(request);
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
     
     // Obtener todos los tipos únicos de los modelos de equipos
     const tipos = await prisma.modeloEquipo.findMany({
@@ -34,6 +38,10 @@ export async function GET(request: NextRequest) {
 // Agregar un nuevo tipo de equipo (actualizando un modelo existente o creando uno nuevo)
 export async function POST(request: NextRequest) {
   try {
+    // Require create or manage equipment permissions to add tipos
+    const deny = await requireAnyPermission(['canCreate','canManageComputadores','canManageDispositivos'])(request as any);
+    if (deny) return deny;
+
     const user = await getServerUser(request);
     const body = await request.json();
     const { tipo } = body;

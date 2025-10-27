@@ -50,6 +50,13 @@ export function useAuditLogger() {
         const routeName = routeNames[pathname] || pathname;
         
         // Usar el nuevo sistema de logging
+        // Only attempt to log if the user has audit logging permission
+        const perms: string[] = Array.isArray((user as any).permissions) ? (user as any).permissions : [];
+        if (!perms.includes('canViewAuditLogs') && !perms.includes('*')) {
+          // user is not allowed to create audit logs; skip
+          return;
+        }
+
         const response = await fetch('/api/historial-movimientos', {
           method: 'POST',
           headers: {
@@ -66,7 +73,7 @@ export function useAuditLogger() {
               timestamp: new Date().toISOString(),
               tipo: 'navegacion'
             },
-            usuarioId: user.id,
+            usuarioId: (user as any).id || (user as any).sub,
             ipAddress: '127.0.0.1',
             userAgent: navigator.userAgent,
           }),

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { requirePermission } from '@/lib/role-middleware';
 
 // Helper function to format date to dd/mm/yy
 function formatDateToDDMMYY(dateString: string): string {
@@ -17,6 +18,9 @@ function formatDateToDDMMYY(dateString: string): string {
 export async function GET(request: NextRequest) {
   try {
     await Promise.resolve();
+    // Permission: any user with view permission can read empleado
+    const auth = await requirePermission('canView')(request as any);
+    if (auth instanceof NextResponse) return auth;
     const id = request.nextUrl.pathname.split('/')[3];
     const empleado = await prisma.empleado.findUnique({
       where: {
@@ -96,8 +100,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-    await Promise.resolve();
-    const id = request.nextUrl.pathname.split('/')[3];
+  await Promise.resolve();
+  const id = request.nextUrl.pathname.split('/')[3];
+  // Require permission to manage users to update empleados
+  const auth = await requirePermission('canManageUsers')(request as any);
+  if (auth instanceof NextResponse) return auth;
     try {
         const body = await request.json();
 
@@ -359,6 +366,9 @@ export async function DELETE(request: NextRequest) {
   try {
     await Promise.resolve();
     const id = request.nextUrl.pathname.split('/')[3];
+    // Require permission to manage users to delete empleados
+    const auth = await requirePermission('canManageUsers')(request as any);
+    if (auth instanceof NextResponse) return auth;
     
     // Verificar si el empleado existe
     const empleado = await prisma.empleado.findUnique({

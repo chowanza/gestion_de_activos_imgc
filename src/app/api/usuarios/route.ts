@@ -5,6 +5,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 // Helper function to format date to dd/mm/yy
 function formatDateToDDMMYY(dateString: string): string {
@@ -24,6 +25,10 @@ function parseDDMMYYToISO(dateString: string): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // Require view permission
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
+
     // Obtener usuario de la sesión para auditoría
     const user = await getServerUser(request);
     
@@ -129,6 +134,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require create/manage permissions to create empleados
+    const deny = await requireAnyPermission(['canCreate','canManageDepartamentos','canManageUsers'])(request as any);
+    if (deny) return deny;
+
     // Support both JSON and FormData (file upload for fotoPerfil)
     const contentType = request.headers.get('content-type') || '';
     let body: any = {};
@@ -189,14 +198,33 @@ export async function POST(request: NextRequest) {
       return dateString;
     };
     
+    // Ensure fotoPerfil is either a string (URL/path) or null. If frontend sent an object
+    // (e.g. empty object or placeholder), try to extract a plausible string property
+    // or fall back to null. This prevents Prisma validation errors when an object
+    // is provided where a String | Null is expected.
+    let incomingFoto: string | null = null;
+    if (savedFotoPerfil) {
+      incomingFoto = savedFotoPerfil;
+    } else if (typeof fotoPerfil === 'string') {
+      incomingFoto = fotoPerfil || null;
+    } else if (fotoPerfil && typeof fotoPerfil === 'object') {
+      // Try common fields where a frontend might place the URL/path
+      // e.g. { url: '/api/uploads/...'}, { path: '/uploads/...'}, { filename: '...' }
+      // If none found, treat as null.
+      const candidate = (fotoPerfil as any).url || (fotoPerfil as any).path || (fotoPerfil as any).filename || null;
+      incomingFoto = typeof candidate === 'string' ? candidate : null;
+    } else {
+      incomingFoto = null;
+    }
+
     const processedData = {
       ...otherFields,
       // Procesar fechas para evitar problemas de zona horaria
       fechaNacimiento: processDate(fechaNacimiento),
       fechaIngreso: processDate(fechaIngreso),
       fechaDesincorporacion: processDate(fechaDesincorporacion),
-      // Prefer uploaded file URL if present, otherwise use provided fotoPerfil string or null
-      fotoPerfil: savedFotoPerfil ?? (fotoPerfil || null),
+      // Ensure fotoPerfil is a string or null
+      fotoPerfil: incomingFoto,
     };
 
 

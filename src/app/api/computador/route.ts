@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server';
 import  prisma  from '@/lib/prisma';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 export async function GET(request: Request) {
+  // Viewing computadores requires canView
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
+
 
   const { searchParams } = new URL(request.url);
   const asignado = searchParams.get('asignado'); // 'true' o 'false'
@@ -123,6 +128,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Require permission to create/manage computadores
+    const deny = await requireAnyPermission(['canCreate','canManageComputadores'])(request as any);
+    if (deny) return deny;
+
     const body = await request.json();
     const { modeloId, motivoCreacion, notasCreacion, ...computadorData } = body;
     

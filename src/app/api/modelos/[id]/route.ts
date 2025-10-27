@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 import { writeFile, mkdir, stat, unlink } from 'fs/promises'; // Añadimos unlink
 import path from 'path';
 
@@ -46,6 +47,8 @@ async function deletePreviousImage(imagePath: string | null | undefined) {
 
 export async function GET(request: NextRequest) {
   await Promise.resolve();
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   const id = request.nextUrl.pathname.split('/')[3];
 
   try {
@@ -72,6 +75,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   await Promise.resolve();
   const id = request.nextUrl.pathname.split('/')[3];
+  const deny = await requireAnyPermission(['canUpdate','canManageComputadores','canManageDispositivos','canManageEmpresas'])(request as any);
+  if (deny) return deny;
   try {
     // 1. Buscar el modelo existente
     const existingModelo = await prisma.modeloEquipo.findUnique({
@@ -165,6 +170,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   await Promise.resolve();
   const id = request.nextUrl.pathname.split('/')[3];
+  const deny = await requirePermission('canDelete')(request as any);
+  if (deny) return deny;
 
   try {
     // Fetch the modelo to get the image URL

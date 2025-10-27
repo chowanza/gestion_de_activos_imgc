@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const user = await getServerUser(request);
     const { id } = await params;
@@ -46,6 +49,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const deny = await requireAnyPermission(['canUpdate','canManageEmpresas','canManageComputadores','canManageDispositivos'])(request as any);
+  if (deny) return deny;
   try {
     const user = await getServerUser(request);
     const { id } = await params;
@@ -123,6 +128,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const deny = await requireAnyPermission(['canDelete','canManageEmpresas'])(request as any);
+  if (deny) return deny;
   try {
     const user = await getServerUser(request);
     const { id } = await params;

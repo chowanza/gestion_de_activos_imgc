@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/auth-server";
+import { requirePermission } from '@/lib/role-middleware';
 
 export async function GET(request: NextRequest) {
   try {
+    // Require audit log viewing permission
+    const deny = await requirePermission('canViewAuditLogs')(request as any);
+    if (deny) return deny;
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 
 // GET /api/historial-movimientos - Obtener historial de movimientos
 export async function GET(request: NextRequest) {
+  // Only users with audit view permission can read movement history
+  const deny = await requirePermission('canViewAuditLogs')(request as any);
+  if (deny) return deny;
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -69,6 +73,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/historial-movimientos - Crear nuevo movimiento (para uso interno)
 export async function POST(request: NextRequest) {
+  // Creating movement entries should be limited to audit-capable users
+  const deny = await requirePermission('canViewAuditLogs')(request as any);
+  if (deny) return deny;
   try {
     const body = await request.json();
     const { 

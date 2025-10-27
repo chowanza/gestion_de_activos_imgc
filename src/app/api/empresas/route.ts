@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 import { AuditLogger } from '@/lib/auditLogger';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Require view permission to list empresas
+    const check = await requirePermission('canView')(request);
+    if (check instanceof NextResponse) return check;
+
     const empresas = await prisma.empresa.findMany({
       include: {
         empresaDepartamentos: {
@@ -45,6 +50,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require permission to manage empresas
+    const check = await requirePermission('canManageEmpresas')(request);
+    if (check instanceof NextResponse) return check;
+
     // Detectar si es FormData o JSON
     const contentType = request.headers.get('content-type') || '';
     let nombre: string;

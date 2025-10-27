@@ -1,6 +1,7 @@
 // src/lib/auth-server.ts
 import { NextRequest } from 'next/server';
 import { decrypt } from './auth';
+import { permissionsArrayFromRole, getRolePermissions } from './permissions';
 
 export async function getServerUser(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function getServerUser(request: NextRequest) {
 
     const session = await decrypt(cookie.value);
 
-    // DEV OVERRIDE: if environment variable DEV_SUPERADMIN_USERNAME or DEV_SUPERADMIN_EMAIL
+  // DEV OVERRIDE: if environment variable DEV_SUPERADMIN_USERNAME or DEV_SUPERADMIN_EMAIL
     // is set, force this session to have Admin privileges for development user matching that identifier.
     try {
       const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
@@ -33,6 +34,24 @@ export async function getServerUser(request: NextRequest) {
     } catch (e) {
       // Non-fatal: don't break session retrieval if env var handling fails
       console.warn('DEV_SUPERADMIN override check failed:', e);
+    }
+
+    try {
+      // Ensure session.role is normalized to lower-case string
+      const role = (session as any)?.role;
+      if (role && typeof role === 'string') {
+        (session as any).role = role.toString().toLowerCase();
+      }
+
+      // If session already has explicit wildcard permissions keep them
+      if ((session as any)?.permissions && Array.isArray((session as any).permissions)) {
+        // nothing to do
+      } else {
+        // Attach computed permissions array (list of permission keys granted)
+        (session as any).permissions = permissionsArrayFromRole((session as any)?.role);
+      }
+    } catch (e) {
+      console.warn('Error computing session permissions:', e);
     }
 
     return session;

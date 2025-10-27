@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 import path from 'path';
 import { promises as fs } from 'fs';
 
 export async function POST(request: Request) {
+  // Permission: only users with create/manage catalog rights
+  const deny = await requireAnyPermission(['canCreate','canManageComputadores','canManageDispositivos','canManageEmpresas'])(request as any);
+  if (deny) return deny;
     try {
         const formData = await request.formData();
         const nombre = formData.get('nombre') as string;
@@ -59,7 +63,10 @@ export async function POST(request: Request) {
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Permission: viewing modelos
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
   try {
     const modelos = await prisma.modeloEquipo.findMany({
       include: {

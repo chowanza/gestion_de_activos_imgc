@@ -3,9 +3,14 @@ import prisma from '@/lib/prisma'
 import path from 'path';
 import { stat, mkdir, writeFile } from 'fs/promises';
 import { Prisma } from '@prisma/client';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 
 export async function GET(request: Request) {
+
+  // Require view permission
+  const deny = await requirePermission('canView')(request as any);
+  if (deny) return deny;
 
   const { searchParams } = new URL(request.url);
   const asignado = searchParams.get('asignado');
@@ -124,6 +129,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Require permission to create/manage dispositivos
+    const deny = await requireAnyPermission(['canCreate','canManageDispositivos'])(request as any);
+    if (deny) return deny;
+    
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
     const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;

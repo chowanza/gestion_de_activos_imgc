@@ -35,6 +35,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { LoadingSpinner } from '@/utils/loading';
+import { usePermissions } from '@/hooks/usePermissions';
 import { UbicacionForm } from '@/components/ubicacion-form';
 import { useRouter } from 'next/navigation';
 
@@ -68,12 +69,22 @@ export default function UbicacionesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUbicacion, setEditingUbicacion] = useState<Ubicacion | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Removido equiposCounts - ahora se calcula directamente de los datos
   const router = useRouter();
 
   const fetchUbicaciones = async () => {
     try {
       const response = await fetch('/api/ubicaciones');
+      if (response.status === 403) {
+        // Permission denied — show message but don't redirect
+        setUbicaciones([]);
+        setLoading(false);
+        setShowForm(false);
+        setErrorMessage('No tienes permisos para ver las ubicaciones.');
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setUbicaciones(data);
@@ -88,6 +99,9 @@ export default function UbicacionesPage() {
   useEffect(() => {
     fetchUbicaciones();
   }, []);
+
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  const canManage = hasAnyPermission(['canCreate','canManageDepartamentos']);
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de que quieres eliminar la ubicación "${nombre}"?`)) {
@@ -165,6 +179,17 @@ export default function UbicacionesPage() {
     );
   }
 
+  if (errorMessage) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold">Acceso denegado</h3>
+          <p className="text-sm text-muted-foreground">{errorMessage}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -180,10 +205,12 @@ export default function UbicacionesPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Ubicación
-        </Button>
+        {canManage && (
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Ubicación
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -315,18 +342,22 @@ export default function UbicacionesPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             Ver Detalles
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(ubicacion)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
+                          {canManage && (
+                            <DropdownMenuItem onClick={() => handleEdit(ubicacion)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(ubicacion.id, ubicacion.nombre)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar
-                          </DropdownMenuItem>
+                          {canManage && (
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(ubicacion.id, ubicacion.nombre)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/auditLogger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission } from '@/lib/role-middleware';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
@@ -11,6 +12,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Require view permission for empresa details
+  const checkView = await requirePermission('canView')(request);
+  if (checkView instanceof NextResponse) return checkView;
+
   try {
     const { id } = await params;
     const empresa = await prisma.empresa.findUnique({
@@ -127,6 +132,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require permission to manage empresas
+    const check = await requirePermission('canManageEmpresas')(request);
+    if (check instanceof NextResponse) return check;
+
     const { id } = await params;
     
     // Detectar si es FormData o JSON
@@ -269,6 +278,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require permission to manage empresas
+    const check = await requirePermission('canManageEmpresas')(request);
+    if (check instanceof NextResponse) return check;
+
     const { id } = await params;
     // Verificar que la empresa existe
     const existingEmpresa = await prisma.empresa.findUnique({

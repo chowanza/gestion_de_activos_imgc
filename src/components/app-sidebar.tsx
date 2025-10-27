@@ -30,10 +30,10 @@ const navData = {
     { title: "Catálogo", url: "/catalogo", icon: Tag },
     { title: "Equipos", url: "/equipos", icon: Cpu },
     { title: "Reportes", url: "/reportes", icon: BarChart3 },
-    { title: "Historial", url: "/historial", icon: History },
   ],
   navAdmin: [
-    { title: "Gestión de Cuentas", url: "/gestion-de-cuentas", icon: UsersIcon },
+    { title: "Gestión de Cuentas", url: "/gestion-de-cuentas", icon: Key },
+    { title: "Historial", url: "/historial", icon: History },
   ],
 };
 
@@ -119,15 +119,19 @@ useEffect(() => {
           </SidebarHeader>
           <SidebarContent className="bg-[#000000] px-4 py-2">
             <NavMain items={filteredNavMain} />
-            {filteredNavAdmin.length > 0 && (
-              <>
-                <div className="h-px bg-gray-700 my-2" />
-                <NavMain items={filteredNavAdmin} />
-              </>
-            )}
           </SidebarContent>
-          <SidebarFooter className="bg-[#000000] px-8 py-10">
-            <NavUser user={userData} />
+          <SidebarFooter className="bg-[#000000] px-4 py-6">
+            {filteredNavAdmin.length > 0 && (
+              <div className="mb-4">
+                <div className="h-px bg-gray-700 my-2" />
+                <div className="flex flex-col items-stretch">
+                  <NavMain items={filteredNavAdmin} />
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-center">
+              <NavUser user={userData} />
+            </div>
           </SidebarFooter>
         </>
       ) : (
@@ -145,15 +149,17 @@ useEffect(() => {
           </SidebarHeader>
           <SidebarContent className="bg-[#000000] px-6 py-10">
             <NavMain items={filteredNavMain}/>
+          </SidebarContent>
+          <SidebarFooter className="bg-[#000000] px-6 py-4 flex flex-col items-stretch">
             {filteredNavAdmin.length > 0 && (
-              <>
+              <div className="mb-4">
                 <div className="h-px bg-gray-700 my-2" />
                 <NavMain items={filteredNavAdmin} />
-              </>
+              </div>
             )}
-          </SidebarContent>
-          <SidebarFooter className="bg-[#000000] px-2 py-4">
-            <NavUser user={userData} />
+            <div className="flex items-center justify-center">
+              <NavUser user={userData} />
+            </div>
           </SidebarFooter>
         </>
       )}

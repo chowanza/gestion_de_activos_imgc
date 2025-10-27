@@ -4,8 +4,13 @@ import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 import { TODOS_ESTADOS, esEstadoValido, requiereEmpleado } from '@/lib/estados-equipo';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
+import { requireAnyPermission } from '@/lib/role-middleware';
 
 export async function POST(request: NextRequest) {
+  // Permission: must have update/manage equipment or assignment rights
+  const deny = await requireAnyPermission(['canUpdate','canManageComputadores','canManageDispositivos','canManageAsignaciones','canAssign'])(request as any);
+  if (deny) return deny;
+
   const user = await getServerUser(request);
 
   try {

@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma  from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
     // Buscar empleados con alguna organización cuyo cargo contenga 'gerente'
     const gerentes = await prisma.empleado.findMany({
       where: {

@@ -101,144 +101,111 @@ function formatTimeAgo(date: Date) {
 async function getEmpresaStats(empresas: any[]) {
   try {
     const empresaStats = await Promise.all(empresas.map(async (empresa) => {
-      // Contar empleados activos por empresa
-      const empleadosCount = await prisma.empleado.count({
+      // Count unique equipos assigned to empleados of this empresa using asignacionesEquipos
+      const asignaciones = await prisma.asignacionesEquipos.findMany({
         where: {
-          fechaDesincorporacion: null,
-          organizaciones: {
-            some: {
-              activo: true,
-              departamento: {
-                empresaDepartamentos: {
-                  some: {
-                    empresaId: empresa.id
-                  }
-                }
+          activo: true,
+          targetEmpleado: {
+            organizaciones: {
+              some: {
+                activo: true,
+                empresaId: empresa.id
               }
-            }
-          }
-        }
-      });
-
-      // Contar computadores asignados a empleados de esta empresa
-      const computadoresCount = await prisma.computador.count({
-        where: {
-          estado: 'ASIGNADO',
-          asignaciones: {
-            some: {
-              activo: true,
-              targetEmpleado: {
-                fechaDesincorporacion: null,
-                organizaciones: {
-                  some: {
-                    activo: true,
-                    departamento: {
-                      empresaDepartamentos: {
-                        some: {
-                          empresaId: empresa.id
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      // Contar dispositivos asignados a empleados de esta empresa
-      const dispositivosCount = await prisma.dispositivo.count({
-        where: {
-          estado: 'ASIGNADO',
-          asignaciones: {
-            some: {
-              activo: true,
-              targetEmpleado: {
-                fechaDesincorporacion: null,
-                organizaciones: {
-                  some: {
-                    activo: true,
-                    departamento: {
-                      empresaDepartamentos: {
-                        some: {
-                          empresaId: empresa.id
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      // Obtener departamentos de esta empresa con sus estadísticas
-      const departamentos = await prisma.departamento.findMany({
-        where: {
-          empresaDepartamentos: {
-            some: {
-              empresaId: empresa.id
             }
           }
         },
-        include: {
-          empleadoOrganizaciones: {
-            where: {
-              activo: true
-            },
-            include: {
-              empleado: {
-                include: {
-                  asignacionesComoTarget: {
-                    where: {
-                      activo: true
-                    },
-                    include: {
-                      computador: true,
-                      dispositivo: true
-                    }
-                  }
-                }
-              }
+        select: {
+          computadorId: true,
+          dispositivoId: true,
+          targetEmpleadoId: true,
+          id: true,
+          ubicacionId: true
+        }
+      });
+
+      const computadoresSet = new Set<string>();
+      const dispositivosSet = new Set<string>();
+      const empleadosSet = new Set<string>();
+
+      asignaciones.forEach(a => {
+        if (a.computadorId) computadoresSet.add(a.computadorId);
+        if (a.dispositivoId) dispositivosSet.add(a.dispositivoId);
+        if (a.targetEmpleadoId) empleadosSet.add(a.targetEmpleadoId);
+      });
+
+      const computadoresCount = computadoresSet.size;
+      const dispositivosCount = dispositivosSet.size;
+
+      // Count empleados (active organizational assignments)
+      const empleadosCount = await prisma.empleado.count({
+        where: {
+          organizaciones: {
+            some: {
+              activo: true,
+              empresaId: empresa.id
             }
           }
         }
       });
 
-      // Calcular estadísticas por departamento
-      const departamentosStats = departamentos.map(dept => {
-        const empleadosActivos = dept.empleadoOrganizaciones.length;
-        
-        let computadoresAsignados = 0;
-        let dispositivosAsignados = 0;
-        
-        dept.empleadoOrganizaciones.forEach(org => {
-          if (org.empleado.fechaDesincorporacion === null) {
-            org.empleado.asignacionesComoTarget.forEach(asig => {
-              if (asig.activo) {
-                if (asig.computador) computadoresAsignados++;
-                if (asig.dispositivo) dispositivosAsignados++;
+      // Departments belonging to this company
+      const departamentos = await prisma.departamento.findMany({
+        where: {
+          empresaDepartamentos: {
+            some: { empresaId: empresa.id }
+          }
+        }
+      });
+
+      // For each department compute unique assigned equipos using asignacionesEquipos
+      const departamentosStats = await Promise.all(departamentos.map(async (dept) => {
+        const deptAsigns = await prisma.asignacionesEquipos.findMany({
+          where: {
+            activo: true,
+            targetEmpleado: {
+              organizaciones: {
+                some: {
+                  activo: true,
+                  empresaId: empresa.id,
+                  departamentoId: dept.id
+                }
               }
-            });
+            }
+          },
+          select: { computadorId: true, dispositivoId: true }
+        });
+
+        const deptComputadores = new Set<string>();
+        const deptDispositivos = new Set<string>();
+        deptAsigns.forEach(a => {
+          if (a.computadorId) deptComputadores.add(a.computadorId);
+          if (a.dispositivoId) deptDispositivos.add(a.dispositivoId);
+        });
+
+        const empleadosActivos = await prisma.empleado.count({
+          where: {
+            organizaciones: {
+              some: {
+                activo: true,
+                departamentoId: dept.id,
+                empresaId: empresa.id
+              }
+            }
           }
         });
 
-        const totalEquipos = computadoresAsignados + dispositivosAsignados;
+        const totalEquipos = deptComputadores.size + deptDispositivos.size;
         const totalEmpresa = computadoresCount + dispositivosCount;
-        const porcentaje = totalEmpresa > 0 
-          ? parseFloat(((totalEquipos / totalEmpresa) * 100).toFixed(1))
-          : 0;
+        const porcentaje = totalEmpresa > 0 ? parseFloat(((totalEquipos / totalEmpresa) * 100).toFixed(1)) : 0;
 
         return {
           name: dept.nombre,
-          computers: computadoresAsignados,
-          devices: dispositivosAsignados,
+          computers: deptComputadores.size,
+          devices: deptDispositivos.size,
           users: empleadosActivos,
           percentage: porcentaje
         };
-      });
+      }));
 
       return {
         id: empresa.id,
@@ -269,38 +236,60 @@ async function getEmpresaStats(empresas: any[]) {
 // Función para obtener estadísticas de ubicaciones
 async function getUbicacionStats(ubicaciones: any[]) {
   try {
+    // Usar la vista vw_ubicacion_actual para contar la ubicación actual por equipo.
     const ubicacionStats = await Promise.all(ubicaciones.map(async (ubicacion) => {
-      // Contar TODOS los computadores en esta ubicación (no solo ASIGNADO)
-      const computadoresCount = await prisma.computador.count({
-        where: {
-          asignaciones: {
-            some: {
-              activo: true,
-              ubicacionId: ubicacion.id
+      try {
+        const counts: any = await prisma.$queryRawUnsafe(`
+          SELECT
+            SUM(CASE WHEN tipo = 'C' THEN 1 ELSE 0 END) AS computadores,
+            SUM(CASE WHEN tipo = 'D' THEN 1 ELSE 0 END) AS dispositivos
+          FROM dbo.vw_ubicacion_actual v
+          WHERE v.ubicacionId = '${ubicacion.id}'
+        `);
+
+        const computadores = (counts && counts[0] && counts[0].computadores) ? parseInt(counts[0].computadores) : 0;
+        const dispositivos = (counts && counts[0] && counts[0].dispositivos) ? parseInt(counts[0].dispositivos) : 0;
+
+        return {
+          id: ubicacion.id,
+          name: ubicacion.nombre,
+          computers: computadores,
+          devices: dispositivos,
+          total: computadores + dispositivos
+        };
+      } catch (err) {
+        // Si la vista no existe, reconstruimos la lógica: tomar la última asignación por equipo
+        console.warn('Advertencia: imposible usar vw_ubicacion_actual para', ubicacion.id, '- aplicando fallback a última asignación por equipo', err);
+        try {
+          // Obtener todas las asignaciones con ubicacion (podemos limitar a aquellas con ubicacion no nula)
+          const allAsigns = await prisma.asignacionesEquipos.findMany({
+            where: { OR: [{ computadorId: { not: null } }, { dispositivoId: { not: null } }] },
+            orderBy: { date: 'desc' },
+            select: { id: true, computadorId: true, dispositivoId: true, ubicacionId: true }
+          });
+
+          const latestMap = new Map<string, any>();
+          for (const a of allAsigns) {
+            const key = a.computadorId ? `C:${a.computadorId}` : a.dispositivoId ? `D:${a.dispositivoId}` : null;
+            if (!key) continue;
+            if (!latestMap.has(key)) latestMap.set(key, a);
+          }
+
+          let computadores = 0;
+          let dispositivos = 0;
+          for (const [, a] of latestMap) {
+            if (a.ubicacionId === ubicacion.id) {
+              if (a.computadorId) computadores++;
+              if (a.dispositivoId) dispositivos++;
             }
           }
-        }
-      });
 
-      // Contar TODOS los dispositivos en esta ubicación (no solo ASIGNADO)
-      const dispositivosCount = await prisma.dispositivo.count({
-        where: {
-          asignaciones: {
-            some: {
-              activo: true,
-              ubicacionId: ubicacion.id
-            }
-          }
+          return { id: ubicacion.id, name: ubicacion.nombre, computers: computadores, devices: dispositivos, total: computadores + dispositivos };
+        } catch (err2) {
+          console.error('Error en fallback contando asignaciones para', ubicacion.id, err2);
+          return { id: ubicacion.id, name: ubicacion.nombre, computers: 0, devices: 0, total: 0 };
         }
-      });
-
-      return {
-        id: ubicacion.id,
-        name: ubicacion.nombre,
-        computers: computadoresCount,
-        devices: dispositivosCount,
-        total: computadoresCount + dispositivosCount
-      };
+      }
     }));
 
     return ubicacionStats;

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 import { getServerUser } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser(request);
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
     
     const departamentos = await prisma.departamento.findMany({
       include: {
@@ -50,8 +52,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const user = await getServerUser(request);
+    // Only users who can manage departments or empresas may create departamentos
+  const deny = await requireAnyPermission(['canManageDepartamentos','canManageEmpresas'])(request as any);
+  if (deny) return deny;
+
+  const body = await request.json();
+  const user = await getServerUser(request);
     console.log("Cuerpo parseado:", body);
     console.log("Usuario autenticado:", user ? user.username : "No autenticado");
 

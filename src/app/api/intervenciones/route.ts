@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
 import { getServerUser } from '@/lib/auth-server';
+import { requireAnyPermission, requirePermission } from '@/lib/role-middleware';
 import { AuditLogger } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require create or manage equipment permissions to log interventions
+    const deny = await requireAnyPermission(['canCreate','canManageComputadores','canManageDispositivos'])(request as any);
+    if (deny) return deny;
+
     const user = await getServerUser(request);
     if (!user) {
       return NextResponse.json(
@@ -105,6 +110,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
+
     const user = await getServerUser(request);
     if (!user) {
       return NextResponse.json(

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 import { randomBytes } from 'crypto';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest) {
   try {
-    const { id } = params;
+    // Only users with manage-users permission can create password reset tokens for others
+    const deny = await requirePermission('canManageUsers')(request as any);
+    if (deny) return deny;
+    const id = request.nextUrl.pathname.split('/')[3];
 
     // Check user exists
     const user = await prisma.user.findUnique({ where: { id } });

@@ -3,7 +3,7 @@
 
 import { useSession } from './useSession';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'viewer' | 'assigner';
 
 export interface RolePermissions {
   canView: boolean;
@@ -49,13 +49,62 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageAsignaciones: false,
     canViewAuditLogs: false,
   },
+  viewer: {
+    canView: true,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canAssign: false,
+    canManageUsers: false,
+    canManageEmpresas: false,
+    canManageDepartamentos: false,
+    canManageComputadores: false,
+    canManageDispositivos: false,
+    canManageAsignaciones: false,
+    canViewAuditLogs: false,
+  },
+  assigner: {
+    canView: true,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canAssign: true,
+    canManageUsers: false,
+    canManageEmpresas: false,
+    canManageDepartamentos: false,
+    canManageComputadores: false,
+    canManageDispositivos: false,
+    canManageAsignaciones: true,
+    canViewAuditLogs: false,
+  },
 };
 
 export function usePermissions() {
   const { data: user } = useSession();
   
-  const userRole = (user?.role as UserRole) || 'viewer';
-  const permissions = ROLE_PERMISSIONS[userRole];
+  // If server provides an explicit permissions array (preferred), use it to build the permissions object.
+  let permissions: RolePermissions;
+
+  if (Array.isArray(user?.permissions)) {
+    const provided: string[] = user.permissions as string[];
+    // wildcard
+    if (provided.includes('*')) {
+      permissions = ROLE_PERMISSIONS.admin;
+    } else {
+      // build from keys
+      const base = { ...ROLE_PERMISSIONS.viewer } as any;
+      (Object.keys(base) as Array<keyof RolePermissions>).forEach(k => {
+        base[k] = provided.includes(k.toString());
+      });
+      permissions = base as RolePermissions;
+    }
+  } else {
+    const userRole = (user?.role as UserRole) || 'viewer';
+    permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.viewer;
+  }
+
+  // determine userRole value for convenience in consumers
+  const userRole = (user?.role as UserRole) || (Array.isArray(user?.permissions) && (user.permissions as string[]).includes('*') ? 'admin' : 'viewer');
 
   const hasPermission = (permission: keyof RolePermissions): boolean => {
     return permissions[permission];

@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission } from '@/lib/role-middleware';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const check = await requirePermission('canView')(request);
+    if (check instanceof NextResponse) return check;
+
     const ubicaciones = await prisma.ubicacion.findMany({
       include: {
         asignacionesEquipos: {
@@ -45,11 +49,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require permission to manage departamentos/ubicaciones
+    const check = await requirePermission('canManageDepartamentos')(request);
+    if (check instanceof NextResponse) return check;
     const user = await getServerUser(request);
-    
-    if (!user) {
-      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-    }
 
     const body = await request.json();
     const { nombre, descripcion, direccion, piso, sala } = body;
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
       'ubicacion',
       nuevaUbicacion.id,
       `Ubicación "${nombre}" creada`,
-      user.id as string,
+      (user?.id as string) || 'system',
       {
         ubicacionCreada: {
           nombre: nuevaUbicacion.nombre,

@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireAnyPermission, requirePermission } from '@/lib/role-middleware';
 import { z } from 'zod';
 import { getGerente } from '@/utils/getGerente';
 
@@ -21,6 +22,10 @@ const asignacionSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  // Require at least view permission to list asignaciones
+  const checkView = await requirePermission('canView')(request);
+  if (checkView instanceof NextResponse) return checkView;
+
   try {
     const asignaciones = await prisma.asignacionesEquipos.findMany({
       orderBy: { date: 'desc' },
@@ -132,6 +137,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require permissions: assigners or admins
+    const check = await requireAnyPermission(['canAssign', 'canManageAsignaciones'])(request);
+    if (check instanceof NextResponse) return check;
+
     const body = await request.json();
     console.log('[API/ASIGNACIONES] Body recibido:', body);
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerUser } from '@/lib/auth-server';
+import { requireAnyPermission } from '@/lib/role-middleware';
 import { AuditLogger } from '@/lib/audit-logger';
 
 // GET - Obtener todos los cargos de un departamento
@@ -48,6 +49,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require permission to create cargos in a departamento
+    const deny = await requireAnyPermission(['canCreate','canManageDepartamentos'])(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
     if (!user) {
       return NextResponse.json(

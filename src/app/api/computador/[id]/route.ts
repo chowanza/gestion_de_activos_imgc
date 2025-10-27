@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 import { Prisma, HistorialModificaciones } from '@prisma/client';
 import { AuditLogger } from '@/lib/audit-logger';
 
 
 export async function GET(request: NextRequest) {
+  // Require view permission to access computador details
+  const check = await requirePermission('canView')(request);
+  if (check instanceof NextResponse) return check;
+
   const { searchParams } = new URL(request.url);
   const asignado = searchParams.get('asignado');
 
@@ -239,6 +244,10 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    // Require permission to manage computadores
+    const check = await requirePermission('canManageComputadores')(request);
+    if (check instanceof NextResponse) return check;
+
     const id = request.nextUrl.pathname.split('/')[3];
     const body = await request.json();
 
@@ -338,6 +347,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Require permission to manage computadores
+    const check = await requirePermission('canManageComputadores')(request);
+    if (check instanceof NextResponse) return check;
+
     const id = request.nextUrl.pathname.split('/')[3];
     
     // Obtener datos del computador antes de eliminarlo para auditoría

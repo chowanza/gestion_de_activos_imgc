@@ -1,11 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requirePermission } from '@/lib/role-middleware';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Require view permission for ubicacion details
+  const checkView = await requirePermission('canView')(request);
+  if (checkView instanceof NextResponse) return checkView;
+
   try {
     const { id } = await params;
 
@@ -91,6 +96,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require permission to manage departamentos/ubicaciones
+    const check = await requirePermission('canManageDepartamentos')(request);
+    if (check instanceof NextResponse) return check;
+
     const { id } = await params;
     const body = await request.json();
     const { nombre, descripcion, direccion, piso, sala } = body;
@@ -160,6 +169,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require permission to manage departamentos/ubicaciones
+    const check = await requirePermission('canManageDepartamentos')(request);
+    if (check instanceof NextResponse) return check;
+
     const { id } = await params;
 
     // Verificar si la ubicación existe

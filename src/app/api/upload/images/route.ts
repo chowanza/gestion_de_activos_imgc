@@ -1,12 +1,17 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerUser } from '@/lib/auth-server';
+import { requirePermission } from '@/lib/role-middleware';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require create permission for uploads
+    const deny = await requirePermission('canCreate')(request as any);
+    if (deny) return deny;
+
     const user = await getServerUser(request);
     if (!user) {
       return NextResponse.json(
