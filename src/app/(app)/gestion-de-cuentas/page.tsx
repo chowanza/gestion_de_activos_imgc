@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from "react";
+import PasswordInput from '@/components/PasswordInput';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,14 +118,20 @@ export default function GestionDeCuentasPage() {
     if (!editingUser) return;
 
     try {
+      const body: any = {
+        username: formData.username,
+        email: formData.email,
+        role: formData.role
+      };
+      // Only include password if admin filled a new one
+      if (formData.password && formData.password.trim().length > 0) {
+        body.password = formData.password;
+      }
+
       const response = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          role: formData.role
-        })
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
@@ -189,7 +196,7 @@ export default function GestionDeCuentasPage() {
     setFormData({
       username: user.username,
       email: user.email || '',
-      password: '', // don't show password
+      password: '', // optional new password
       role: user.role
     });
     setIsEditDialogOpen(true);
@@ -256,7 +263,7 @@ export default function GestionDeCuentasPage() {
                 </div>
                 <div>
                   <Label htmlFor="password">Contraseña</Label>
-                  <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
+                    <PasswordInput id="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
                 </div>
                 <div>
                   <Label htmlFor="role">Rol</Label>
@@ -333,7 +340,7 @@ export default function GestionDeCuentasPage() {
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditUser} className="space-y-4">
+            <form onSubmit={handleEditUser} className="space-y-4">
             <div>
               <Label htmlFor="edit-username">Nombre de Usuario</Label>
               <Input id="edit-username" value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} required />
@@ -342,6 +349,12 @@ export default function GestionDeCuentasPage() {
               <Label htmlFor="edit-email">Email (opcional)</Label>
               <Input id="edit-email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
             </div>
+            {editingUser && editingUser.role && editingUser.role.toLowerCase() !== 'admin' && (
+              <div>
+                <Label htmlFor="edit-password">Nueva contraseña (opcional)</Label>
+                <PasswordInput id="edit-password" placeholder="Ingrese nueva contraseña" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+              </div>
+            )}
             <div>
                   <Label htmlFor="edit-role">Rol</Label>
               <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>

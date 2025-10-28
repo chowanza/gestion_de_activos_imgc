@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
+import { AuditLogger } from '@/lib/audit-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,14 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is still admin
-    if (resetToken.user.role !== 'Admin') {
-      return NextResponse.json(
-        { message: 'Usuario no autorizado' },
-        { status: 403 }
-      );
-    }
-
+    // Note: allow resetting password for any role — token creation is already restricted to admins.
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -64,15 +58,18 @@ export async function POST(request: NextRequest) {
         where: { id: resetToken.user.id },
         data: { password: hashedPassword },
       }),
-      // Delete used token
-      prisma.passwordResetToken.delete({
-        where: { id: resetToken.id },
-      }),
-      // Delete any other reset tokens for this user
+      // Delete any reset tokens for this user
       prisma.passwordResetToken.deleteMany({
         where: { userId: resetToken.user.id },
       }),
     ]);
+
+    // Audit log: password was reset via token (attribute to the user)
+    try {
+      await AuditLogger.logUpdate('usuario', resetToken.user.id, `Contraseña restablecida mediante token`, resetToken.user.id, { method: 'reset-token' });
+    } catch (e) {
+      console.warn('Audit log failed for password reset', e);
+    }
 
     return NextResponse.json(
       { message: 'Contraseña restablecida exitosamente' },

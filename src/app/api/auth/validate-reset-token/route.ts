@@ -38,13 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is still admin
-    if (resetToken.user.role !== 'Admin') {
-      return NextResponse.json(
-        { message: 'Usuario no autorizado' },
-        { status: 403 }
-      );
-    }
+    // Note: allow tokens for any role. Token creation is restricted to admins elsewhere.
 
     return NextResponse.json(
       { message: 'Token válido' },

@@ -1,7 +1,8 @@
 ﻿export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requirePermission } from '@/lib/role-middleware';
+import { requirePermission, getUserIdFromRequest } from '@/lib/role-middleware';
+import { AuditLogger } from '@/lib/audit-logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,6 +60,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const updatedUser = await prisma.user.update({ where: { id }, data: updateData });
+    // Audit log: if password was changed, log that an admin updated the password (do NOT store the password)
+    if (parsed.data.password) {
+      try {
+        const requesterId = await getUserIdFromRequest(request as any);
+        await AuditLogger.logUpdate('usuario', id, `Contraseña actualizada por admin (${requesterId})`, requesterId || undefined, { changedPassword: true });
+      } catch (e) {
+        console.warn('Audit log failed for password update', e);
+      }
+    }
     // Return non-sensitive representation
     const safeUser = {
       id: updatedUser.id,

@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
               Si no encuentras el email, revisa tu carpeta de spam.
             </p>
             <Button
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push('/')}
               variant="outline"
               className="w-full"
             >
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-6 text-center">
             <Button
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push('/')}
               variant="link"
               className="text-sm"
             >

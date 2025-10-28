@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Lock, ArrowLeft, CheckCircle } from 'lucide-react';
@@ -151,8 +151,8 @@ export default function ResetPasswordClient() {
             <p className="text-sm text-gray-600 mb-6">
               Ya puedes iniciar sesión con tu nueva contraseña.
             </p>
-            <Button
-              onClick={() => router.push('/auth/login')}
+              <Button
+              onClick={() => router.push('/')}
               className="w-full"
             >
               Ir al inicio de sesión
@@ -179,9 +179,8 @@ export default function ResetPasswordClient() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Nueva contraseña</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="Ingresa tu nueva contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -193,9 +192,8 @@ export default function ResetPasswordClient() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="Confirma tu nueva contraseña"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -222,7 +220,7 @@ export default function ResetPasswordClient() {
 
           <div className="mt-6 text-center">
             <Button
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push('/')}
               variant="link"
               className="text-sm"
             >

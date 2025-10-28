@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { LoadingSpinner } from '@/utils/loading';
+import { usePermissions } from '@/hooks/usePermissions';
+import PasswordInput from '@/components/PasswordInput';
 
 interface UserItem {
   id: string;
@@ -18,6 +20,7 @@ export default function CuentasClient() {
   const [editing, setEditing] = useState<UserItem | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<{ username: string; email: string; role: string; password?: string }>({ username: '', email: '', role: 'No-Admin' });
+  const { hasPermission, isAdmin } = usePermissions();
 
   const load = async () => {
     try {
@@ -81,10 +84,31 @@ export default function CuentasClient() {
     if (!confirm('Iniciar recuperación de contraseña para este usuario?')) return;
     try {
       const res = await fetch(`/api/users/${id}/password-reset`, { method: 'POST' });
-      if (!res.ok) throw new Error('Error iniciando recuperación');
-      alert('Recuperación iniciada (token creado)');
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || 'Error iniciando recuperación');
+      }
+
+      // Show token if returned (when SMTP not configured) or success message when emailed
+      if (data?.token) {
+        setResetResult({ success: true, message: data.message || 'Token creado', token: data.token });
+      } else {
+        setResetResult({ success: true, message: data.message || 'Token creado y enviado por correo' });
+      }
     } catch (e: any) {
       setError(e.message || String(e));
+    }
+  };
+
+  const [resetResult, setResetResult] = useState<{ success: boolean; message?: string; token?: string } | null>(null);
+
+  const copyToken = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      // small UX feedback
+      setResetResult(s => s ? { ...s, message: 'Token copiado al portapapeles' } : null);
+    } catch (err) {
+      setError('No se pudo copiar el token automáticamente. Copia manualmente.');
     }
   };
 
@@ -100,10 +124,27 @@ export default function CuentasClient() {
             <p className="text-sm text-gray-600">Crear, editar y eliminar cuentas del sistema.</p>
           </div>
           <div>
-            <button onClick={() => setCreating(true)} className="px-3 py-2 bg-indigo-600 text-white rounded">Crear cuenta</button>
+            {hasPermission('canManageUsers') && (
+              <button onClick={() => setCreating(true)} className="px-3 py-2 bg-indigo-600 text-white rounded">Crear cuenta</button>
+            )}
           </div>
         </div>
       </div>
+
+          {resetResult && (
+            <div className="mb-4 p-4 bg-white rounded shadow">
+              <div className="font-medium">{resetResult.message}</div>
+              {resetResult.token && (
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="bg-gray-100 p-2 rounded break-all">{resetResult.token}</code>
+                  <button onClick={() => copyToken(resetResult.token || '')} className="px-2 py-1 bg-blue-500 text-white rounded">Copiar</button>
+                </div>
+              )}
+              <div className="mt-2">
+                <button onClick={() => setResetResult(null)} className="px-2 py-1 bg-gray-200 rounded">Cerrar</button>
+              </div>
+            </div>
+          )}
 
       {creating && (
         <form onSubmit={handleCreate} className="mb-6 p-4 bg-white rounded shadow">
@@ -114,7 +155,9 @@ export default function CuentasClient() {
               <option value="No-Admin">No-Admin</option>
               <option value="Admin">Admin</option>
             </select>
-            <input placeholder="password" type="password" value={form.password || ''} onChange={e => setForm(s => ({ ...s, password: e.target.value }))} className="border p-2" />
+            <div className="border p-2">
+              <PasswordInput placeholder="password" value={form.password || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(s => ({ ...s, password: e.target.value }))} />
+            </div>
           </div>
           <div className="mt-3 flex gap-2">
             <button type="submit" className="px-3 py-2 bg-green-600 text-white rounded">Crear</button>
@@ -132,7 +175,9 @@ export default function CuentasClient() {
               <option value="No-Admin">No-Admin</option>
               <option value="Admin">Admin</option>
             </select>
-            <input placeholder="password (nuevo)" type="password" value={form.password || ''} onChange={e => setForm(s => ({ ...s, password: e.target.value }))} className="border p-2" />
+            <div className="border p-2">
+              <PasswordInput placeholder="password (nuevo)" value={form.password || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(s => ({ ...s, password: e.target.value }))} />
+            </div>
           </div>
           <div className="mt-3 flex gap-2">
             <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded">Guardar</button>
@@ -150,9 +195,16 @@ export default function CuentasClient() {
             </div>
             <div className="flex items-center gap-2">
               <div className="text-sm text-gray-600">{u.role}</div>
-              <button onClick={() => handleEdit(u)} className="px-2 py-1 bg-yellow-100 rounded">Editar</button>
-              <button onClick={() => handleDelete(u.id)} className="px-2 py-1 bg-red-100 rounded">Eliminar</button>
-              <button onClick={() => triggerPasswordReset(u.id)} className="px-2 py-1 bg-indigo-100 rounded">Recuperar</button>
+              {hasPermission('canManageUsers') ? (
+                <>
+                  <button onClick={() => handleEdit(u)} className="px-2 py-1 bg-yellow-100 rounded">Editar</button>
+                  <button onClick={() => handleDelete(u.id)} className="px-2 py-1 bg-red-100 rounded">Eliminar</button>
+                  <button onClick={() => triggerPasswordReset(u.id)} className="px-2 py-1 bg-indigo-100 rounded">Recuperar</button>
+                </>
+              ) : (
+                // If not manager, only show view label (no actions)
+                null
+              )}
             </div>
           </div>
         ))}
