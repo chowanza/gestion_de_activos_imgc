@@ -58,11 +58,12 @@ export async function POST(request: NextRequest) {
 
     // If email was sent, don't return the token in the response. Otherwise include it so admin
     // can copy it manually (useful in environments without SMTP configured).
+    const emailPresent = Boolean(user.email);
     if (emailSent) {
-      return NextResponse.json({ message: 'Token creado y enviado por correo' }, { status: 201 });
+      return NextResponse.json({ message: 'Token creado y enviado por correo', emailPresent }, { status: 201 });
     }
 
-    return NextResponse.json({ message: 'Token creado', token }, { status: 201 });
+    return NextResponse.json({ message: 'Token creado', token, emailPresent }, { status: 201 });
   } catch (error) {
     console.error('Error creating password reset token', error);
     return NextResponse.json({ message: 'Error interno' }, { status: 500 });

@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email and check if they are admin
-    const user = await prisma.user.findUnique({
+    // Use findFirst because 'email' may not be declared unique in the Prisma schema
+    const user = await prisma.user.findFirst({
       where: { email },
     });
 

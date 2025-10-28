@@ -90,10 +90,13 @@ export default function CuentasClient() {
       }
 
       // Show token if returned (when SMTP not configured) or success message when emailed
+      const emailPresent = data?.emailPresent !== undefined ? data.emailPresent : Boolean(data?.email);
       if (data?.token) {
-        setResetResult({ success: true, message: data.message || 'Token creado', token: data.token });
+        const msg = emailPresent ? (data.message || 'Token creado') : (data.message ? `${data.message} - Usuario no tiene email registrado` : 'Token creado (usuario no tiene email)');
+        setResetResult({ success: true, message: msg, token: data.token });
       } else {
-        setResetResult({ success: true, message: data.message || 'Token creado y enviado por correo' });
+        const msg = data?.message || 'Token creado y enviado por correo';
+        setResetResult({ success: true, message: msg });
       }
     } catch (e: any) {
       setError(e.message || String(e));
