@@ -19,7 +19,7 @@ export default function CuentasClient() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<UserItem | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<{ username: string; email: string; role: string; password?: string }>({ username: '', email: '', role: 'No-Admin' });
+  const [form, setForm] = useState<{ username: string; email: string; role: string; password?: string }>({ username: '', email: '', role: 'viewer' });
   const { hasPermission, isAdmin } = usePermissions();
 
   const load = async () => {
@@ -45,7 +45,7 @@ export default function CuentasClient() {
       if (!res.ok) throw new Error('Error creando cuenta');
       await load();
       setCreating(false);
-      setForm({ username: '', email: '', role: 'No-Admin' });
+  setForm({ username: '', email: '', role: 'viewer' });
     } catch (e: any) {
       setError(e.message || String(e));
     }
@@ -53,7 +53,7 @@ export default function CuentasClient() {
 
   const handleEdit = (item: UserItem) => {
     setEditing(item);
-    setForm({ username: item.username, email: item.email || '', role: item.role || 'No-Admin' });
+  setForm({ username: item.username, email: item.email || '', role: item.role || 'viewer' });
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -155,8 +155,9 @@ export default function CuentasClient() {
             <input required placeholder="username" value={form.username} onChange={e => setForm(s => ({ ...s, username: e.target.value }))} className="border p-2" />
             <input placeholder="email" value={form.email} onChange={e => setForm(s => ({ ...s, email: e.target.value }))} className="border p-2" />
             <select value={form.role} onChange={e => setForm(s => ({ ...s, role: e.target.value }))} className="border p-2">
-              <option value="No-Admin">No-Admin</option>
-              <option value="Admin">Admin</option>
+              <option value="admin">Administrador</option>
+              <option value="editor">Editor</option>
+              <option value="viewer">Visualizador</option>
             </select>
             <div className="border p-2">
               <PasswordInput placeholder="password" value={form.password || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(s => ({ ...s, password: e.target.value }))} />
@@ -175,8 +176,9 @@ export default function CuentasClient() {
             <input required placeholder="username" value={form.username} onChange={e => setForm(s => ({ ...s, username: e.target.value }))} className="border p-2" />
             <input placeholder="email" value={form.email} onChange={e => setForm(s => ({ ...s, email: e.target.value }))} className="border p-2" />
             <select value={form.role} onChange={e => setForm(s => ({ ...s, role: e.target.value }))} className="border p-2">
-              <option value="No-Admin">No-Admin</option>
-              <option value="Admin">Admin</option>
+              <option value="admin">Administrador</option>
+              <option value="editor">Editor</option>
+              <option value="viewer">Visualizador</option>
             </select>
             <div className="border p-2">
               <PasswordInput placeholder="password (nuevo)" value={form.password || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(s => ({ ...s, password: e.target.value }))} />

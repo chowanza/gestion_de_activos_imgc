@@ -40,14 +40,6 @@ interface EmpresaDetails {
     departamento: {
     id: string;
     nombre: string;
-      gerencias: Array<{
-        gerente: {
-      id: string;
-      nombre: string;
-      apellido: string;
-      ced: string;
-      };
-      }>;
       empleadoOrganizaciones: Array<{
         empleado: {
       id: string;
@@ -247,8 +239,7 @@ export default function EmpresaDetailsPage() {
       const data = {
         nombre: formData.get('nombre'),
         empresaId: formData.get('empresaId'),
-        empresaNombre: formData.get('empresaNombre'),
-        gerenteId: formData.get('gerenteId')
+        empresaNombre: formData.get('empresaNombre')
       };
 
       const response = await fetch("/api/departamentos", {
@@ -523,14 +514,6 @@ export default function EmpresaDetailsPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="text-lg font-semibold">{departamento.nombre}</h3>
-                      {departamento.gerencias && departamento.gerencias.length > 0 && (
-                        <p className="text-sm text-gray-600">
-                          Gerente: {departamento.gerencias[0].gerente.nombre} {departamento.gerencias[0].gerente.apellido} 
-                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            Gerente
-                          </span>
-                        </p>
-                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant="secondary">{departamento._count.empleadoOrganizaciones} empleados</Badge>

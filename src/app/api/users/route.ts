@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       username: z.string().min(1),
       email: z.string().email().optional(),
       password: z.string().min(6),
-      role: z.enum(['admin', 'editor', 'user', 'viewer', 'assigner']).optional().default('user')
+      role: z.enum(['admin', 'editor', 'viewer']).optional().default('viewer')
     });
 
     const parsed = schema.safeParse(body);

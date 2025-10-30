@@ -44,14 +44,6 @@ interface DepartamentoDetails {
       descripcion?: string;
     };
   }>;
-  gerencias: Array<{
-    gerente: {
-      id: string;
-      nombre: string;
-      apellido: string;
-      ced: string;
-    };
-  }>;
   empleadoOrganizaciones: Array<{
     empleado: {
       id: string;
@@ -383,8 +375,7 @@ export default function DepartamentoDetailsPage() {
         descripcion: formData.get('descripcion'),
         empresaId: departamento?.empresaDepartamentos && departamento.empresaDepartamentos.length > 0 
           ? departamento.empresaDepartamentos[0].empresa.id 
-          : '',
-        gerenteId: formData.get('gerenteId') || null
+          : ''
       };
 
       const response = await fetch(`/api/departamentos/${departamento?.id}`, {
@@ -514,15 +505,7 @@ export default function DepartamentoDetailsPage() {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Gerente</div>
-                {departamento?.gerencias?.[0]?.gerente ? (
-                  <div>
-                    <p className="text-lg font-semibold">{departamento.gerencias[0].gerente.nombre} {departamento.gerencias[0].gerente.apellido}</p>
-                    <p className="text-sm text-gray-600">Cédula: {departamento.gerencias[0].gerente.ced}</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">Sin gerente asignado</p>
-                )}
+                {/* Gerente removido de la vista del departamento */}
               </div>
             </div>
           </div>
@@ -861,9 +844,6 @@ export default function DepartamentoDetailsPage() {
           empresaId: departamento.empresaDepartamentos && departamento.empresaDepartamentos.length > 0 
             ? departamento.empresaDepartamentos[0].empresa.id 
             : '',
-          gerenteId: departamento.gerencias && departamento.gerencias.length > 0 
-            ? departamento.gerencias[0].gerente.id 
-            : undefined
         } : null}
       />
 

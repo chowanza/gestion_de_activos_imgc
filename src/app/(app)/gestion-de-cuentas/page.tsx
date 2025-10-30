@@ -36,7 +36,7 @@ export default function GestionDeCuentasPage() {
     username: '',
     email: '',
     password: '',
-    role: 'user'
+    role: 'viewer'
   });
 
   const [search, setSearch] = useState('');
@@ -106,7 +106,7 @@ export default function GestionDeCuentasPage() {
 
       showToast.success('Usuario creado exitosamente');
       setIsCreateDialogOpen(false);
-      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
+  setFormData({ username: '', email: '', password: '', role: 'viewer' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al crear usuario');
@@ -142,7 +142,7 @@ export default function GestionDeCuentasPage() {
       showToast.success('Usuario actualizado exitosamente');
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
+  setFormData({ username: '', email: '', password: '', role: 'viewer' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al actualizar usuario');
@@ -272,8 +272,9 @@ export default function GestionDeCuentasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="user">No-Admin</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="viewer">Visualizador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -362,8 +363,9 @@ export default function GestionDeCuentasPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">No-Admin</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -234,8 +234,7 @@ export async function GET(request: NextRequest) {
           nombre: empresa?.nombre || 'Sin empresa'
         },
         
-        // Información del gerente (si existe)
-        gerente: movement.gerenteId ? 'Gerente asignado' : null
+    // Gerente removido de los reportes
       };
     });
 
@@ -301,8 +300,7 @@ export async function GET(request: NextRequest) {
           nombre: empresaActual?.nombre || 'Sin empresa'
         },
         
-        // Información del gerente (no aplicable para modificaciones)
-        gerente: null
+        // Gerente removido de los reportes
       };
     });
 

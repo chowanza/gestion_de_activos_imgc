@@ -31,8 +31,7 @@ interface OptionType {
 }
 
 
-import { DepartamentoFormData } from './depto-table'; // Asegúrate que esta defina gerenciaId
-;
+import { DepartamentoFormData } from './depto-table';
 
 interface Empleado {
     id: string;
@@ -46,9 +45,8 @@ interface DepartamentoFormProps {
     onSubmit: (data: FormData) => void;
     empresas: Empresa[];
     empleados?: Empleado[];
-    initialData?: DepartamentoFormData & { empresaId?: string; gerenteId?: string } | null;
+    initialData?: DepartamentoFormData & { empresaId?: string } | null;
 }
-
 
 const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
     isOpen,
@@ -60,22 +58,18 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
 }) => {
     const [nombre, setNombre] = useState('');
     const [selectedEmpresa, setSelectedEmpresa] = useState<OptionType | null>(null);
-    const [selectedGerente, setSelectedGerente] = useState<OptionType | null>(null);
     const [allEmpresas, setAllEmpresas] = useState<Empresa[]>(empresas);
-    const [allEmpleados, setAllEmpleados] = useState<Empleado[]>(empleados);
     const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
     const [isCreatingEmpresa, setIsCreatingEmpresa] = useState(false);
 
     // Estabilizar las referencias de los arrays para evitar re-renders infinitos
     const stableEmpresas = useMemo(() => empresas, [empresas.length, empresas.map(e => e.id).join(',')]);
-    const stableEmpleados = useMemo(() => empleados, [empleados.length, empleados.map(e => e.id).join(',')]);
 
     const isEditing = !!initialData  // Es edición si initialData tiene un ID
 
     useEffect(() => {
         setAllEmpresas(stableEmpresas);
-        setAllEmpleados(stableEmpleados);
-    }, [stableEmpresas, stableEmpleados]);
+    }, [stableEmpresas]);
 
     useEffect(() => {
         if (isOpen) {
@@ -97,36 +91,17 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                     setSelectedEmpresa(null);
                 }
 
-                // Preseleccionar el gerente - esperar a que allEmpleados esté cargado
-                if (initialData.gerenteId && allEmpleados.length > 0) {
-                    const gerenteActual = allEmpleados.find(e => e.id === initialData.gerenteId);
-                    if (gerenteActual) {
-                        setSelectedGerente({ 
-                            value: gerenteActual.id, 
-                            label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
-                        });
-                    } else {
-                        setSelectedGerente(null);
-                    }
-                } else if (initialData.gerenteId && allEmpleados.length === 0) {
-                    // Si aún no se han cargado los empleados, mantener null temporalmente
-                    setSelectedGerente(null);
-                } else {
-                    setSelectedGerente(null);
-                }
-
             } else {
                 // Resetear para creación
                 setNombre('');
                 setSelectedEmpresa(null);
-                setSelectedGerente(null);
             }
         }
-    }, [isOpen, initialData, isEditing, allEmpresas, allEmpleados]);
+    }, [isOpen, initialData, isEditing, allEmpresas]);
 
     // Efecto adicional para prellenar cuando los datos estén completamente cargados
     useEffect(() => {
-        if (isOpen && isEditing && initialData && allEmpresas.length > 0 && allEmpleados.length > 0) {
+    if (isOpen && isEditing && initialData && allEmpresas.length > 0) {
             // Preseleccionar la empresa si no está ya seleccionada
             if (initialData.empresaId && !selectedEmpresa) {
                 const empresaActual = allEmpresas.find(e => e.id === initialData.empresaId);
@@ -134,19 +109,8 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                     setSelectedEmpresa({ value: empresaActual.id, label: empresaActual.nombre });
                 }
             }
-
-            // Preseleccionar el gerente si no está ya seleccionado
-            if (initialData.gerenteId && !selectedGerente) {
-                const gerenteActual = allEmpleados.find(e => e.id === initialData.gerenteId);
-                if (gerenteActual) {
-                    setSelectedGerente({ 
-                        value: gerenteActual.id, 
-                        label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
-                    });
-                }
-            }
         }
-    }, [isOpen, isEditing, initialData, allEmpresas, allEmpleados, selectedEmpresa, selectedGerente]);
+    }, [isOpen, isEditing, initialData, allEmpresas, selectedEmpresa]);
 
     const handleCreateEmpresa = async (inputValue: string) => {
             setIsCreatingEmpresa(true);
@@ -180,10 +144,7 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
             formDataToSubmit.append('empresaId', selectedEmpresa.value);
         }
 
-        // Agregar gerente si está seleccionado
-        if (selectedGerente) {
-            formDataToSubmit.append('gerenteId', selectedGerente.value);
-        }
+        // Removido: envío de gerenteId
 
         onSubmit(formDataToSubmit);
     };
@@ -229,24 +190,7 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                         />
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="gerente-select" className="text-right">Gerente</Label>
-                        <div className="col-span-3">
-                        <CreatableSelect
-                            inputId="gerente-select"
-                            className="w-full"
-                            options={allEmpleados.map(e => ({ 
-                                value: e.id, 
-                                label: `${e.nombre} ${e.apellido}` 
-                            }))}
-                            value={selectedGerente}
-                            onChange={opt => setSelectedGerente(opt as OptionType | null)}
-                            placeholder="Seleccionar Gerente (opcional)"
-                            isClearable
-                            styles={reactSelectStyles}
-                        />
-                        </div>
-                    </div>
+                    {/* Removido: campo Gerente */}
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
                         <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">{isEditing ? "Guardar Cambios" : "Crear Departamento"}</Button>

@@ -27,7 +27,6 @@ export interface Asignaciones {
   item: {tipo: string, serial: string, descripcion: string},
   asignadoA?: {nombre: string} | null,
   notes: string,
-  gerente: string,
   serialC: string,
   modeloC: string,
   motivo: string,

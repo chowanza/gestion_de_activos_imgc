@@ -161,8 +161,7 @@ async function getAsignaciones(startDate: string | null, endDate: string | null,
         nombre: asignacion.ubicacion?.nombre || 'Sin ubicación',
         direccion: asignacion.ubicacion?.direccion || 'Sin dirección'
       },
-      motivo: asignacion.motivo || 'Sin motivo especificado',
-      gerente: asignacion.gerenteId ? 'Asignado por gerente' : 'Asignación directa'
+      motivo: asignacion.motivo || 'Sin motivo especificado'
     };
   });
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/role-middleware';
-import { AuditLogger } from '@/lib/auditLogger';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
@@ -129,13 +130,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Registrar en auditoría
-    // await AuditLogger.logCreate(
-    //   'empresa',
-    //   nuevaEmpresa.id,
-    //   `Empresa "${nuevaEmpresa.nombre}" creada`,
-    //   'system' // Usar 'system' como fallback
-    // );
+    // Registrar en auditoría (CREACION)
+    const user = await getServerUser(request);
+    await AuditLogger.logCreate(
+      'empresa',
+      nuevaEmpresa.id,
+      `Empresa "${nuevaEmpresa.nombre}" creada`,
+      (user?.id as string) || undefined
+    );
 
     return NextResponse.json(nuevaEmpresa, { status: 201 });
   } catch (error) {

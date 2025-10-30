@@ -1,75 +1,26 @@
-import { PrismaClient } from '@prisma/client';
+import { AuditLogger as BaseAuditLogger } from '@/lib/audit-logger';
 
-const prisma = new PrismaClient();
-
+// Backward-compatible wrapper to ensure any legacy imports still produce
+// standardized actions (NAVEGACION, CREACION, ACTUALIZACION, ELIMINACION)
+// and avoid creating extra Prisma clients in utils.
 export class AuditLogger {
   static async logView(entity: string, description: string, userId?: string) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          accion: 'VIEW',
-          entidad: entity,
-          descripcion: description,
-          usuarioId: userId || null,
-          fecha: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error('Error logging view:', error);
-    }
+    // Treat view as navigation to the entity detail
+    return BaseAuditLogger.logNavigation(entity, description, userId);
   }
 
   static async logCreate(entity: string, entityId: string, details: any, userId?: string) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          accion: 'CREATE',
-          entidad: entity,
-          entidadId: entityId,
-          descripcion: `Creado ${entity}: ${details.nombre || entityId}`,
-          detalles: JSON.stringify(details),
-          usuarioId: userId || null,
-          fecha: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error('Error logging create:', error);
-    }
+    const desc = `Creado ${entity}: ${details?.nombre || entityId}`;
+    return BaseAuditLogger.logCreate(entity, entityId, desc, userId, details);
   }
 
   static async logUpdate(entity: string, entityId: string, details: any, userId?: string) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          accion: 'UPDATE',
-          entidad: entity,
-          entidadId: entityId,
-          descripcion: `Actualizado ${entity}: ${details.nombre || entityId}`,
-          detalles: JSON.stringify(details),
-          usuarioId: userId || null,
-          fecha: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error('Error logging update:', error);
-    }
+    const desc = `Actualizado ${entity}: ${details?.nombre || entityId}`;
+    return BaseAuditLogger.logUpdate(entity, entityId, desc, userId, details);
   }
 
   static async logDelete(entity: string, entityId: string, details: any, userId?: string) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          accion: 'DELETE',
-          entidad: entity,
-          entidadId: entityId,
-          descripcion: `Eliminado ${entity}: ${details.nombre || entityId}`,
-          detalles: JSON.stringify(details),
-          usuarioId: userId || null,
-          fecha: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error('Error logging delete:', error);
-    }
+    const desc = `Eliminado ${entity}: ${details?.nombre || entityId}`;
+    return BaseAuditLogger.logDelete(entity, entityId, desc, userId, details);
   }
 }

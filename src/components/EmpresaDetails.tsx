@@ -26,11 +26,6 @@ interface EmpresaDetailsProps {
     departamentos?: {
       id: string;
       nombre: string;
-      gerente?: {
-        id: string;
-        nombre: string;
-        apellido: string;
-      } | null;
       empleados: {
         id: string;
         nombre: string;
@@ -200,11 +195,7 @@ export const EmpresaDetails: React.FC<EmpresaDetailsProps> = ({
                           </Badge>
                         </div>
                         
-                        {departamento.gerente && (
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Gerente: {departamento.gerente.nombre} {departamento.gerente.apellido}
-                          </p>
-                        )}
+                        {/* Gerente removido de la vista de departamentos */}
 
                         {departamento.empleados.length > 0 && (
                           <div>

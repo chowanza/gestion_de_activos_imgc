@@ -3,7 +3,7 @@
 
 import { useSession } from './useSession';
 
-export type UserRole = 'admin' | 'user' | 'viewer' | 'assigner';
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'user' | 'assigner';
 
 export interface RolePermissions {
   canView: boolean;
@@ -35,7 +35,22 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageAsignaciones: true,
     canViewAuditLogs: true,
   },
-  user: {
+  editor: {
+    // Mirror server: editor can manage most domain entities but cannot delete, manage users or view audit logs
+    canView: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: false,
+    canAssign: true,
+    canManageUsers: false,
+    canManageEmpresas: true,
+    canManageDepartamentos: true,
+    canManageComputadores: true,
+    canManageDispositivos: true,
+    canManageAsignaciones: true,
+    canViewAuditLogs: false,
+  },
+  viewer: {
     canView: true,
     canCreate: false,
     canUpdate: false,
@@ -49,7 +64,8 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageAsignaciones: false,
     canViewAuditLogs: false,
   },
-  viewer: {
+  // Legacy roles kept for backward-compat display; treated conservatively
+  user: {
     canView: true,
     canCreate: false,
     canUpdate: false,
@@ -147,6 +163,5 @@ export function usePermissions() {
     hasAllPermissions,
     canAccess,
     isAdmin: userRole === 'admin',
-    isUser: userRole === 'user',
   };
 }

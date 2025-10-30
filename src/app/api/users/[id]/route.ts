@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
     const schema = z.object({
       username: z.string().min(1).optional(),
       email: z.string().email().optional(),
-      role: z.enum(['admin','editor', 'user', 'viewer', 'assigner']).optional(),
+      role: z.enum(['admin','editor','viewer']).optional(),
       password: z.string().min(6).optional()
     });
 

@@ -289,7 +289,6 @@ export async function GET(request: NextRequest) {
         descripcion: `${asignacion.actionType || 'Asignación'} de ${tipoEquipo} a ${asignacion.targetEmpleado ? `${asignacion.targetEmpleado.nombre} ${asignacion.targetEmpleado.apellido}` : 'empleado'}`,
         metadata: {
           motivo: asignacion.motivo || 'Sin motivo',
-          gerenteId: asignacion.gerenteId,
           timestamp: asignacion.date
         }
       };

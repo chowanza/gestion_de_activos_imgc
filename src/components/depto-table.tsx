@@ -52,7 +52,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 export const deptoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
     empresaId: z.string().min(1, "La empresa es requerida"),
-    gerenteId: z.string().optional(),
 });
 
 export type DepartamentoFormData = z.infer<typeof deptoSchema>;
@@ -132,27 +131,17 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
 }) => {
     const [nombre, setNombre] = useState('');
     const [selectedEmpresa, setSelectedEmpresa] = useState<OptionType | null>(null);
-    const [selectedGerente, setSelectedGerente] = useState<OptionType | null>(null);
     const [allEmpresas, setAllEmpresas] = useState<Empresa[]>([]);
-    const [allEmpleados, setAllEmpleados] = useState<{ id: string; nombre: string; apellido: string; departamentoId?: string; }[]>([]);
     const [isLoadingEmpresas, setIsLoadingEmpresas] = useState(false);
 
     const isEditing = !!initialData && propIsEditing;
 
     // Filtrar empleados según el departamento cuando se está editando
-    const empleadosFiltrados = React.useMemo(() => {
-        if (isEditing && initialData?.departamentoId) {
-            // Solo mostrar empleados del departamento actual
-            return allEmpleados.filter(emp => emp.departamentoId === initialData.departamentoId);
-        }
-        // Para creación, mostrar todos los empleados
-        return allEmpleados;
-    }, [allEmpleados, isEditing, initialData?.departamentoId]);
+    // Removido: filtrado por empleados para gerente
 
     useEffect(() => {
         setAllEmpresas(empresas || []);
-        setAllEmpleados(empleados || []);
-    }, [empresas, empleados]);
+    }, [empresas]);
 
     useEffect(() => {
         if (isOpen) {
@@ -171,28 +160,14 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                     setSelectedEmpresa(null);
                 }
 
-                // Preseleccionar el gerente
-                if (initialData.gerenteId && empleadosFiltrados) {
-                    const gerenteActual = empleadosFiltrados.find(e => e.id === initialData.gerenteId);
-                    if (gerenteActual) {
-                        setSelectedGerente({ 
-                            value: gerenteActual.id, 
-                            label: `${gerenteActual.nombre} ${gerenteActual.apellido}` 
-                        });
-                    } else {
-                        setSelectedGerente(null);
-                    }
-                } else {
-                    setSelectedGerente(null);
-                }
+                // Removido: preselección de gerente
             } else {
                 // Reset for creation
                 setNombre('');
                 setSelectedEmpresa(null);
-                setSelectedGerente(null);
             }
         }
-    }, [isOpen, initialData, isEditing, allEmpresas, allEmpleados, empleadosFiltrados]);
+    }, [isOpen, initialData, isEditing, allEmpresas]);
 
     const handleCreateEmpresa = async (inputValue: string) => {
         const newEmpresaOption: OptionType = {
@@ -223,10 +198,7 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
             }
         }
 
-        // Agregar gerente si está seleccionado
-        if (selectedGerente) {
-            formDataToSubmit.append('gerenteId', selectedGerente.value);
-        }
+        // Removido: envío de gerenteId
         
         onSubmit(formDataToSubmit);
     };
@@ -269,34 +241,7 @@ const DepartamentoForm: React.FC<DepartamentoFormProps> = ({
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="gerente-select" className="text-right">Gerente</Label>
-                        <div className="col-span-3">
-                            <CreatableSelect
-                                instanceId="gerente-creatable-select"
-                                styles={reactSelectStyles}
-                                options={empleadosFiltrados?.map(e => ({ 
-                                    value: e.id, 
-                                    label: `${e.nombre} ${e.apellido}` 
-                                })) || []}
-                                value={selectedGerente}
-                                onChange={(option) => setSelectedGerente(option as OptionType | null)}
-                                placeholder={
-                                    isEditing && empleadosFiltrados.length === 0 
-                                        ? "No hay empleados en este departamento" 
-                                        : "Seleccionar Gerente (opcional)"
-                                }
-                                isClearable
-                                isDisabled={isEditing && empleadosFiltrados.length === 0}
-                            />
-                            {isEditing && empleadosFiltrados.length === 0 && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    No hay empleados registrados en este departamento. 
-                                    Agregue empleados al departamento para poder asignar un gerente.
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                    {/* Removido: campo Gerente */}
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
                         <Button type="submit">{isEditing ? "Guardar Cambios" : "Crear Departamento"}</Button>
@@ -365,18 +310,7 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                 return <div>N/A</div>;
             },
         },
-        {
-            accessorKey: "gerente",
-            header: "Gerente",
-            cell: ({ row }) => {
-                const gerencias = row.original.gerencias;
-                if (gerencias && gerencias.length > 0) {
-                    const gerente = gerencias[0].gerente;
-                    return <div>{gerente ? `${gerente.nombre} ${gerente.apellido}` : "Sin asignar"}</div>;
-                }
-                return <div>Sin asignar</div>;
-            },
-        },
+        // Removido: columna Gerente
         {
             accessorKey: "_count.empleadoOrganizaciones",
             header: "Empleados",
@@ -732,7 +666,6 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
                                             >
                                                 {column.id === "empresa.nombre" ? "Empresa" :
-                                                 column.id === "gerente" ? "Gerente" :
                                                  column.id === "_count.empleadoOrganizaciones" ? "Empleados" :
                                                  column.id}
                                             </DropdownMenuCheckboxItem>
@@ -855,7 +788,6 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                     initialData={{
                         nombre: editingDepartamento.nombre,
                         empresaId: editingDepartamento.empresaDepartamentos[0]?.empresa?.id,
-                        gerenteId: editingDepartamento.gerencias[0]?.gerente?.id,
                         departamentoId: editingDepartamento.id,
                     }}
                     empresas={empresas}

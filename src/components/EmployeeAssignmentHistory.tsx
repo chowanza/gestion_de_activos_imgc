@@ -30,7 +30,6 @@ interface EmployeeAssignmentHistoryProps {
     accion: string;
     motivo: string;
     notas?: string;
-    gerente: string;
     localidad?: string;
     item: {
       id: string;
@@ -73,7 +72,6 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
       entry.accion.toLowerCase().includes(searchLower) ||
       entry.motivo.toLowerCase().includes(searchLower) ||
       (entry.notas && entry.notas.toLowerCase().includes(searchLower)) ||
-      entry.gerente.toLowerCase().includes(searchLower) ||
       (entry.localidad && entry.localidad.toLowerCase().includes(searchLower))
     );
   });
@@ -132,7 +130,6 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
         `Tipo: ${entry.item.tipo}`,
         entry.motivo && `Motivo: ${entry.motivo}`,
         entry.notas && `Notas: ${entry.notas}`,
-        entry.gerente && `Gerente: ${entry.gerente}`,
         entry.localidad && `Ubicación: ${entry.localidad}`
       ].filter(Boolean)
     };
@@ -166,7 +163,7 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
-          placeholder="Buscar por serial, modelo, marca, motivo, notas, gerente..."
+          placeholder="Buscar por serial, modelo, marca, motivo, notas, ubicación..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"

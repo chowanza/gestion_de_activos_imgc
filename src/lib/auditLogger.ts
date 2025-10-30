@@ -1,5 +1,8 @@
 // src/lib/auditLogger.ts
-import { prisma } from './prisma';
+// Compatibility wrapper: route code may import from '@/lib/auditLogger'.
+// Delegate to the canonical logger in '@/lib/audit-logger' which enforces
+// the standardized action set: NAVEGACION | CREACION | ACTUALIZACION | ELIMINACION.
+import { AuditLogger as BaseAuditLogger } from './audit-logger';
 
 export class AuditLogger {
   static async logCreate(
@@ -8,19 +11,7 @@ export class AuditLogger {
     description: string,
     userId?: string
   ) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          entidad: entityType,
-          entidadId: entityId,
-          accion: 'CREATE',
-          descripcion: description,
-          usuarioId: userId || null
-        }
-      });
-    } catch (error) {
-      console.error('Error logging create action:', error);
-    }
+    return BaseAuditLogger.logCreate(entityType, entityId, description, userId);
   }
 
   static async logUpdate(
@@ -29,19 +20,7 @@ export class AuditLogger {
     description: string,
     userId?: string
   ) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          entidad: entityType,
-          entidadId: entityId,
-          accion: 'UPDATE',
-          descripcion: description,
-          usuarioId: userId || null
-        }
-      });
-    } catch (error) {
-      console.error('Error logging update action:', error);
-    }
+    return BaseAuditLogger.logUpdate(entityType, entityId, description, userId);
   }
 
   static async logDelete(
@@ -50,18 +29,6 @@ export class AuditLogger {
     description: string,
     userId?: string
   ) {
-    try {
-      await prisma.historialMovimientos.create({
-        data: {
-          entidad: entityType,
-          entidadId: entityId,
-          accion: 'DELETE',
-          descripcion: description,
-          usuarioId: userId || null
-        }
-      });
-    } catch (error) {
-      console.error('Error logging delete action:', error);
-    }
+    return BaseAuditLogger.logDelete(entityType, entityId, description, userId);
   }
 }

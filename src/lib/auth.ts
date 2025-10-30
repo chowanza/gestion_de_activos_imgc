@@ -5,7 +5,7 @@ const encodedKey = new TextEncoder().encode(secretKey);
 
 export interface UserJwtPayload {
   sub: string;
-  role: 'user' | 'admin';
+  role: 'admin' | 'editor' | 'viewer' | 'user';
   username: string;
   avatar?: string;
   jti?: string;

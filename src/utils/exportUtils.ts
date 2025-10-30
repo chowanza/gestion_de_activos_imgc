@@ -4,15 +4,14 @@ export const exportToExcel = (data: ExportData | LegacyExportData) => {
   let sheetData: any[][] = [];
   let headers: string[] = [];
   if (isLegacyData) {
-    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo', 'Gerente'];
+    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo'];
     sheetData = (data as LegacyExportData).movements.map((movement: any) => [
       movement.fecha,
       movement.accion,
       movement.equipo,
       movement.serial,
       movement.asignadoA,
-      movement.motivo || '-',
-      movement.gerente || '-'
+      movement.motivo || '-'
     ]);
   } else {
     headers = (data as ExportData).columns.map((col: any) => col.title);
@@ -72,7 +71,6 @@ export interface LegacyExportData {
     serial: string;
     asignadoA: string;
     motivo?: string;
-    gerente?: string;
   }>;
   statistics: {
     totalMovements: number;
@@ -166,18 +164,16 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
       movement.equipo,
       movement.serial,
       movement.asignadoA,
-      movement.motivo || '-',
-      movement.gerente || '-'
+      movement.motivo || '-'
     ]);
-    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo', 'Gerente'];
+    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo'];
     columnStyles = {
       0: { halign: 'center', cellWidth: 20 },
       1: { halign: 'center', cellWidth: 22 },
-      2: { halign: 'left', cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 18 },
-      4: { halign: 'left', cellWidth: 25 },
-      5: { halign: 'left', cellWidth: 32 },
-      6: { halign: 'center', cellWidth: 18 }
+      2: { halign: 'left', cellWidth: 30 },
+      3: { halign: 'center', cellWidth: 20 },
+      4: { halign: 'left', cellWidth: 28 },
+      5: { halign: 'left', cellWidth: 35 }
     };
   } else {
     tableData = (data as ExportData).data.map((row: any) =>

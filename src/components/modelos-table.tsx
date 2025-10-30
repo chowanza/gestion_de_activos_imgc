@@ -31,6 +31,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -43,6 +44,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { FilterIcon } from "lucide-react"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
 import TableRowSkeleton from "@/utils/loading"
+import { useRouter } from "next/navigation"
 
 export const modeloSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -81,6 +83,7 @@ interface EquiposTableProps {
 }
 
 export function ModelosTable({}: EquiposTableProps) {
+  const router = useRouter()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -209,13 +212,31 @@ const columns: ColumnDef<Modelo>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(modelo.id)}>
+              Copiar ID
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push(`/catalogo/${modelo.id}`)}>
+              Ver Detalles
+            </DropdownMenuItem>
             {isAdmin && (
               <>
-                <DropdownMenuItem onClick={() => handleOpenEditModal(modelo)}
-                >Editar modelo</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">Eliminar modelo</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOpenEditModal(modelo)}>
+                  Editar modelo
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    if (confirm('¿Estás seguro de que quieres eliminar este modelo?')) {
+                      void handleDelete({ id: modelo.id })
+                    }
+                  }}
+                >
+                  Eliminar modelo
+                </DropdownMenuItem>
               </>      
               )}
           </DropdownMenuContent>

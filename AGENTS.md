@@ -1698,3 +1698,19 @@ Funcionalidad implementada (frontend):
 Nota operativa: esta página reutiliza los componentes UI existentes (Dialog, Table, Inputs) y asume que el usuario que la utiliza tiene rol Admin.
 
 Dev helper: hay una anulación de desarrollo disponible en `src/lib/auth-server.ts` que permite forzar el rol Admin para un usuario de desarrollo configurado mediante las variables de entorno `DEV_SUPERADMIN_USERNAME` o `DEV_SUPERADMIN_EMAIL`. No habilitar estas variables en producción.
+
+---
+
+## 🖼️ Actualizaciones de UI recientes
+
+- Se removió la visualización de “Gerente” en vistas de detalle no relacionadas con formularios/tablas:
+  - Página de detalles de Empresa: `src/app/(app)/empresas/[id]/page.tsx`
+  - Diálogo `EmpresaDetails`: `src/components/EmpresaDetails.tsx`
+  - Página de detalles de Departamento: `src/app/(app)/departamentos/[id]/page.tsx`
+
+Estas vistas ya no muestran el gerente del departamento y no envían `gerenteId` al crear departamentos desde Empresa. La funcionalidad de gerente se mantiene en APIs y en flujos donde sí aplica (asignaciones, auditoría) según reglas de negocio.
+
+- Se removió “Gerente” de reportes y exportaciones:
+  - Endpoints de reportes: `movimientos-historial`, `audit-logger`, `asignaciones-modificaciones` ya no incluyen campos `gerente`/`gerenteId` en la salida.
+  - Utilidades de exportación: `src/utils/exportUtils.ts` actualizada para no generar columna “Gerente” en Excel/PDF (modo legacy).
+  - UI de reportes: componentes que mostraban/filtraban por “Gerente” fueron ajustados (p. ej. `EmployeeAssignmentHistory`) para evitar referencias.

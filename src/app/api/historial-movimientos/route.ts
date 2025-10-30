@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/role-middleware';
+import { getServerUser } from '@/lib/auth-server';
 
 // GET /api/historial-movimientos - Obtener historial de movimientos
 export async function GET(request: NextRequest) {
@@ -73,18 +74,21 @@ export async function GET(request: NextRequest) {
 
 // POST /api/historial-movimientos - Crear nuevo movimiento (para uso interno)
 export async function POST(request: NextRequest) {
-  // Creating movement entries should be limited to audit-capable users
-  const deny = await requirePermission('canViewAuditLogs')(request as any);
-  if (deny) return deny;
+  // Allow any authenticated user to log a movement; we'll attach the user from the session
   try {
+    const sessionUser = await getServerUser(request);
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { 
+    let { 
       accion, 
       entidad, 
       entidadId, 
       descripcion, 
       detalles, 
-      usuarioId, 
+      // usuarioId (ignored - we use session),
       ipAddress, 
       userAgent 
     } = body;
@@ -96,16 +100,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalizar/validar accion para cumplir con el set predefinido
+    const allowed = new Map<string, string>([
+      ['NAVEGACION', 'NAVEGACION'],
+      ['CREACION', 'CREACION'],
+      ['ACTUALIZACION', 'ACTUALIZACION'],
+      ['ELIMINACION', 'ELIMINACION'],
+      // Legacy mappings
+      ['VIEW', 'NAVEGACION'],
+      ['CREATE', 'CREACION'],
+      ['UPDATE', 'ACTUALIZACION'],
+      ['DELETE', 'ELIMINACION'],
+    ]);
+    const normalized = allowed.get(String(accion).toUpperCase());
+    if (!normalized) {
+      return NextResponse.json(
+        { error: "Acción inválida. Use NAVEGACION | CREACION | ACTUALIZACION | ELIMINACION" },
+        { status: 400 }
+      );
+    }
+
     const movimiento = await prisma.historialMovimientos.create({
       data: {
-        accion,
+        accion: normalized,
         entidad,
         entidadId: entidadId || null,
         descripcion,
         detalles: detalles ? JSON.stringify(detalles) : null,
-        usuarioId: usuarioId || null,
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
+  usuarioId: (sessionUser.id as string),
+        ipAddress: ipAddress || request.headers.get('x-forwarded-for') || null,
+        userAgent: userAgent || request.headers.get('user-agent') || null,
       },
       include: {
         usuario: {

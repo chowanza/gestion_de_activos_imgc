@@ -276,11 +276,11 @@ export default function CatalogoPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Modelo</th>
-                        <th className="text-left p-3 font-medium">Marca</th>
-                        <th className="text-left p-3 font-medium">Tipo</th>
-                        <th className="text-left p-3 font-medium">Imagen</th>
-                        <th className="text-right p-3 font-medium">Acciones</th>
+                        <th className="text-left p-3 font-semibold">Modelo</th>
+                        <th className="text-left p-3 font-semibold">Marca</th>
+                        <th className="text-left p-3 font-semibold">Tipo</th>
+                        <th className="text-left p-3 font-semibold">Imagen</th>
+                        <th className="text-right p-3 font-semibold">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -417,11 +417,11 @@ export default function CatalogoPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Modelo</th>
-                        <th className="text-left p-3 font-medium">Marca</th>
-                        <th className="text-left p-3 font-medium">Tipo</th>
-                        <th className="text-left p-3 font-medium">Imagen</th>
-                        <th className="text-right p-3 font-medium">Acciones</th>
+                        <th className="text-left p-3 font-semibold">Modelo</th>
+                        <th className="text-left p-3 font-semibold">Marca</th>
+                        <th className="text-left p-3 font-semibold">Tipo</th>
+                        <th className="text-left p-3 font-semibold">Imagen</th>
+                        <th className="text-right p-3 font-semibold">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>

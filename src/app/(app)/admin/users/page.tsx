@@ -35,7 +35,7 @@ export default function AdminUsersPage() {
     username: '',
     email: '',
     password: '',
-    role: 'No-Admin'
+    role: 'viewer'
   });
 
   const isAdmin = useIsAdmin();
@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
 
       showToast.success('Usuario creado exitosamente');
       setIsCreateDialogOpen(false);
-      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
+  setFormData({ username: '', email: '', password: '', role: 'viewer' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al crear usuario');
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
       showToast.success('Usuario actualizado exitosamente');
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      setFormData({ username: '', email: '', password: '', role: 'No-Admin' });
+  setFormData({ username: '', email: '', password: '', role: 'viewer' });
       fetchUsers();
     } catch (error: any) {
       showToast.error(error.message || 'Error al actualizar usuario');
@@ -221,8 +221,9 @@ export default function AdminUsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="No-Admin">No-Admin</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="viewer">Visualizador</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -324,8 +325,9 @@ export default function AdminUsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="No-Admin">No-Admin</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -219,24 +219,20 @@ export function EmpresasTable() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(empresa.id)}
-            >
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(empresa.id)}>
               Copiar ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleViewDetails(empresa)}>
               Ver Detalles
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleEditEmpresa(empresa)}>
-              Editar Empresa
             {canManageEmpresas && (
               <>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleEditEmpresa(empresa)}>
                   Editar Empresa
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => handleDeleteEmpresa(empresa)}
                   className="text-red-600"
                 >
@@ -244,13 +240,6 @@ export function EmpresasTable() {
                 </DropdownMenuItem>
               </>
             )}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => handleDeleteEmpresa(empresa)}
-              className="text-red-600"
-            >
-              Eliminar Empresa
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
