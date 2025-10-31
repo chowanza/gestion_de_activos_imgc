@@ -34,15 +34,19 @@ import * as XLSX from 'xlsx';
 // Word export (docx)
 import {
   AlignmentType,
+  BorderStyle,
   Document as DocxDocument,
   HeadingLevel,
+  ImageRun,
   Packer,
   Paragraph,
+  Footer,
   Table as DocxTable,
   TableCell as DocxTableCell,
   TableRow as DocxTableRow,
   TextRun,
-  WidthType
+  WidthType,
+  PageOrientation
 } from 'docx';
 
 // Importar jspdf-autotable de manera dinámica
@@ -272,6 +276,17 @@ export const exportToDOCX = async (data: ExportData | LegacyExportData) => {
   let reportTypeName = 'reporte';
   let title = 'Reporte';
 
+  // Cargar logo (opcional)
+  let logoBuffer: ArrayBuffer | null = null;
+  try {
+    const logoResponse = await fetch('/img/logo.png');
+    if (logoResponse.ok) {
+      logoBuffer = await logoResponse.arrayBuffer();
+    }
+  } catch (e) {
+    // Sin logo no es bloqueante
+  }
+
   if (isLegacyData) {
     headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo'];
     rows = (data as LegacyExportData).movements.map((m) => [
@@ -296,8 +311,39 @@ export const exportToDOCX = async (data: ExportData | LegacyExportData) => {
   const doc = new DocxDocument({
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            size: {
+              width: 15840, // Carta horizontal: 11in * 1440 twips
+              height: 12240, // 8.5in * 1440 twips
+              orientation: PageOrientation.LANDSCAPE
+            }
+          }
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({ text: `Sistema de Gestión de Activos IMGC — ${title}`, italics: true, size: 18, color: '7F7F7F' })
+                ]
+              })
+            ]
+          })
+        },
         children: [
+          // Logo arriba a la izquierda
+          ...(logoBuffer
+            ? [
+                new Paragraph({
+                  alignment: AlignmentType.LEFT,
+                  children: [
+                    new ImageRun({ data: new Uint8Array(logoBuffer as ArrayBuffer), transformation: { width: 120, height: 40 } } as any)
+                  ]
+                })
+              ]
+            : []),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             heading: HeadingLevel.HEADING_1,
@@ -309,6 +355,22 @@ export const exportToDOCX = async (data: ExportData | LegacyExportData) => {
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({ text: `Generado: ${new Date().toLocaleDateString('es-ES')}`, italics: true, size: 20 })
+            ]
+          }),
+          new Paragraph({ text: ' ' }),
+          // Línea separadora bajo el encabezado
+          new DocxTable({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new DocxTableRow({
+                children: [
+                  new DocxTableCell({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: { top: { style: BorderStyle.SINGLE, size: 6, color: 'CCCCCC' } },
+                    children: [new Paragraph({ text: ' ' })]
+                  })
+                ]
+              })
             ]
           }),
           new Paragraph({ text: ' ' }),
