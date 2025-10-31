@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/role-middleware';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 export async function GET(
   request: NextRequest,
@@ -81,6 +83,21 @@ export async function GET(
       );
     }
 
+    // Auditoría: vista de detalle de ubicación
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logView(
+          'ubicacion',
+          id,
+          `Vista de detalles de la ubicación: ${ubicacion.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de ubicación:', e);
+    }
+
     return NextResponse.json(ubicacion);
   } catch (error) {
     console.error('Error fetching ubicacion:', error);
@@ -154,6 +171,21 @@ export async function PUT(
       }
     });
 
+    // Auditoría: actualización de ubicación
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logUpdate(
+          'ubicacion',
+          id,
+          `Ubicación actualizada: ${ubicacion.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de actualización de ubicación:', e);
+    }
+
     return NextResponse.json(ubicacion);
   } catch (error) {
     console.error('Error updating ubicacion:', error);
@@ -206,6 +238,21 @@ export async function DELETE(
     await prisma.ubicacion.delete({
       where: { id }
     });
+    
+    // Auditoría: eliminación de ubicación
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logDelete(
+          'ubicacion',
+          id,
+          `Ubicación eliminada: ${ubicacion.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de eliminación de ubicación:', e);
+    }
 
     return NextResponse.json({ message: 'Ubicación eliminada correctamente' });
   } catch (error) {

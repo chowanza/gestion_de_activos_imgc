@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/role-middleware';
 import { Prisma, HistorialModificaciones } from '@prisma/client';
 import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 
 export async function GET(request: NextRequest) {
@@ -121,8 +122,23 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        if (!computador) {
+    if (!computador) {
             return NextResponse.json({ message: 'Computador no encontrado' }, { status: 404 });
+        }
+        
+        // Auditoría: vista de detalle de computador
+        try {
+          const user = await getServerUser(request as any);
+          if (user) {
+            await AuditLogger.logView(
+              'computador',
+              id,
+              `Vista de detalles del computador: ${computador.serial}`,
+              (user as any).id
+            );
+          }
+        } catch (e) {
+          console.warn('No se pudo registrar auditoría de vista de computador:', e);
         }
 
         // Mapear las nuevas relaciones al formato esperado por el frontend

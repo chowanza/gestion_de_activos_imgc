@@ -116,6 +116,21 @@ export async function GET(
       );
     }
 
+    // Auditoría: vista de detalle de empresa
+    try {
+      const user = await getServerUser(request);
+      if (user) {
+        await AuditLogger.logView(
+          'empresa',
+          id,
+          `Vista de detalles de la empresa: ${empresa.nombre}`,
+          user.id as string
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de empresa:', e);
+    }
+
     return NextResponse.json(empresa);
   } catch (error) {
     console.error('Error fetching empresa:', error);

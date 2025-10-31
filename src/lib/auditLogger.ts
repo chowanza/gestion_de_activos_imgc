@@ -31,4 +31,13 @@ export class AuditLogger {
   ) {
     return BaseAuditLogger.logDelete(entityType, entityId, description, userId);
   }
+
+  static async logView(
+    entityType: string,
+    entityId: string,
+    description: string,
+    userId?: string
+  ) {
+    return BaseAuditLogger.logView(entityType, entityId, description, userId);
+  }
 }

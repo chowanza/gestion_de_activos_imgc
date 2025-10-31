@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,6 +31,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (!modelo) {
       return NextResponse.json({ message: "Modelo not found" }, { status: 404 });
+    }
+
+    // Auditoría: vista de detalles extendidos de modelo
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logView(
+          'modeloEquipo',
+          id,
+          `Vista de detalles (extendidos) del modelo: ${modelo.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de modelo (details):', e);
     }
 
     // Calcular estadísticas usando la estructura normalizada

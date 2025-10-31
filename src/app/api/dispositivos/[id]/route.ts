@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/role-middleware';
 import { Prisma } from '@prisma/client';
 import { dispositivoSchema } from '@/components/equipos-table';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 
 
@@ -123,6 +125,21 @@ export async function GET(request: NextRequest) {
 
         if (!dispositivo) {
             return NextResponse.json({ message: 'dispositivo no encontrado' }, { status: 404 });
+        }
+
+        // Auditoría: vista de detalle de dispositivo
+        try {
+          const user = await getServerUser(request as any);
+          if (user) {
+            await AuditLogger.logView(
+              'dispositivo',
+              id,
+              `Vista de detalles del dispositivo: ${dispositivo.serial}`,
+              (user as any).id
+            );
+          }
+        } catch (e) {
+          console.warn('No se pudo registrar auditoría de vista de dispositivo:', e);
         }
 
         // Mapear las nuevas relaciones al formato esperado por el frontend

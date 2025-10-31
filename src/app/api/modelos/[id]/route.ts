@@ -5,6 +5,8 @@ import path from 'path';
 
 
 import prisma  from "@/lib/prisma";
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 async function ensureDirExists(dirPath: string) {
     try {
@@ -60,6 +62,21 @@ export async function GET(request: NextRequest) {
 
     if (!modelo) {
       return NextResponse.json({ message: "Modelo not found" }, { status: 404 });
+    }
+
+    // Auditoría: vista de detalle de modelo
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logView(
+          'modeloEquipo',
+          id,
+          `Vista de detalles del modelo: ${modelo.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de modelo:', e);
     }
 
     return NextResponse.json(modelo);
