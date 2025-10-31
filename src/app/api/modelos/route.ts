@@ -19,7 +19,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Nombre, tipo y marca son requeridos." }, { status: 400 });
         }
 
-        let imagePath = null;
+  let imagePath = null;
         if (imgFile && imgFile.size > 0) {
             // Crear directorio si no existe
             const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'modelos');
@@ -35,7 +35,8 @@ export async function POST(request: Request) {
             const buffer = Buffer.from(bytes);
             await fs.writeFile(filePath, buffer);
 
-            imagePath = `/uploads/modelos/${fileName}`;
+      // Store URL using the streaming endpoint for consistent serving
+      imagePath = `/api/uploads/modelos/${fileName}`;
         }
 
         const nuevoModelo = await prisma.modeloEquipo.create({
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
   const deny = await requirePermission('canView')(request as any);
   if (deny) return deny;
   try {
-    const modelos = await prisma.modeloEquipo.findMany({
+  const modelos = await prisma.modeloEquipo.findMany({
       include: {
         marcaModelos: {
           include: {
@@ -79,13 +80,31 @@ export async function GET(request: Request) {
     });
 
     // Transformar los datos para que coincidan con la interfaz esperada
-    const modelosTransformados = modelos.map(modelo => ({
-      id: modelo.id,
-      nombre: modelo.nombre,
-      tipo: modelo.tipo,
-      img: modelo.img ? modelo.img.replace('/img/equipos/', '/uploads/modelos/') : null,
-      marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
-    }));
+    const modelosTransformados = modelos.map(modelo => {
+      // Normalize stored image URLs to use /api/uploads
+      const raw = modelo.img || null;
+      let normalized: string | null = null;
+      if (raw) {
+        if (raw.startsWith('/api/uploads/')) {
+          normalized = raw;
+        } else if (raw.startsWith('/uploads/')) {
+          normalized = raw.replace(/^\/uploads\//, '/api/uploads/');
+        } else if (raw.startsWith('/img/equipos/')) {
+          // Legacy path used in early seeds; map to modelos folder
+          normalized = raw.replace(/^\/img\/equipos\//, '/api/uploads/modelos/');
+        } else {
+          // External or already absolute URL; keep as-is
+          normalized = raw;
+        }
+      }
+      return {
+        id: modelo.id,
+        nombre: modelo.nombre,
+        tipo: modelo.tipo,
+        img: normalized,
+        marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
+      };
+    });
 
     return NextResponse.json(modelosTransformados, { status: 200 });
   } catch (error) {

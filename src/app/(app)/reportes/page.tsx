@@ -15,7 +15,7 @@ import { Calendar, Download, FileText, BarChart3, TrendingUp, Users, Building, C
 import { showToast } from 'nextjs-toast-notify';
 import { reactSelectStyles } from '@/utils/reactSelectStyles';
 import { formatDate } from '@/utils/formatDate';
-import { exportToPDF, exportToExcel, ExportData } from '@/utils/exportUtils';
+import { exportToPDF, exportToExcel, exportToDOCX, ExportData } from '@/utils/exportUtils';
 import { ESTADOS_EQUIPO } from '@/lib/estados-equipo';
 import { LoadingSpinner } from '@/utils/loading';
 
@@ -339,7 +339,7 @@ export default function ReportesPage() {
     }
   };
 
-  const exportReport = async (format: 'pdf' | 'excel') => {
+  const exportReport = async (format: 'pdf' | 'excel' | 'docx') => {
     if (!reportData) {
       showToast.error('Genere un reporte primero');
       return;
@@ -402,9 +402,12 @@ export default function ReportesPage() {
       if (format === 'pdf') {
         await exportToPDF(exportData);
         showToast.success('Reporte PDF generado exitosamente');
-      } else {
+      } else if (format === 'excel') {
         exportToExcel(exportData);
         showToast.success('Reporte Excel generado exitosamente');
+      } else {
+        await exportToDOCX(exportData);
+        showToast.success('Reporte Word generado exitosamente');
       }
     } catch (error) {
       console.error('Error al exportar:', error);
@@ -1210,6 +1213,15 @@ export default function ReportesPage() {
                     >
                       <Download className="h-5 w-5 mr-2" />
                       Exportar Excel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => exportReport('docx')}
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      Exportar Word
                     </Button>
                   </>
                 )}

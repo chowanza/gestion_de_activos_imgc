@@ -128,6 +128,14 @@ export async function GET(request: NextRequest) {
         // Mapear las nuevas relaciones al formato esperado por el frontend
         const modeloEquipo = computador.computadorModelos[0]?.modeloEquipo;
         const marca = modeloEquipo?.marcaModelos[0]?.marca;
+        // Normalize modelo image URL to use streaming endpoint
+        const normalizeImg = (raw: string | null | undefined) => {
+          if (!raw) return null;
+          if (raw.startsWith('/api/uploads/')) return raw;
+          if (raw.startsWith('/uploads/')) return raw.replace(/^\/uploads\//, '/api/uploads/');
+          if (raw.startsWith('/img/equipos/')) return raw.replace(/^\/img\/equipos\//, '/api/uploads/modelos/');
+          return raw;
+        };
         
         // Mapear empleado de la asignación activa
         const asignacionActiva = computador.asignaciones.find(a => a.activo);
@@ -159,6 +167,7 @@ export async function GET(request: NextRequest) {
           modeloId: modeloEquipo?.id || '', // Agregar modeloId para el formulario
           modelo: modeloEquipo ? {
             ...modeloEquipo,
+            img: normalizeImg((modeloEquipo as any).img),
             marca: marca
           } : null,
           empleado: empleadoMapeado,

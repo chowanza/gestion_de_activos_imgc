@@ -31,6 +31,19 @@ export const exportToExcel = (data: ExportData | LegacyExportData) => {
 };
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+// Word export (docx)
+import {
+  AlignmentType,
+  Document as DocxDocument,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table as DocxTable,
+  TableCell as DocxTableCell,
+  TableRow as DocxTableRow,
+  TextRun,
+  WidthType
+} from 'docx';
 
 // Importar jspdf-autotable de manera dinámica
 let autoTable: any = null;
@@ -135,7 +148,7 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
   // Título página tabla
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  const tableTitleText = 'Datos del Reporte';
+  const tableTitleText = isLegacyData ? 'Historial de Movimientos' : (data as ExportData).title || 'Reporte';
   const tableTitleWidth = doc.getTextWidth(tableTitleText);
   doc.text(tableTitleText, (tablePageWidth - tableTitleWidth) / 2, 25);
 
@@ -248,3 +261,104 @@ export const exportToPDF = async (data: ExportData | LegacyExportData) => {
   const fileName = `reporte_${reportTypeName}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
+
+// Exportar a Word (DOCX)
+export const exportToDOCX = async (data: ExportData | LegacyExportData) => {
+  const isLegacyData = 'movements' in data;
+
+  // Preparar encabezados y filas
+  let headers: string[] = [];
+  let rows: (string | number)[][] = [];
+  let reportTypeName = 'reporte';
+  let title = 'Reporte';
+
+  if (isLegacyData) {
+    headers = ['Fecha', 'Acción', 'Equipo', 'Serial', 'Asignado a', 'Motivo'];
+    rows = (data as LegacyExportData).movements.map((m) => [
+      m.fecha,
+      m.accion,
+      m.equipo,
+      m.serial,
+      m.asignadoA,
+      m.motivo || '-'
+    ]);
+    reportTypeName = 'movimientos';
+    title = 'Historial de Movimientos';
+  } else {
+    const d = data as ExportData;
+    headers = d.columns.map((c) => c.title);
+    rows = d.data.map((row: any) => d.columns.map((c) => (row[c.key] ?? '-')));
+    reportTypeName = d.reportType;
+    title = d.title || 'Reporte';
+  }
+
+  // Construir documento
+  const doc = new DocxDocument({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            heading: HeadingLevel.HEADING_1,
+            children: [
+              new TextRun({ text: title, bold: true })
+            ]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: `Generado: ${new Date().toLocaleDateString('es-ES')}`, italics: true, size: 20 })
+            ]
+          }),
+          new Paragraph({ text: ' ' }),
+          // Tabla
+          new DocxTable({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              // Header row
+              new DocxTableRow({
+                children: headers.map((h) =>
+                  new DocxTableCell({
+                    width: { size: Math.floor(100 / Math.max(1, headers.length)), type: WidthType.PERCENTAGE },
+                    children: [
+                      new Paragraph({
+                        children: [new TextRun({ text: h, bold: true })],
+                        alignment: AlignmentType.CENTER
+                      })
+                    ]
+                  })
+                )
+              }),
+              // Data rows
+              ...rows.map((r) =>
+                new DocxTableRow({
+                  children: r.map((cell) =>
+                    new DocxTableCell({
+                      width: { size: Math.floor(100 / Math.max(1, headers.length)), type: WidthType.PERCENTAGE },
+                      children: [
+                        new Paragraph({
+                          children: [new TextRun(String(cell))]
+                        })
+                      ]
+                    })
+                  )
+                })
+              )
+            ]
+          })
+        ]
+      }
+    ]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = `reporte_${reportTypeName}_${new Date().toISOString().split('T')[0]}.docx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(blobUrl);
+};

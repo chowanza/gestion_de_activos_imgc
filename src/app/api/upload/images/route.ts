@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       await mkdir(uploadsDir, { recursive: true });
     }
 
-    const uploadedUrls: string[] = [];
+  const uploadedUrls: string[] = [];
 
     for (const file of files) {
       if (!file.type.startsWith('image/')) {
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       
       await writeFile(filepath, buffer);
       
-      // Generate URL
-      const url = `/uploads/interventions/${filename}`;
+  // Generate URL (serve via streaming endpoint)
+  const url = `/api/uploads/interventions/${filename}`;
       uploadedUrls.push(url);
     }
 
