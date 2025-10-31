@@ -85,6 +85,45 @@ export class AuditLogger {
     });
   }
 
+  // Intentos de login fallidos
+  static async logLoginFailed(username: string, reason: 'user-not-found' | 'invalid-password' | 'invalid-data' | 'locked' | 'unknown', ipAddress?: string, userAgent?: string) {
+    await this.log({
+      accion: 'NAVEGACION',
+      entidad: 'usuario',
+      entidadId: username,
+      descripcion: 'Intento de inicio de sesión fallido',
+      detalles: {
+        tipo: 'login_failed',
+        reason,
+        status: 401,
+        timestamp: new Date().toISOString()
+      },
+  usuarioId: undefined,
+      ipAddress,
+      userAgent
+    });
+  }
+
+  // Accesos no autorizados / sin permisos (401/403)
+  static async logUnauthorized(path: string, status: 401 | 403, usuarioId?: string, ipAddress?: string, userAgent?: string, details?: any) {
+    await this.log({
+      accion: 'NAVEGACION',
+      entidad: 'sistema',
+      entidadId: path,
+      descripcion: status === 401 ? 'Acceso no autenticado' : 'Acceso sin permisos',
+      detalles: {
+        tipo: 'unauthorized',
+        status,
+        path,
+        ...details,
+        timestamp: new Date().toISOString()
+      },
+      usuarioId,
+      ipAddress,
+      userAgent
+    });
+  }
+
   static async logCreate(entidad: string, entidadId: string, descripcion: string, usuarioId?: string, detalles?: any) {
     await this.log({
       accion: 'CREACION',

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { requirePermission } from '@/lib/role-middleware';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 // Helper function to format date to dd/mm/yy
 function formatDateToDDMMYY(dateString: string): string {
@@ -85,6 +87,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'empleado no encontrado' }, { status: 404 });
     }
     
+    // Registrar visualización del detalle del empleado en auditoría (NAVEGACION)
+    try {
+      const user = await getServerUser(request as any);
+      await AuditLogger.logView('empleado', id, `Vista de detalles del empleado`, (user as any)?.id);
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de empleado:', e);
+    }
+
     // Agregar estado calculado basado en fechaDesincorporacion
     const empleadoConEstado = {
       ...empleado,
@@ -279,9 +289,10 @@ export async function PUT(request: NextRequest) {
         });
 
         // Si se proporciona departamentoId o cargoId, actualizar la organización
-        if (departamentoId || cargoId) {
+    let orgChangeDetails: any = undefined;
+    if (departamentoId || cargoId) {
             // Buscar la organización activa del empleado
-            const organizacionActiva = await prisma.empleadoEmpresaDepartamentoCargo.findFirst({
+      const organizacionActiva = await prisma.empleadoEmpresaDepartamentoCargo.findFirst({
                 where: {
                     empleadoId: id,
                     activo: true
@@ -292,6 +303,20 @@ export async function PUT(request: NextRequest) {
                 const updateData: any = {};
                 if (departamentoId) updateData.departamentoId = departamentoId;
                 if (cargoId) updateData.cargoId = cargoId;
+
+        // Preparar detalles de cambio organizacional para auditoría
+        orgChangeDetails = {
+          from: {
+          empresaId: organizacionActiva.empresaId,
+          departamentoId: organizacionActiva.departamentoId,
+          cargoId: organizacionActiva.cargoId,
+          },
+          to: {
+          empresaId: organizacionActiva.empresaId,
+          departamentoId: departamentoId ?? organizacionActiva.departamentoId,
+          cargoId: cargoId ?? organizacionActiva.cargoId,
+          }
+        };
 
                 // Usar la clave compuesta correcta para la actualización
                 await prisma.empleadoEmpresaDepartamentoCargo.update({
@@ -343,6 +368,25 @@ export async function PUT(request: NextRequest) {
             });
         }
 
+        // Registrar en auditoría de movimientos (ACTUALIZACION)
+        try {
+          const user = await getServerUser(request as any);
+          const fotoPerfilChanged = Object.prototype.hasOwnProperty.call(dataToUpdate, 'fotoPerfil') && (dataToUpdate.fotoPerfil !== empleadoOriginal?.fotoPerfil);
+          await AuditLogger.logUpdate(
+            'empleado',
+            id,
+            `Empleado "${updatedEmpleado.nombre} ${updatedEmpleado.apellido}" actualizado`,
+            (user as any)?.id,
+            {
+              camposModificados,
+              fotoPerfilChanged,
+              organizacionActualizada: orgChangeDetails || null
+            }
+          );
+        } catch (e) {
+          console.warn('No se pudo registrar auditoría de actualización de empleado:', e);
+        }
+
         // Agregar estado calculado basado en fechaDesincorporacion
         const empleadoConEstado = {
             ...updatedEmpleado,
@@ -369,6 +413,7 @@ export async function DELETE(request: NextRequest) {
     // Require permission to manage users to delete empleados
     const auth = await requirePermission('canManageUsers')(request as any);
     if (auth instanceof NextResponse) return auth;
+    const user = await getServerUser(request as any);
     
     // Verificar si el empleado existe
     const empleado = await prisma.empleado.findUnique({
@@ -433,6 +478,24 @@ export async function DELETE(request: NextRequest) {
           motivo: `Empleado desincorporado del sistema. Se desactivaron ${empleado.asignacionesComoTarget.length} asignaciones y ${empleado.organizaciones.length} relaciones organizacionales.`
         }
       });
+
+      // Auditoría: cambio de estado (Activo -> Inactivo)
+      try {
+        await AuditLogger.logStateChange(
+          'empleado',
+          id,
+          'Activo',
+          'Inactivo',
+          (user as any)?.id,
+          {
+            motivo: 'Desincorporación del empleado',
+            asignacionesActivasPrevias: empleado.asignacionesComoTarget.length,
+            relacionesActivasPrevias: empleado.organizaciones.length
+          }
+        );
+      } catch (e) {
+        console.warn('No se pudo registrar auditoría de desincorporación de empleado:', e);
+      }
 
       // Desactivar relaciones organizacionales
       if (tieneRelacionesActivas) {
@@ -519,6 +582,18 @@ export async function DELETE(request: NextRequest) {
       await prisma.empleado.delete({
         where: { id }
       });
+
+      // Auditoría: eliminación física del empleado
+      try {
+        await AuditLogger.logDelete(
+          'empleado',
+          id,
+          `Empleado eliminado permanentemente: ${empleado.nombre} ${empleado.apellido}`,
+          (user as any)?.id
+        );
+      } catch (e) {
+        console.warn('No se pudo registrar auditoría de eliminación de empleado:', e);
+      }
       
       return NextResponse.json({ 
         message: 'Empleado eliminado permanentemente',

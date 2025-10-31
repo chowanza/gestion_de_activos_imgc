@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
     const validation = loginSchema.safeParse(body);
 
     if (!validation.success) {
+      // Log invalid payload (bad request)
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const ua = req.headers.get('user-agent') || 'unknown';
+      await AuditLogger.logLoginFailed('unknown', 'invalid-data', ip, ua);
       return NextResponse.json({ message: 'Datos inválidos', errors: validation.error.errors }, { status: 400 });
     }
 
@@ -27,12 +31,18 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { username } });
 
     if (!user) {
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const ua = req.headers.get('user-agent') || 'unknown';
+      await AuditLogger.logLoginFailed(username, 'user-not-found', ip, ua);
       return NextResponse.json({ message: 'Credenciales inválidas' }, { status: 401 });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
+      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const ua = req.headers.get('user-agent') || 'unknown';
+      await AuditLogger.logLoginFailed(username, 'invalid-password', ip, ua);
       return NextResponse.json({ message: 'Credenciales inválidas' }, { status: 401 });
     }
     

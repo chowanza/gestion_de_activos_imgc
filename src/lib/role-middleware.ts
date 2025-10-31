@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from './prisma';
 import { getServerUser } from './auth-server';
 import { getRolePermissions, RolePermissions, UserRole } from './permissions';
+import { AuditLogger } from './audit-logger';
 
 export type { UserRole, RolePermissions };
 
@@ -18,6 +19,13 @@ export function requirePermission(permission: keyof RolePermissions) {
       // try to extract from request/session
       const extracted = await getUserIdFromRequest(request);
       if (!extracted) {
+        // Log 401 unauthenticated access
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 401, undefined, ip, ua);
+        } catch {}
         return NextResponse.json(
           { error: 'Usuario no autenticado' },
           { status: 401 }
@@ -42,6 +50,13 @@ export function requirePermission(permission: keyof RolePermissions) {
       const userRole = (user.role as unknown as UserRole) || 'viewer';
       
       if (!hasPermission(userRole, permission)) {
+        // Log 403 forbidden access
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 403, userId, ip, ua, { permission });
+        } catch {}
         return NextResponse.json(
           { error: 'No tienes permisos para realizar esta acción' },
           { status: 403 }
@@ -65,6 +80,12 @@ export function requireAnyPermission(permissions: (keyof RolePermissions)[]) {
     if (!userId) {
       const extracted = await getUserIdFromRequest(request);
       if (!extracted) {
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 401, undefined, ip, ua);
+        } catch {}
         return NextResponse.json(
           { error: 'Usuario no autenticado' },
           { status: 401 }
@@ -93,6 +114,12 @@ export function requireAnyPermission(permissions: (keyof RolePermissions)[]) {
       );
 
       if (!hasAnyPermission) {
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 403, userId, ip, ua, { anyOf: permissions });
+        } catch {}
         return NextResponse.json(
           { error: 'No tienes permisos para realizar esta acción' },
           { status: 403 }
@@ -116,6 +143,12 @@ export function requireAllPermissions(permissions: (keyof RolePermissions)[]) {
     if (!userId) {
       const extracted = await getUserIdFromRequest(request);
       if (!extracted) {
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 401, undefined, ip, ua);
+        } catch {}
         return NextResponse.json(
           { error: 'Usuario no autenticado' },
           { status: 401 }
@@ -144,6 +177,12 @@ export function requireAllPermissions(permissions: (keyof RolePermissions)[]) {
       );
 
       if (!hasAllPermissions) {
+        try {
+          const path = request.nextUrl?.pathname || 'unknown';
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined;
+          const ua = request.headers.get('user-agent') || undefined;
+          await AuditLogger.logUnauthorized(path, 403, userId, ip, ua, { allOf: permissions });
+        } catch {}
         return NextResponse.json(
           { error: 'No tienes permisos para realizar esta acción' },
           { status: 403 }

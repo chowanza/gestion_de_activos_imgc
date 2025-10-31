@@ -12,24 +12,25 @@ export async function getServerUser(request: NextRequest) {
 
     const session = await decrypt(cookie.value);
 
-  // DEV OVERRIDE: if environment variable DEV_SUPERADMIN_USERNAME or DEV_SUPERADMIN_EMAIL
-    // is set, force this session to have Admin privileges for development user matching that identifier.
+    // DEV OVERRIDE (guarded): only in development and explicitly enabled
     try {
-      const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
-      const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
+      const devEnabled = process.env.NODE_ENV === 'development' && process.env.DEV_SUPERADMIN_ENABLED === 'true';
+      if (devEnabled) {
+        const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
+        const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
 
-      const sessionUsername = (session as any)?.username;
-      const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
+        const sessionUsername = (session as any)?.username;
+        const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
 
-      if (
-        (devUsername && sessionUsername === devUsername) ||
-        (devEmail && sessionEmail === devEmail)
-      ) {
-        // Force admin role and mark as super admin in the session payload
-        (session as any).role = 'Admin';
-        (session as any).isSuperAdmin = true;
-        // Optionally grant a wildcard permissions flag that can be used by permission checks
-        (session as any).permissions = ['*'];
+        if (
+          (devUsername && sessionUsername === devUsername) ||
+          (devEmail && sessionEmail === devEmail)
+        ) {
+          // Force admin role and mark as super admin in the session payload (dev only)
+          (session as any).role = 'admin';
+          (session as any).isSuperAdmin = true;
+          (session as any).permissions = permissionsArrayFromRole('admin');
+        }
       }
     } catch (e) {
       // Non-fatal: don't break session retrieval if env var handling fails
@@ -43,13 +44,8 @@ export async function getServerUser(request: NextRequest) {
         (session as any).role = role.toString().toLowerCase();
       }
 
-      // If session already has explicit wildcard permissions keep them
-      if ((session as any)?.permissions && Array.isArray((session as any).permissions)) {
-        // nothing to do
-      } else {
-        // Attach computed permissions array (list of permission keys granted)
-        (session as any).permissions = permissionsArrayFromRole((session as any)?.role);
-      }
+      // Always (re)attach computed permissions array unless in dev override explicitly set above
+      (session as any).permissions = permissionsArrayFromRole((session as any)?.role);
     } catch (e) {
       console.warn('Error computing session permissions:', e);
     }
@@ -77,19 +73,22 @@ export async function getSessionUser() {
 
     // Same DEV override for layouts that use cookies() (no request object)
     try {
-      const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
-      const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
+      const devEnabled = process.env.NODE_ENV === 'development' && process.env.DEV_SUPERADMIN_ENABLED === 'true';
+      if (devEnabled) {
+        const devUsername = process.env.DEV_SUPERADMIN_USERNAME;
+        const devEmail = process.env.DEV_SUPERADMIN_EMAIL;
 
-      const sessionUsername = (session as any)?.username;
-      const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
+        const sessionUsername = (session as any)?.username;
+        const sessionEmail = (session as any)?.email || (session as any)?.user?.email;
 
-      if (
-        (devUsername && sessionUsername === devUsername) ||
-        (devEmail && sessionEmail === devEmail)
-      ) {
-        (session as any).role = 'Admin';
-        (session as any).isSuperAdmin = true;
-        (session as any).permissions = ['*'];
+        if (
+          (devUsername && sessionUsername === devUsername) ||
+          (devEmail && sessionEmail === devEmail)
+        ) {
+          (session as any).role = 'admin';
+          (session as any).isSuperAdmin = true;
+          (session as any).permissions = permissionsArrayFromRole('admin');
+        }
       }
     } catch (e) {
       console.warn('DEV_SUPERADMIN override check failed (layout):', e);
