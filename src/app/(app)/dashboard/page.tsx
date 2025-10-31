@@ -653,6 +653,7 @@ export default function InventoryDashboard() {
                       name: empresa.name,
                       value: empresa.displayValue,
                       percentage: empresa.percentage,
+                      coveragePercentage: empresa.coveragePercentage,
                       departments: empresa.departamentos || [],
                       color: undefined // Se generará automáticamente
                     }))}

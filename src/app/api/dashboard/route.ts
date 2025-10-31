@@ -123,9 +123,9 @@ async function getEmpresaStats(empresas: any[]) {
         }
       });
 
-      const computadoresSet = new Set<string>();
-      const dispositivosSet = new Set<string>();
-      const empleadosSet = new Set<string>();
+  const computadoresSet = new Set<string>();
+  const dispositivosSet = new Set<string>();
+  const empleadosSet = new Set<string>();
 
       asignaciones.forEach(a => {
         if (a.computadorId) computadoresSet.add(a.computadorId);
@@ -133,8 +133,8 @@ async function getEmpresaStats(empresas: any[]) {
         if (a.targetEmpleadoId) empleadosSet.add(a.targetEmpleadoId);
       });
 
-      const computadoresCount = computadoresSet.size;
-      const dispositivosCount = dispositivosSet.size;
+  const computadoresCount = computadoresSet.size;
+  const dispositivosCount = dispositivosSet.size;
 
       // Count empleados (active organizational assignments)
       const empleadosCount = await prisma.empleado.count({
@@ -147,6 +147,12 @@ async function getEmpresaStats(empresas: any[]) {
           }
         }
       });
+
+      // Cobertura: porcentaje de empleados de la empresa con al menos un equipo asignado
+      const withAny = empleadosSet.size;
+      const coveragePercentage = empleadosCount > 0
+        ? parseFloat(((withAny / empleadosCount) * 100).toFixed(1))
+        : 0;
 
       // Departments belonging to this company
       const departamentos = await prisma.departamento.findMany({
@@ -214,6 +220,7 @@ async function getEmpresaStats(empresas: any[]) {
         devices: dispositivosCount,
         total: computadoresCount + dispositivosCount,
         users: empleadosCount,
+        coveragePercentage,
         departamentos: departamentosStats
       };
     }));

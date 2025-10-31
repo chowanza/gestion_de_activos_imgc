@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { showToast } from 'nextjs-toast-notify';
-import { X } from 'lucide-react';
 
 interface CargoFormProps {
   isOpen: boolean;
@@ -78,10 +77,20 @@ export default function CargoForm({ isOpen, onClose, onSuccess, departamentoId, 
     }
   };
 
-  const handleClose = () => {
-    if (!loading) {
+  // Pre-cargar datos cuando se abre el modal en modo edición o cambia el cargo
+  useEffect(() => {
+    if (isOpen && cargo) {
+      setNombre(cargo.nombre || '');
+      setDescripcion(cargo.descripcion || '');
+    } else if (isOpen && !cargo) {
+      // Nuevo cargo: limpiar
       setNombre('');
       setDescripcion('');
+    }
+  }, [isOpen, cargo]);
+
+  const handleClose = () => {
+    if (!loading) {
       onClose();
     }
   };
@@ -90,17 +99,8 @@ export default function CargoForm({ isOpen, onClose, onSuccess, departamentoId, 
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle>
             {isEditing ? 'Editar Cargo' : 'Crear Nuevo Cargo'}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={loading}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
         

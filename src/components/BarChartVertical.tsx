@@ -7,6 +7,8 @@ interface BarData {
   value: number;
   percentage: number;
   color?: string;
+  // Porcentaje agregado de cobertura de empleados con equipos en la empresa
+  coveragePercentage?: number;
   departments?: Array<{
     name: string;
     computers: number;
@@ -129,6 +131,9 @@ export function BarChartVertical({
                   <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-10 shadow-lg">
                     <div className="font-semibold">{item.name}</div>
                     <div>{item.value} equipos ({item.percentage}%)</div>
+                    {typeof item.coveragePercentage === 'number' && (
+                      <div>Cobertura empleados: {item.coveragePercentage}%</div>
+                    )}
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                   </div>
                 )}
