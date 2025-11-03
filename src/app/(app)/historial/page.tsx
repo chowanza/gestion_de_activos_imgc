@@ -345,8 +345,10 @@ export default function HistorialPage() {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
                             <div>
-                              <p className="text-sm font-medium">{log.usuario.username}</p>
-                              <p className="text-xs text-gray-500">{log.usuario.role}</p>
+                              {/* Mostrar el rol como etiqueta principal (admin/editor/viewer) */}
+                              <p className="text-sm font-medium capitalize">{log.usuario.role}</p>
+                              {/* Opcional: dejar el username en pequeño para referencia */}
+                              {/* <p className="text-xs text-gray-500">{log.usuario.username}</p> */}
                             </div>
                           </div>
                         ) : (
