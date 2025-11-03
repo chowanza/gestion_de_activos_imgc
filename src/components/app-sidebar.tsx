@@ -15,6 +15,7 @@ import type { UserJwtPayload } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { Spinner } from './ui/spinner';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useIsSmallScreen } from '@/hooks/use-screen-size';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -47,17 +48,18 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const isAdmin = useIsAdmin();
   const { state, toggleSidebar, setOpen } = useSidebar();
   const isSmallScreen = useIsSmallScreen();
+  const { canAccess } = usePermissions();
 
     // Filtrar los items basado en el rol del usuario
   const filteredNavMain = navData.navMain.filter(item => {
     // Si el usuario es admin, mostrar todos los items
     if (isAdmin) return true;
     
-    // Si no es admin, excluir ciertos items
+    // Si no es admin, controlar visibilidad por item cuando aplique
     switch(item.title) {
-      case 'Modelos':
       case 'Empleados':
-        return false;
+        // Permitir que viewer/editor vean Empleados
+        return canAccess('usuarios', 'view');
       default:
         return true;
     }

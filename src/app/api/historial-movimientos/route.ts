@@ -120,13 +120,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Enriquecer detalles con el actor resuelto por el servidor para trazabilidad
+    let mergedDetails: any = undefined;
+    try {
+      const base = typeof detalles === 'object' && detalles !== null ? detalles : {};
+      mergedDetails = {
+        ...base,
+        serverActor: {
+          id: (sessionUser as any)?.id,
+          username: (sessionUser as any)?.username,
+          role: (sessionUser as any)?.role,
+        },
+      };
+    } catch {}
+
     const movimiento = await prisma.historialMovimientos.create({
       data: {
         accion: normalized,
         entidad,
         entidadId: entidadId || null,
         descripcion,
-        detalles: detalles ? JSON.stringify(detalles) : null,
+        detalles: mergedDetails ? JSON.stringify(mergedDetails) : (detalles ? JSON.stringify(detalles) : null),
   usuarioId: (sessionUser.id as string),
         ipAddress: ipAddress || request.headers.get('x-forwarded-for') || null,
         userAgent: userAgent || request.headers.get('user-agent') || null,

@@ -5,9 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
 import { useRouter } from "next/navigation";
 import { showToast } from "nextjs-toast-notify";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function NuevoEmpleadoPage() {
     const router = useRouter();
+    const { hasPermission } = usePermissions();
+    const canManageUsers = hasPermission('canManageUsers');
+
+    if (!canManageUsers) {
+        // Bloqueo simple de acceso a creación para roles sin permiso
+        if (typeof window !== 'undefined') router.replace('/empleados');
+        return null;
+    }
 
     const handleCreateEmpleado = async (data: EmpleadoFormData) => {
         try {

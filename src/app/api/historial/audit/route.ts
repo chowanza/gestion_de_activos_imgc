@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     
     const skip = (page - 1) * limit;
 
-    // Obtener usuario actual para mostrar en registros sin usuario específico
-    const currentUser = await getServerUser(request);
+  // Nota: NO adjuntamos el usuario actual a registros que no tengan actor
+  // explícito en BD, para evitar confusiones de atribución. Solo usaremos
+  // el usuario que venga enlazado en cada registro (si existe).
+  // Mantener la lectura del usuario por si se requiere en el futuro.
+  const currentUser = await getServerUser(request);
 
   // Construir filtros de fecha
   const dateFilter: { [key: string]: any } = {};
@@ -180,15 +183,12 @@ export async function GET(request: NextRequest) {
         entidadId: log.entidadId,
         descripcion: log.descripcion,
         detalles: log.detalles,
+        // Mostrar únicamente el usuario que registró el evento (si existe)
         usuario: log.usuario ? {
           id: log.usuario.id,
           username: log.usuario.username,
           role: log.usuario.role
-        } : (currentUser ? {
-          id: currentUser.id,
-          username: currentUser.username,
-          role: currentUser.role
-        } : null),
+        } : null,
         ipAddress: null,
         userAgent: null,
         equipo: null,
@@ -229,11 +229,8 @@ export async function GET(request: NextRequest) {
         entidadId: equipo?.id || null,
         descripcion: `${asig.actionType} de ${asig.itemType}${asig.motivo ? ` - ${asig.motivo}` : ''}`,
         detalles: asig.notes,
-        usuario: currentUser ? {
-          id: currentUser.id,
-          username: currentUser.username,
-          role: currentUser.role
-        } : null,
+        // No hay actor explícito en esta tabla, evitar atribuir al usuario visualizador
+        usuario: null,
         ipAddress: null,
         userAgent: null,
         equipo: equipo ? {
@@ -274,11 +271,8 @@ export async function GET(request: NextRequest) {
         entidadId: computador?.id || null,
         descripcion: `Campo '${mod.campo}' modificado`,
         detalles: `${mod.valorAnterior || 'N/A'} → ${mod.valorNuevo || 'N/A'}`,
-        usuario: currentUser ? {
-          id: currentUser.id,
-          username: currentUser.username,
-          role: currentUser.role
-        } : null,
+        // No hay actor explícito aquí; no atribuir al usuario actual
+        usuario: null,
         ipAddress: null,
         userAgent: null,
         equipo: computador ? {

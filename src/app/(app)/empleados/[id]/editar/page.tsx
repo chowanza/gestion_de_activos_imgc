@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { showToast } from "nextjs-toast-notify";
 import { Spinner } from "@/components/ui/spinner"; // Asumiendo que tienes un componente Spinner
 import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Función para convertir fecha dd/mm/yy a formato ISO
 function convertToISOFormat(dateString: string): string {
@@ -35,12 +36,19 @@ export default function EditarEmpleadoPage() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
+    const { hasPermission } = usePermissions();
+    const canManageUsers = hasPermission('canManageUsers');
 
     const [initialData, setInitialData] = useState<EmpleadoFormData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEmpleadoDesactivado, setIsEmpleadoDesactivado] = useState(false);
 
     useEffect(() => {
+        if (!canManageUsers) {
+            // Si no tiene permisos, redirigir a detalle del empleado
+            router.replace(`/empleados/${id}`);
+            return;
+        }
         if (id) {
             const fetchEmpleado = async () => {
                 try {
@@ -80,7 +88,7 @@ export default function EditarEmpleadoPage() {
             };
             fetchEmpleado();
         }
-    }, [id]);
+    }, [id, canManageUsers, router]);
 
     const handleUpdateEmpleado = async (data: EmpleadoFormData) => {
         try {

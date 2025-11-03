@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TableRowSkeleton, { LoadingSpinner } from "@/utils/loading";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const empleadoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
@@ -92,6 +93,8 @@ export function EmpleadoTable({ data }: EmpleadoTableProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setLoading] = useState(true);
+  const { hasPermission } = usePermissions();
+  const canManageUsers = hasPermission('canManageUsers');
 
   // Función para manejar la eliminación
   const handleDelete = async ({id}: {id: string}) => {
@@ -654,17 +657,21 @@ const columns: ColumnDef<Empleado>[] = [
                   Ver Detalles
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/empleados/${empleado.id}/editar`}>
-                    Editar Empleado
-                </Link>
+              {canManageUsers && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/empleados/${empleado.id}/editar`}>
+                      Editar Empleado
+                  </Link>
                 </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                  Eliminar Empleado
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
+              )}
+              {canManageUsers && <DropdownMenuSeparator />}
+              {canManageUsers && (
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                    Eliminar Empleado
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           {/* Contenido del Diálogo de Confirmación */}
@@ -862,13 +869,14 @@ return (
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-
-            <Button asChild>
-                <Link href="/empleados/new">
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Agregar Empleado
-                </Link>
-            </Button>
+            {canManageUsers && (
+              <Button asChild>
+                  <Link href="/empleados/new">
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Agregar Empleado
+                  </Link>
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
