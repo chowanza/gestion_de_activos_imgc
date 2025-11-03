@@ -66,6 +66,19 @@ export async function GET(request: NextRequest) {
             apellido: true
           }
         }
+        ,
+        targetEmpleado: {
+          include: {
+            organizaciones: {
+              where: { activo: true },
+              include: {
+                empresa: true,
+                departamento: true,
+                cargo: true
+              }
+            }
+          }
+        }
       },
       orderBy: {
         date: 'desc'
@@ -109,6 +122,10 @@ export async function GET(request: NextRequest) {
           ? `${asignacion.gerenteEmpleado.nombre} ${asignacion.gerenteEmpleado.apellido}`
           : 'Sin gerente',
         localidad: asignacion.ubicacionId || 'Sin ubicación',
+        // Empresa/organización actual del empleado objetivo (si está disponible)
+        empresa: asignacion.targetEmpleado?.organizaciones?.[0]?.empresa?.nombre || 'Sin empresa',
+        departamento: asignacion.targetEmpleado?.organizaciones?.[0]?.departamento?.nombre || 'Sin departamento',
+        cargo: asignacion.targetEmpleado?.organizaciones?.[0]?.cargo?.nombre || 'Sin cargo',
         item: itemInfo,
         itemType: itemType,
         createdAt: asignacion.createdAt,

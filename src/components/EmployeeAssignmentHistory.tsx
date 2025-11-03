@@ -31,6 +31,9 @@ interface EmployeeAssignmentHistoryProps {
     motivo: string;
     notas?: string;
     localidad?: string;
+    empresa?: string;
+    departamento?: string;
+    cargo?: string;
     item: {
       id: string;
       serial: string;
@@ -72,7 +75,10 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
       entry.accion.toLowerCase().includes(searchLower) ||
       entry.motivo.toLowerCase().includes(searchLower) ||
       (entry.notas && entry.notas.toLowerCase().includes(searchLower)) ||
-      (entry.localidad && entry.localidad.toLowerCase().includes(searchLower))
+      (entry.localidad && entry.localidad.toLowerCase().includes(searchLower)) ||
+      (entry.empresa && entry.empresa.toLowerCase().includes(searchLower)) ||
+      (entry.departamento && entry.departamento.toLowerCase().includes(searchLower)) ||
+      (entry.cargo && entry.cargo.toLowerCase().includes(searchLower))
     );
   });
 
@@ -128,6 +134,9 @@ export function EmployeeAssignmentHistory({ historial, loading = false }: Employ
         `Modelo: ${entry.item.modelo}`,
         `Marca: ${entry.item.marca}`,
         `Tipo: ${entry.item.tipo}`,
+        entry.empresa && `Empresa: ${entry.empresa}`,
+        entry.departamento && `Departamento: ${entry.departamento}`,
+        entry.cargo && `Cargo: ${entry.cargo}`,
         entry.motivo && `Motivo: ${entry.motivo}`,
         entry.notas && `Notas: ${entry.notas}`,
         entry.localidad && `Ubicación: ${entry.localidad}`
