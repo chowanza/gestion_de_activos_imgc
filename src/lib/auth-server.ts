@@ -11,6 +11,13 @@ export async function getServerUser(request: NextRequest) {
     }
 
     const session = await decrypt(cookie.value);
+    // Normalizar el identificador: exponer siempre session.id
+    try {
+      const sid = (session as any)?.sub || (session as any)?.id;
+      if (sid) {
+        (session as any).id = sid as string;
+      }
+    } catch {}
 
     // DEV OVERRIDE (guarded): only in development and explicitly enabled
     try {

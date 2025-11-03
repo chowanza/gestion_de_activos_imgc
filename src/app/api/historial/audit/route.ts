@@ -174,6 +174,9 @@ export async function GET(request: NextRequest) {
 
     // Procesar Historial de Movimientos
     historialMovimientos.forEach(log => {
+      const withUserDesc = log.usuario
+        ? `${log.descripcion} · por ${log.usuario.username}`
+        : log.descripcion;
       auditLogs.push({
         id: `mov-${log.id}`,
         fecha: log.fecha,
@@ -181,7 +184,7 @@ export async function GET(request: NextRequest) {
         accion: log.accion,
         entidad: log.entidad,
         entidadId: log.entidadId,
-        descripcion: log.descripcion,
+        descripcion: withUserDesc,
         detalles: log.detalles,
         // Mostrar únicamente el usuario que registró el evento (si existe)
         usuario: log.usuario ? {

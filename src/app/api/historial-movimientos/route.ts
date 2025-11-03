@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         entidadId: entidadId || null,
         descripcion,
         detalles: mergedDetails ? JSON.stringify(mergedDetails) : (detalles ? JSON.stringify(detalles) : null),
-  usuarioId: (sessionUser.id as string),
+	  usuarioId: ((sessionUser as any)?.id || (sessionUser as any)?.sub) as string,
         ipAddress: ipAddress || request.headers.get('x-forwarded-for') || null,
         userAgent: userAgent || request.headers.get('user-agent') || null,
       },
