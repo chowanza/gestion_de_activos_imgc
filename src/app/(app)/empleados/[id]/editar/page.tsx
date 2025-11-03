@@ -37,14 +37,14 @@ export default function EditarEmpleadoPage() {
     const params = useParams();
     const { id } = params;
     const { hasPermission } = usePermissions();
-    const canManageUsers = hasPermission('canManageUsers');
+    const canEdit = hasPermission('canUpdate') || hasPermission('canManageUsers');
 
     const [initialData, setInitialData] = useState<EmpleadoFormData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEmpleadoDesactivado, setIsEmpleadoDesactivado] = useState(false);
 
     useEffect(() => {
-        if (!canManageUsers) {
+        if (!canEdit) {
             // Si no tiene permisos, redirigir a detalle del empleado
             router.replace(`/empleados/${id}`);
             return;
@@ -88,7 +88,7 @@ export default function EditarEmpleadoPage() {
             };
             fetchEmpleado();
         }
-    }, [id, canManageUsers, router]);
+    }, [id, canEdit, router]);
 
     const handleUpdateEmpleado = async (data: EmpleadoFormData) => {
         try {

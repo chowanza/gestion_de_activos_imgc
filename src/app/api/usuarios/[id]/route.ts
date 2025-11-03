@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { requirePermission } from '@/lib/role-middleware';
+import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 
@@ -112,8 +112,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   await Promise.resolve();
   const id = request.nextUrl.pathname.split('/')[3];
-  // Require permission to manage users to update empleados
-  const auth = await requirePermission('canManageUsers')(request as any);
+  // Permitir actualizar empleados a quienes tengan canUpdate o canManageUsers
+  const auth = await requireAnyPermission(['canUpdate','canManageUsers'])(request as any);
   if (auth instanceof NextResponse) return auth;
     try {
         const body = await request.json();

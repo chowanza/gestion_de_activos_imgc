@@ -7,7 +7,8 @@ import { getServerUser } from '@/lib/auth-server';
 export async function POST(request: NextRequest) {
   try {
     // Require permission to manage users or departments
-    const deny = await requireAnyPermission(['canManageUsers','canManageDepartamentos'])(request as any);
+    // Permitir a editores cambiar estado si tienen canUpdate (o gestores de usuarios/departamentos)
+    const deny = await requireAnyPermission(['canUpdate','canManageUsers','canManageDepartamentos'])(request as any);
     if (deny) return deny;
     const id = request.nextUrl.pathname.split('/')[3];
     const body = await request.json();

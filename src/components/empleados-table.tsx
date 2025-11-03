@@ -95,6 +95,9 @@ export function EmpleadoTable({ data }: EmpleadoTableProps) {
   const [isLoading, setLoading] = useState(true);
   const { hasPermission } = usePermissions();
   const canManageUsers = hasPermission('canManageUsers');
+  const canCreate = hasPermission('canCreate') || canManageUsers;
+  const canEdit = hasPermission('canUpdate') || canManageUsers;
+  const canRemove = hasPermission('canDelete') || canManageUsers;
 
   // Función para manejar la eliminación
   const handleDelete = async ({id}: {id: string}) => {
@@ -657,15 +660,15 @@ const columns: ColumnDef<Empleado>[] = [
                   Ver Detalles
                 </Link>
               </DropdownMenuItem>
-              {canManageUsers && (
+              {canEdit && (
                 <DropdownMenuItem asChild>
                   <Link href={`/empleados/${empleado.id}/editar`}>
                       Editar Empleado
                   </Link>
                 </DropdownMenuItem>
               )}
-              {canManageUsers && <DropdownMenuSeparator />}
-              {canManageUsers && (
+              {canRemove && <DropdownMenuSeparator />}
+              {canRemove && (
                 <AlertDialogTrigger asChild>
                   <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
                     Eliminar Empleado
@@ -869,7 +872,7 @@ return (
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            {canManageUsers && (
+            {canCreate && (
               <Button asChild>
                   <Link href="/empleados/new">
                         <PlusIcon className="mr-2 h-4 w-4" />

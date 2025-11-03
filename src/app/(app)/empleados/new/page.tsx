@@ -10,9 +10,9 @@ import { usePermissions } from "@/hooks/usePermissions";
 export default function NuevoEmpleadoPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
-    const canManageUsers = hasPermission('canManageUsers');
+    const canCreate = hasPermission('canCreate') || hasPermission('canManageUsers');
 
-    if (!canManageUsers) {
+    if (!canCreate) {
         // Bloqueo simple de acceso a creación para roles sin permiso
         if (typeof window !== 'undefined') router.replace('/empleados');
         return null;
