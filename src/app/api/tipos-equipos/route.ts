@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
       where.categoria = categoria;
     }
 
-  const tiposDb = await prisma.tipoEquipo.findMany({
+    const tiposDb = await (prisma as any).tipoEquipo.findMany({
       where,
       orderBy: { nombre: 'asc' }
     }).catch(() => [] as any[]);
 
     if (tiposDb && tiposDb.length > 0) {
-      const list = tiposDb.map(t => t.nombre);
+      const list = (tiposDb as Array<{ nombre: string }>).map(t => t.nombre);
       return NextResponse.json(list, { status: 200 });
     }
 
@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Unicidad por categoría
-  const exists = await prisma.tipoEquipo.findFirst({ where: { nombre, categoria } });
+  const exists = await (prisma as any).tipoEquipo.findFirst({ where: { nombre, categoria } });
     if (exists) {
       return NextResponse.json({ message: 'Ya existe un tipo con ese nombre en la categoría seleccionada' }, { status: 400 });
     }
 
-  const tipo = await prisma.tipoEquipo.create({ data: { nombre, categoria } });
+  const tipo = await (prisma as any).tipoEquipo.create({ data: { nombre, categoria } });
 
     if (user) {
       await AuditLogger.logCreate('tipo-equipo', tipo.id, `Creó tipo "${nombre}" (${categoria})`, user.id as string, { nombre, categoria });
