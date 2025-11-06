@@ -105,9 +105,9 @@ export async function PUT(
     try {
       const where: any = { nombre: tipoDecoded };
       if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') where.categoria = categoria;
-      const exists = await prisma.tipoEquipo.findFirst({ where });
+      const exists = await (prisma as any).tipoEquipo.findFirst({ where });
       if (exists) {
-        await prisma.tipoEquipo.update({ where: { id: exists.id }, data: { nombre: nuevoTipo.trim() } });
+        await (prisma as any).tipoEquipo.update({ where: { id: exists.id }, data: { nombre: nuevoTipo.trim() } });
       }
     } catch (e) {
       console.warn('Advertencia: no se pudo actualizar TipoEquipo en PUT [tipo]:', e);
@@ -171,7 +171,7 @@ export async function DELETE(
     try {
       const where: any = { nombre: tipoDecoded };
       if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') where.categoria = categoria;
-      await prisma.tipoEquipo.deleteMany({ where });
+      await (prisma as any).tipoEquipo.deleteMany({ where });
     } catch (e) {
       console.warn('Advertencia: no se pudo eliminar TipoEquipo en DELETE [tipo]:', e);
     }
