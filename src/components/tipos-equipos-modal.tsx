@@ -19,50 +19,32 @@ interface ModeloDispositivo {
   img?: string;
 }
 
-type CategoriaTipo = 'COMPUTADORA' | 'DISPOSITIVO';
-
 interface TiposEquiposModalProps {
   tipos: string[];
   modelos: ModeloDispositivo[];
-  categoria: CategoriaTipo;
   onClose: () => void;
   onTiposChange: (tipos: string[]) => void;
 }
 
-export function TiposEquiposModal({ tipos, modelos, categoria, onClose, onTiposChange }: TiposEquiposModalProps) {
+export function TiposEquiposModal({ tipos, modelos, onClose, onTiposChange }: TiposEquiposModalProps) {
   const [nuevoTipo, setNuevoTipo] = useState("");
   const [localTipos, setLocalTipos] = useState<string[]>(tipos);
   const [editingTipo, setEditingTipo] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleAddTipo = async () => {
-    const nombre = nuevoTipo.trim();
-    if (!nombre) {
+  const handleAddTipo = () => {
+    const value = nuevoTipo.trim();
+    if (!value) {
       showToast.error('El nombre del tipo no puede estar vacío');
       return;
     }
-    if (localTipos.includes(nombre)) {
+    if (localTipos.includes(value)) {
       showToast.error('Este tipo de equipo ya existe');
       return;
     }
-    try {
-      const res = await fetch('/api/tipos-equipos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, categoria })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({} as any));
-        showToast.error(err.message || 'Error al crear el tipo');
-        return;
-      }
-      setLocalTipos([...localTipos, nombre]);
-      setNuevoTipo("");
-      showToast.success('Tipo de equipo agregado');
-    } catch (e) {
-      console.error(e);
-      showToast.error('Error al crear el tipo');
-    }
+    setLocalTipos([...localTipos, value]);
+    setNuevoTipo("");
+    showToast.success('Tipo de equipo agregado correctamente');
   };
 
   const handleEditTipo = (tipo: string) => {
@@ -93,8 +75,7 @@ export function TiposEquiposModal({ tipos, modelos, categoria, onClose, onTiposC
           },
           body: JSON.stringify({
             tipoAnterior: editingTipo,
-            tipoNuevo: editValue.trim(),
-            categoria
+            tipoNuevo: editValue.trim()
           }),
         });
 
@@ -127,28 +108,15 @@ export function TiposEquiposModal({ tipos, modelos, categoria, onClose, onTiposC
     setEditValue("");
   };
 
-  const handleRemoveTipo = async (tipo: string) => {
+  const handleRemoveTipo = (tipo: string) => {
     // Verificar si hay modelos usando este tipo
     const modelosConTipo = modelos.filter(m => m.tipo === tipo);
     if (modelosConTipo.length > 0) {
       showToast.error(`No se puede eliminar el tipo porque hay ${modelosConTipo.length} modelo(s) que lo utilizan`);
       return;
     }
-    try {
-      const res = await fetch(`/api/tipos-equipos/${encodeURIComponent(tipo)}?categoria=${categoria}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({} as any));
-        showToast.error(err.message || 'Error al eliminar el tipo');
-        return;
-      }
-      setLocalTipos(localTipos.filter(t => t !== tipo));
-      showToast.success('Tipo de equipo eliminado correctamente');
-    } catch (e) {
-      console.error(e);
-      showToast.error('Error al eliminar el tipo');
-    }
+    setLocalTipos(localTipos.filter(t => t !== tipo));
+    showToast.success('Tipo de equipo eliminado correctamente');
   };
 
   const handleSave = () => {

@@ -72,7 +72,8 @@ const TIPOS_DISPOSITIVOS = [
   "Escáner",
   "Altavoces",
   "Micrófono",
-  "Webcam"
+  "Webcam",
+  "DVR"
 ];
 
 export default function CatalogoPage() {
@@ -87,9 +88,6 @@ export default function CatalogoPage() {
   const [showMarcasModal, setShowMarcasModal] = useState(false);
   const [editingModelo, setEditingModelo] = useState<ModeloDispositivo | null>(null);
   const [activeTab, setActiveTab] = useState("computadoras");
-  // Tipos gestionables por pestaña (persistidos en BD, con fallback a constantes)
-  const [tiposComputadoras, setTiposComputadoras] = useState<string[]>([...TIPOS_COMPUTADORAS]);
-  const [tiposDispositivos, setTiposDispositivos] = useState<string[]>([...TIPOS_DISPOSITIVOS]);
   const { hasAnyPermission } = usePermissions();
   const canManageCatalog = hasAnyPermission(['canCreate','canManageComputadores','canManageDispositivos','canManageEmpresas']);
 
@@ -97,28 +95,7 @@ export default function CatalogoPage() {
     fetchData();
   }, []);
 
-  // Cargar tipos gestionables desde API
-  useEffect(() => {
-    const fetchTipos = async () => {
-      try {
-        const [resComp, resDisp] = await Promise.all([
-          fetch('/api/tipos-equipos?categoria=COMPUTADORA'),
-          fetch('/api/tipos-equipos?categoria=DISPOSITIVO')
-        ]);
-        if (resComp.ok) {
-          const list = await resComp.json();
-          if (Array.isArray(list) && list.length) setTiposComputadoras(list);
-        }
-        if (resDisp.ok) {
-          const list = await resDisp.json();
-          if (Array.isArray(list) && list.length) setTiposDispositivos(list);
-        }
-      } catch (e) {
-        console.warn('No se pudieron cargar tipos gestionables, usando valores por defecto');
-      }
-    };
-    fetchTipos();
-  }, []);
+  // (Sin carga de tipos desde API; se usan constantes por pestaña)
 
   const fetchData = async () => {
     try {
@@ -147,7 +124,7 @@ export default function CatalogoPage() {
 
   // Obtener tipos según la pestaña activa
   const getCurrentTipos = () => {
-    return activeTab === "computadoras" ? tiposComputadoras : tiposDispositivos;
+    return activeTab === "computadoras" ? TIPOS_COMPUTADORAS : TIPOS_DISPOSITIVOS;
   };
 
   // Obtener modelos filtrados según la pestaña activa
@@ -183,9 +160,7 @@ export default function CatalogoPage() {
   };
 
   const handleTiposChange = (newTipos: string[]) => {
-    // Reemplazar tipos del tab actual y refrescar datos
-    if (activeTab === 'computadoras') setTiposComputadoras(newTipos);
-    else setTiposDispositivos(newTipos);
+    // Refrescar datos para mostrar cambios en cascada
     fetchData();
   };
 
@@ -556,7 +531,6 @@ export default function CatalogoPage() {
         <TiposEquiposModal
           tipos={getCurrentTipos()}
           modelos={modelos}
-          categoria={activeTab === 'computadoras' ? 'COMPUTADORA' : 'DISPOSITIVO'}
           onClose={() => setShowTiposModal(false)}
           onTiposChange={handleTiposChange}
         />
