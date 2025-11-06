@@ -32,15 +32,41 @@ export function TiposEquiposModal({ tipos, modelos, onClose, onTiposChange }: Ti
   const [editingTipo, setEditingTipo] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleAddTipo = () => {
-    if (nuevoTipo.trim() && !localTipos.includes(nuevoTipo.trim())) {
-      setLocalTipos([...localTipos, nuevoTipo.trim()]);
+  const handleAddTipo = async () => {
+    const value = nuevoTipo.trim();
+    if (!value) {
+      showToast.error('El nombre del tipo no puede estar vacío');
+      return;
+    }
+
+    if (localTipos.includes(value)) {
+      showToast.error('Este tipo de equipo ya existe');
+      return;
+    }
+
+    try {
+      // Persistir en backend: crea un modelo placeholder para registrar el tipo
+      const res = await fetch('/api/tipos-equipos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tipo: value })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({} as any));
+        showToast.error(err.message || 'Error al crear el tipo de equipo');
+        return;
+      }
+
+      // Actualizar lista local e indicar éxito
+      setLocalTipos([...localTipos, value]);
       setNuevoTipo("");
       showToast.success('Tipo de equipo agregado correctamente');
-    } else if (localTipos.includes(nuevoTipo.trim())) {
-      showToast.error('Este tipo de equipo ya existe');
-    } else {
-      showToast.error('El nombre del tipo no puede estar vacío');
+    } catch (error) {
+      console.error('Error al crear tipo de equipo:', error);
+      showToast.error('Error al crear el tipo de equipo');
     }
   };
 

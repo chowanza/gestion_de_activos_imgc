@@ -87,6 +87,9 @@ export default function CatalogoPage() {
   const [showMarcasModal, setShowMarcasModal] = useState(false);
   const [editingModelo, setEditingModelo] = useState<ModeloDispositivo | null>(null);
   const [activeTab, setActiveTab] = useState("computadoras");
+  // Tipos gestionables por pestaña (inicializar con listas por defecto)
+  const [tiposComputadoras, setTiposComputadoras] = useState<string[]>([...TIPOS_COMPUTADORAS]);
+  const [tiposDispositivos, setTiposDispositivos] = useState<string[]>([...TIPOS_DISPOSITIVOS]);
   const { hasAnyPermission } = usePermissions();
   const canManageCatalog = hasAnyPermission(['canCreate','canManageComputadores','canManageDispositivos','canManageEmpresas']);
 
@@ -105,6 +108,13 @@ export default function CatalogoPage() {
       if (modelosRes.ok) {
         const modelosData = await modelosRes.json();
         setModelos(modelosData);
+
+        // Derivar tipos presentes en los modelos y agregarlos a las listas si no existen
+        const tiposPresentes = Array.from(new Set((modelosData as ModeloDispositivo[]).map(m => m.tipo)));
+        if (tiposPresentes.length > 0) {
+          setTiposComputadoras(prev => Array.from(new Set([...prev, ...tiposPresentes])));
+          setTiposDispositivos(prev => Array.from(new Set([...prev, ...tiposPresentes])));
+        }
       }
 
       if (marcasRes.ok) {
@@ -121,7 +131,7 @@ export default function CatalogoPage() {
 
   // Obtener tipos según la pestaña activa
   const getCurrentTipos = () => {
-    return activeTab === "computadoras" ? TIPOS_COMPUTADORAS : TIPOS_DISPOSITIVOS;
+    return activeTab === "computadoras" ? tiposComputadoras : tiposDispositivos;
   };
 
   // Obtener modelos filtrados según la pestaña activa
@@ -157,7 +167,12 @@ export default function CatalogoPage() {
   };
 
   const handleTiposChange = (newTipos: string[]) => {
-    // Refrescar datos para mostrar cambios en cascada
+    // Reemplazar la lista de tipos de la pestaña actual y refrescar datos
+    if (activeTab === 'computadoras') {
+      setTiposComputadoras([...newTipos]);
+    } else {
+      setTiposDispositivos([...newTipos]);
+    }
     fetchData();
   };
 
