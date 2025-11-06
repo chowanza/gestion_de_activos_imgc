@@ -66,6 +66,8 @@ export async function PUT(
     const user = await getServerUser(request);
     const { tipo } = await params;
     const tipoDecoded = decodeURIComponent(tipo);
+    const { searchParams } = new URL(request.url);
+    const categoria = (searchParams.get('categoria') || '').toUpperCase();
     const body = await request.json();
     const { nuevoTipo } = body;
 
@@ -98,6 +100,18 @@ export async function PUT(
       where: { tipo: tipoDecoded },
       data: { tipo: nuevoTipo.trim() }
     });
+
+    // Actualizar registro en TipoEquipo si existe
+    try {
+      const where: any = { nombre: tipoDecoded };
+      if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') where.categoria = categoria;
+      const exists = await prisma.tipoEquipo.findFirst({ where });
+      if (exists) {
+        await prisma.tipoEquipo.update({ where: { id: exists.id }, data: { nombre: nuevoTipo.trim() } });
+      }
+    } catch (e) {
+      console.warn('Advertencia: no se pudo actualizar TipoEquipo en PUT [tipo]:', e);
+    }
 
     // Registrar actualización
     if (user) {
@@ -135,6 +149,8 @@ export async function DELETE(
     const user = await getServerUser(request);
     const { tipo } = await params;
     const tipoDecoded = decodeURIComponent(tipo);
+    const { searchParams } = new URL(request.url);
+    const categoria = (searchParams.get('categoria') || '').toUpperCase();
 
     // Verificar si hay modelos usando este tipo
     const modelosConTipo = await prisma.modeloEquipo.findMany({
@@ -149,6 +165,15 @@ export async function DELETE(
         },
         { status: 400 }
       );
+    }
+
+    // Eliminar registro en TipoEquipo si existe (y no hay modelos en uso)
+    try {
+      const where: any = { nombre: tipoDecoded };
+      if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') where.categoria = categoria;
+      await prisma.tipoEquipo.deleteMany({ where });
+    } catch (e) {
+      console.warn('Advertencia: no se pudo eliminar TipoEquipo en DELETE [tipo]:', e);
     }
 
     // Registrar eliminación

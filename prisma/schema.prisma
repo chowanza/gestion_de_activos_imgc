@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Tipos de equipos gestionables por categoría
+model TipoEquipo {
+  id        String   @id @default(uuid())
+  nombre    String
+  categoria String   // 'COMPUTADORA' | 'DISPOSITIVO'
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([categoria, nombre])
+}
+
 model Marca {
   id           String              @id @default(uuid())
   nombre       String              @unique

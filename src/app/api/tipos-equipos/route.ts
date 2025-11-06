@@ -3,29 +3,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
-import { requireAnyPermission } from '@/lib/role-middleware';
-import { requirePermission } from '@/lib/role-middleware';
+import { requireAnyPermission, requirePermission } from '@/lib/role-middleware';
 
 // Obtener todos los tipos únicos de equipos
 export async function GET(request: NextRequest) {
   try {
-    const user = await getServerUser(request);
-  const deny = await requirePermission('canView')(request as any);
-  if (deny) return deny;
-    
-    // Obtener todos los tipos únicos de los modelos de equipos
-    const tipos = await prisma.modeloEquipo.findMany({
-      select: {
-        tipo: true
-      },
+    const deny = await requirePermission('canView')(request as any);
+    if (deny) return deny;
+
+    const { searchParams } = new URL(request.url);
+    const categoria = (searchParams.get('categoria') || '').toUpperCase();
+
+    // Si hay tabla de tipos, usamos esa fuente de la verdad
+    const where: any = {};
+    if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') {
+      where.categoria = categoria;
+    }
+
+  const tiposDb = await prisma.tipoEquipo.findMany({
+      where,
+      orderBy: { nombre: 'asc' }
+    }).catch(() => [] as any[]);
+
+    if (tiposDb && tiposDb.length > 0) {
+      const list = tiposDb.map(t => t.nombre);
+      return NextResponse.json(list, { status: 200 });
+    }
+
+    // Fallback: si la tabla está vacía, devolver los distintos de modelos (compatibilidad)
+    const tiposModelos = await prisma.modeloEquipo.findMany({
+      select: { tipo: true },
       distinct: ['tipo']
     });
-
-    const tiposList = tipos.map(t => t.tipo).sort();
-
-    // No registrar acceso a listas - ya se registra la navegación en useAuditLogger
-
-    return NextResponse.json(tiposList, { status: 200 });
+    return NextResponse.json(tiposModelos.map(t => t.tipo).sort(), { status: 200 });
   } catch (error) {
     console.error('Error al obtener tipos de equipos:', error);
     return NextResponse.json(
@@ -44,55 +54,32 @@ export async function POST(request: NextRequest) {
 
     const user = await getServerUser(request);
     const body = await request.json();
-    const { tipo } = body;
+    const nombre = (body.nombre || body.tipo || '').trim();
+    const categoria = (body.categoria || '').toUpperCase();
 
-    if (!tipo || !tipo.trim()) {
-      return NextResponse.json(
-        { message: 'El tipo de equipo es requerido' },
-        { status: 400 }
-      );
+    if (!nombre) {
+      return NextResponse.json({ message: 'El nombre del tipo es requerido' }, { status: 400 });
+    }
+    if (categoria !== 'COMPUTADORA' && categoria !== 'DISPOSITIVO') {
+      return NextResponse.json({ message: 'Categoría inválida' }, { status: 400 });
     }
 
-    // Verificar si ya existe un modelo con este tipo
-    const existingTipo = await prisma.modeloEquipo.findFirst({
-      where: { tipo: tipo.trim() }
-    });
-
-    if (existingTipo) {
-      return NextResponse.json(
-        { message: 'Ya existe un tipo de equipo con ese nombre' },
-        { status: 400 }
-      );
+    // Unicidad por categoría
+  const exists = await prisma.tipoEquipo.findFirst({ where: { nombre, categoria } });
+    if (exists) {
+      return NextResponse.json({ message: 'Ya existe un tipo con ese nombre en la categoría seleccionada' }, { status: 400 });
     }
 
-    // Crear un modelo temporal para representar el nuevo tipo
-    // Esto permite que el tipo aparezca en la lista
-    const modelo = await prisma.modeloEquipo.create({
-      data: {
-        nombre: `Modelo ${tipo.trim()}`,
-        tipo: tipo.trim(),
-        img: null
-      }
-    });
+  const tipo = await prisma.tipoEquipo.create({ data: { nombre, categoria } });
 
-    // Registrar creación
     if (user) {
-      await AuditLogger.logCreate(
-        'tipo-equipo',
-        modelo.id,
-        `Usuario ${user.username} creó el tipo de equipo: ${tipo.trim()}`,
-        user.id as string,
-        { tipo: tipo.trim() }
-      );
+      await AuditLogger.logCreate('tipo-equipo', tipo.id, `Creó tipo "${nombre}" (${categoria})`, user.id as string, { nombre, categoria });
     }
 
-    return NextResponse.json({ tipo: tipo.trim(), id: modelo.id }, { status: 201 });
+    return NextResponse.json({ id: tipo.id, nombre: tipo.nombre, categoria: tipo.categoria }, { status: 201 });
   } catch (error) {
     console.error('Error al crear tipo de equipo:', error);
-    return NextResponse.json(
-      { message: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
   }
 }
 

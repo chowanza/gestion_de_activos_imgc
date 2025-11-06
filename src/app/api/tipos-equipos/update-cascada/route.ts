@@ -8,7 +8,7 @@ export async function PUT(request: NextRequest) {
   try {
     const user = await getServerUser(request);
     const body = await request.json();
-    const { tipoAnterior, tipoNuevo } = body;
+    const { tipoAnterior, tipoNuevo, categoria } = body as { tipoAnterior?: string; tipoNuevo?: string; categoria?: string };
 
     if (!tipoAnterior || !tipoNuevo) {
       return NextResponse.json(
@@ -67,6 +67,19 @@ export async function PUT(request: NextRequest) {
           }))
         }
       );
+    }
+
+    // Actualizar registro en tabla de tipos si existe
+    try {
+      const cat = (categoria || '').toUpperCase();
+      const where: any = { nombre: tipoAnterior };
+      if (cat === 'COMPUTADORA' || cat === 'DISPOSITIVO') where.categoria = cat;
+      const found = await prisma.tipoEquipo.findFirst({ where });
+      if (found) {
+        await prisma.tipoEquipo.update({ where: { id: found.id }, data: { nombre: tipoNuevo } });
+      }
+    } catch (e) {
+      console.warn('Advertencia: no se pudo actualizar TipoEquipo (continuando):', e);
     }
 
     return NextResponse.json({
