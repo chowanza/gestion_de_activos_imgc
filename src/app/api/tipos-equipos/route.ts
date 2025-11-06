@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 import { requireAnyPermission, requirePermission } from '@/lib/role-middleware';
@@ -14,20 +15,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const categoria = (searchParams.get('categoria') || '').toUpperCase();
 
-    // Si hay tabla de tipos, usamos esa fuente de la verdad
-    const where: any = {};
-    if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') {
-      where.categoria = categoria;
-    }
-
-    const tiposDb = await (prisma as any).tipoEquipo.findMany({
-      where,
-      orderBy: { nombre: 'asc' }
-    }).catch(() => [] as any[]);
-
-    if (tiposDb && tiposDb.length > 0) {
-      const list = (tiposDb as Array<{ nombre: string }>).map(t => t.nombre);
-      return NextResponse.json(list, { status: 200 });
+    // Si existe el cliente para TipoEquipo, usarlo; si no, fallback a modelos
+    const clientAny = prisma as any;
+    if (clientAny.tipoEquipo) {
+      const where: any = {};
+      if (categoria === 'COMPUTADORA' || categoria === 'DISPOSITIVO') {
+        where.categoria = categoria;
+      }
+      const tiposDb = await clientAny.tipoEquipo.findMany({ where, orderBy: { nombre: 'asc' } });
+      if (tiposDb && tiposDb.length > 0) {
+        const list = (tiposDb as Array<{ nombre: string }>).map(t => t.nombre);
+        return NextResponse.json(list, { status: 200 });
+      }
     }
 
     // Fallback: si la tabla está vacía, devolver los distintos de modelos (compatibilidad)
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Require create or manage equipment permissions to add tipos
-    const deny = await requireAnyPermission(['canCreate','canManageComputadores','canManageDispositivos'])(request as any);
+  const deny = await requireAnyPermission(['canCreate','canManageComputadores','canManageDispositivos'])(request as any);
     if (deny) return deny;
 
     const user = await getServerUser(request);
@@ -64,19 +63,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Categoría inválida' }, { status: 400 });
     }
 
-    // Unicidad por categoría
-  const exists = await (prisma as any).tipoEquipo.findFirst({ where: { nombre, categoria } });
-    if (exists) {
+    const clientAny = prisma as any;
+    if (clientAny.tipoEquipo) {
+      // Unicidad por categoría
+      const exists = await clientAny.tipoEquipo.findFirst({ where: { nombre, categoria } });
+      if (exists) {
+        return NextResponse.json({ message: 'Ya existe un tipo con ese nombre en la categoría seleccionada' }, { status: 400 });
+      }
+      const tipo = await clientAny.tipoEquipo.create({ data: { nombre, categoria } });
+      if (user) {
+        await AuditLogger.logCreate('tipo-equipo', tipo.id, `Creó tipo "${nombre}" (${categoria})`, user.id as string, { nombre, categoria });
+      }
+      return NextResponse.json({ id: tipo.id, nombre: tipo.nombre, categoria: tipo.categoria }, { status: 201 });
+    }
+
+    // Fallback robusto: si el cliente no expone TipoEquipo aún, usar SQL crudo (SQL Server)
+    const existing: Array<{ count: number }> = await prisma.$queryRaw(
+      Prisma.sql`SELECT COUNT(1) AS count FROM [dbo].[TipoEquipo] WHERE [nombre] = ${nombre} AND [categoria] = ${categoria}`
+    );
+    if (existing?.[0]?.count > 0) {
       return NextResponse.json({ message: 'Ya existe un tipo con ese nombre en la categoría seleccionada' }, { status: 400 });
     }
-
-  const tipo = await (prisma as any).tipoEquipo.create({ data: { nombre, categoria } });
-
+    await prisma.$executeRaw(
+      Prisma.sql`INSERT INTO [dbo].[TipoEquipo] ([nombre],[categoria],[activo],[createdAt],[updatedAt]) VALUES (${nombre}, ${categoria}, 1, GETDATE(), GETDATE())`
+    );
     if (user) {
-      await AuditLogger.logCreate('tipo-equipo', tipo.id, `Creó tipo "${nombre}" (${categoria})`, user.id as string, { nombre, categoria });
+      await AuditLogger.logCreate('tipo-equipo', 'raw-sql', `Creó tipo "${nombre}" (${categoria}) [fallback SQL]`, user.id as string, { nombre, categoria });
     }
-
-    return NextResponse.json({ id: tipo.id, nombre: tipo.nombre, categoria: tipo.categoria }, { status: 201 });
+    return NextResponse.json({ nombre, categoria }, { status: 201 });
   } catch (error) {
     console.error('Error al crear tipo de equipo:', error);
     return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
