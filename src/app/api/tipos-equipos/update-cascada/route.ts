@@ -74,9 +74,9 @@ export async function PUT(request: NextRequest) {
       const cat = (categoria || '').toUpperCase();
       const where: any = { nombre: tipoAnterior };
       if (cat === 'COMPUTADORA' || cat === 'DISPOSITIVO') where.categoria = cat;
-      const found = await prisma.tipoEquipo.findFirst({ where });
+      const found = await (prisma as any).tipoEquipo.findFirst({ where });
       if (found) {
-        await prisma.tipoEquipo.update({ where: { id: found.id }, data: { nombre: tipoNuevo } });
+        await (prisma as any).tipoEquipo.update({ where: { id: found.id }, data: { nombre: tipoNuevo } });
       }
     } catch (e) {
       console.warn('Advertencia: no se pudo actualizar TipoEquipo (continuando):', e);
