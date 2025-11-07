@@ -804,15 +804,17 @@ export default function EmpleadoDetailsPage() {
                 <Smartphone className="h-5 w-5 mr-2" />
                 Dispositivos Asignados ({getDispositivosFiltrados().length})
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openAsignarModal}
-                className="h-8 px-3"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Asignar
-              </Button>
+              {(hasPermission('canAssign') || hasPermission('canManageAsignaciones')) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openAsignarModal}
+                  className="h-8 px-3"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Asignar
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>

@@ -339,10 +339,12 @@ export default function UbicacionDetailsPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowEditForm(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
+          {(hasPermission('canUpdate') || hasPermission('canManageEmpresas') || hasPermission('canManageDepartamentos')) && (
+            <Button variant="outline" onClick={() => setShowEditForm(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+          )}
             { (hasPermission('canDelete') || hasPermission('canManageEmpresas') || hasPermission('canManageDepartamentos')) && (
               <Button variant="destructive" onClick={handleDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />

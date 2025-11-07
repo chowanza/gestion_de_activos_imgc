@@ -357,14 +357,16 @@ export default function EmpresaDetailsPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={handleEditEmpresa}
-            className="flex items-center space-x-2"
-          >
-            <Edit className="h-4 w-4" />
-            <span>Editar</span>
-          </Button>
+          {(hasPermission('canUpdate') || hasPermission('canManageEmpresas')) && (
+            <Button 
+              variant="outline" 
+              onClick={handleEditEmpresa}
+              className="flex items-center space-x-2"
+            >
+              <Edit className="h-4 w-4" />
+              <span>Editar</span>
+            </Button>
+          )}
         </div>
       </div>
 
