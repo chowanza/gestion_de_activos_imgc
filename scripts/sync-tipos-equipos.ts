@@ -3,7 +3,7 @@
  * Sincroniza tipos de equipos base (computadoras y dispositivos) con la tabla TipoEquipo.
  * No elimina tipos existentes, solo inserta los que faltan.
  */
-import { prisma } from '../src/lib/prisma';
+import prisma from '../src/lib/prisma';
 
 const TIPOS_COMPUTADORAS = [
   'Laptop','Desktop','Servidor','Workstation','All-in-One'

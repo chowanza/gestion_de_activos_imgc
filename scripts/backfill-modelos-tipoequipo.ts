@@ -17,7 +17,7 @@
  *  - No modifica el campo 'tipo' (legacy) existente.
  */
 
-import { prisma } from '../src/lib/prisma';
+import prisma from '../src/lib/prisma';
 
 const APPLY = process.argv.includes('--apply');
 
