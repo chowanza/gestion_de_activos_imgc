@@ -174,6 +174,27 @@ export async function PUT(request: NextRequest) {
       });
     }
 
+    // 7. Auditoría de actualización
+    try {
+      const user = await getServerUser(request as any);
+      const cambios: any = {
+        antes: { nombre: existingModelo.nombre, tipo: existingModelo.tipo, img: existingModelo.img },
+        despues: { nombre: updatedModelo.nombre, tipo: updatedModelo.tipo, img: updatedModelo.img },
+      };
+      if (marcaId) cambios.marcaActualizada = true;
+      if (user) {
+        await AuditLogger.logUpdate(
+          'modeloEquipo',
+          id,
+          `Actualizó modelo: ${existingModelo.nombre} → ${updatedModelo.nombre}`,
+          (user as any).id,
+          cambios
+        );
+      }
+    } catch (auditErr) {
+      console.warn('No se pudo registrar auditoría de actualización de modelo:', auditErr);
+    }
+
     return NextResponse.json(updatedModelo, { status: 200 });
   } catch (error: any) {
     console.error("Error updating modelo:", error);
@@ -227,6 +248,22 @@ export async function DELETE(request: NextRequest) {
         id: id,
       },
     });
+
+    // Auditoría de eliminación
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logDelete(
+          'modeloEquipo',
+          id,
+          `Eliminó modelo: ${modelo.nombre}`,
+          (user as any).id,
+          { img: modelo.img }
+        );
+      }
+    } catch (auditErr) {
+      console.warn('No se pudo registrar auditoría de eliminación de modelo:', auditErr);
+    }
 
     return NextResponse.json({ message: "Modelo deleted successfully" });
   } catch (error) {

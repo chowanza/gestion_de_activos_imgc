@@ -15,9 +15,18 @@ export async function GET(request: NextRequest) {
         nombre: 'asc'
       }
     });
-
-    // No registrar acceso a listas - ya se registra la navegación en useAuditLogger
-
+    // Registrar navegación/listado de marcas (una entrada por petición)
+    try {
+      if (user) {
+        await AuditLogger.logNavigation(
+          '/api/marcas',
+          `Listado de marcas (${marcas.length})`,
+          (user as any).id
+        );
+      }
+    } catch (auditErr) {
+      console.warn('No se pudo registrar auditoría de listado de marcas:', auditErr);
+    }
     return NextResponse.json(marcas, { status: 200 });
   } catch (error) {
     console.error('Error al obtener marcas:', error);

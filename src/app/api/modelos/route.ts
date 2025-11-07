@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 
 export async function POST(request: Request) {
   // Permission: only users with create/manage catalog rights
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
       imagePath = `/api/uploads/modelos/${fileName}`;
         }
 
-        const nuevoModelo = await prisma.modeloEquipo.create({
+    const nuevoModelo = await prisma.modeloEquipo.create({
             data: {
                 nombre,
                 tipo,
@@ -54,6 +56,22 @@ export async function POST(request: Request) {
                 modeloEquipoId: nuevoModelo.id,
             },
         });
+
+        // Auditoría de creación de modelo (incluye marca y tipo)
+        try {
+          const user = await getServerUser(request as any);
+          if (user) {
+            await AuditLogger.logCreate(
+              'modeloEquipo',
+              nuevoModelo.id,
+              `Creó modelo "${nombre}" (tipo: ${tipo}) para marca ${marcaId}`,
+              (user as any).id,
+              { nombre, tipo, marcaId, img: imagePath }
+            );
+          }
+        } catch (auditErr) {
+          console.warn('No se pudo registrar auditoría de creación de modelo:', auditErr);
+        }
 
         return NextResponse.json(nuevoModelo, { status: 201 });
 
@@ -106,6 +124,19 @@ export async function GET(request: Request) {
       };
     });
 
+    // Registrar auditoría de navegación/lista solo una vez por petición (sin detalles de cada modelo)
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logNavigation(
+          'modeloEquipo',
+          `Listado de modelos (${modelosTransformados.length})`,
+          (user as any).id
+        );
+      }
+    } catch (auditErr) {
+      console.warn('No se pudo registrar auditoría de listado de modelos:', auditErr);
+    }
     return NextResponse.json(modelosTransformados, { status: 200 });
   } catch (error) {
     console.error(error);

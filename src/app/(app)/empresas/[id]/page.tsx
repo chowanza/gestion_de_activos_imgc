@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import DepartamentoForm from "@/components/DeptoForm";
 import { EmpresaForm } from "@/components/EmpresaForm";
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface EmpresaDetails {
   id: string;
@@ -114,6 +115,8 @@ export default function EmpresaDetailsPage() {
       fetchEmpresa();
     }
   }, [id]);
+
+  const { userRole, hasPermission } = usePermissions();
 
 
   const getEstadoColor = (estado: string) => {
@@ -464,32 +467,37 @@ export default function EmpresaDetailsPage() {
                   Limpiar Filtro
                 </Button>
               )}
-              <Link href="/departamentos">
-                <Button variant="outline" size="sm" className="text-xs">
-                  <Building2 className="h-4 w-4 mr-1" />
-                  Gestionar Departamentos
-                </Button>
-              </Link>
-              <Dialog open={mostrarModalCrear} onOpenChange={setMostrarModalCrear}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="text-xs">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Crear Departamento
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Crear Nuevo Departamento</DialogTitle>
-                  </DialogHeader>
-                  <DepartamentoForm 
-                    isOpen={mostrarModalCrear}
-                    onClose={() => setMostrarModalCrear(false)}
-                    onSubmit={handleCreateDepartamento}
-                    empresas={[{ id: empresa.id, nombre: empresa.nombre }]}
-                    empleados={[]}
-                  />
-                </DialogContent>
-              </Dialog>
+              { (hasPermission('canCreate') || hasPermission('canManageEmpresas')) && (
+                <>
+                  <Link href="/departamentos">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      <Building2 className="h-4 w-4 mr-1" />
+                      Gestionar Departamentos
+                    </Button>
+                  </Link>
+                  <Dialog open={mostrarModalCrear} onOpenChange={setMostrarModalCrear}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="text-xs">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Crear Departamento
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Crear Nuevo Departamento</DialogTitle>
+                      </DialogHeader>
+                      <DepartamentoForm 
+                        isOpen={mostrarModalCrear}
+                        onClose={() => setMostrarModalCrear(false)}
+                        onSubmit={handleCreateDepartamento}
+                        empresas={[{ id: empresa.id, nombre: empresa.nombre }]}
+                        empleados={[]}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </>
+              ) }
+              
             </div>
           </CardTitle>
         </CardHeader>

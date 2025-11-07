@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/utils/loading';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   Table, 
   TableBody, 
@@ -175,6 +176,8 @@ export default function UbicacionDetailsPage() {
     }
   }, [params.id]);
 
+  const { userRole, hasPermission } = usePermissions();
+
   const handleDelete = async () => {
     if (!ubicacion) return;
     
@@ -340,10 +343,12 @@ export default function UbicacionDetailsPage() {
             <Edit className="mr-2 h-4 w-4" />
             Editar
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Eliminar
-          </Button>
+            { (hasPermission('canDelete') || hasPermission('canManageEmpresas') || hasPermission('canManageDepartamentos')) && (
+              <Button variant="destructive" onClick={handleDelete}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </Button>
+            ) }
         </div>
       </div>
 

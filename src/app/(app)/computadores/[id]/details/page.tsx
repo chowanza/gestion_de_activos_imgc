@@ -54,6 +54,7 @@ import { formatDate } from "@/utils/formatDate"
 import { handleGenerateAndDownloadQR } from "@/utils/qrCode"
 import { showToast } from "nextjs-toast-notify"
 import { useIsAdmin } from "@/hooks/useIsAdmin"
+import { usePermissions } from '@/hooks/usePermissions';
 import { EquipmentTimeline } from "@/components/EquipmentTimeline"
 import { EquipmentUsersSection } from "@/components/EquipmentUsersSection"
 import NuevoEquipmentStatusModal from "@/components/NuevoEquipmentStatusModal"
@@ -263,7 +264,8 @@ export default function EquipmentDetails() {
   
       const [statusModalOpen, setStatusModalOpen] = useState(false);
       const [interventionModalOpen, setInterventionModalOpen] = useState(false);
-      const isAdmin = useIsAdmin();
+  const isAdmin = useIsAdmin();
+  const { userRole, hasPermission } = usePermissions();
 
       // Hook de TanStack Query para cargar los datos del equipo
       const {
@@ -493,10 +495,12 @@ const departamentoTag = (
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-white border-gray-300" align="end">
-                <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setInterventionModalOpen(true)}>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Registrar Intervención
-                </DropdownMenuItem>
+                { userRole !== 'viewer' && (
+                  <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setInterventionModalOpen(true)}>
+                    <Camera className="h-4 w-4 mr-2" />
+                    Registrar Intervención
+                  </DropdownMenuItem>
+                ) }
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />

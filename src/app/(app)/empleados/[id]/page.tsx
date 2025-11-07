@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "nextjs-toast-notify";
 import EmpleadoForm from "@/components/EmpleadoForm";
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   ArrowLeft, 
   Building2, 
@@ -191,6 +192,8 @@ export default function EmpleadoDetailsPage() {
       loadStatusHistory();
     }
   }, [id]);
+
+  const { userRole, hasPermission } = usePermissions();
 
   const formatDate = (dateString: string | Date) => {
     if (!dateString) return 'Fecha no disponible';
@@ -532,28 +535,33 @@ export default function EmpleadoDetailsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant={getEstadoEmpleado().estado === 'Activo' ? "destructive" : "default"}
-            size="sm" 
-            onClick={() => setIsStatusModalOpen(true)}
-            className={getEstadoEmpleado().estado === 'Activo' ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
-          >
-            {getEstadoEmpleado().estado === 'Activo' ? (
-              <>
-                <UserX className="h-4 w-4 mr-2" />
-                Desactivar
-              </>
-            ) : (
-              <>
-                <UserCheck className="h-4 w-4 mr-2" />
-                Reactivar
-              </>
-            )}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          { (hasPermission('canUpdate') || hasPermission('canManageUsers')) && (
+            <Button 
+              variant={getEstadoEmpleado().estado === 'Activo' ? "destructive" : "default"}
+              size="sm" 
+              onClick={() => setIsStatusModalOpen(true)}
+              className={getEstadoEmpleado().estado === 'Activo' ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+            >
+              {getEstadoEmpleado().estado === 'Activo' ? (
+                <>
+                  <UserX className="h-4 w-4 mr-2" />
+                  Desactivar
+                </>
+              ) : (
+                <>
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Reactivar
+                </>
+              )}
+            </Button>
+          )}
+
+          { (hasPermission('canUpdate') || hasPermission('canManageUsers')) && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -719,15 +727,17 @@ export default function EmpleadoDetailsPage() {
                 <Monitor className="h-5 w-5 mr-2" />
                 Computadores Asignados ({getComputadoresFiltrados().length})
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openAsignarModal}
-                className="h-8 px-3"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Asignar
-              </Button>
+              { (hasPermission('canAssign') || hasPermission('canManageAsignaciones')) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openAsignarModal}
+                  className="h-8 px-3"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Asignar
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>

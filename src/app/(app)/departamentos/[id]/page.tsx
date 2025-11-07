@@ -33,6 +33,7 @@ import Link from "next/link";
 import DepartamentoForm from "@/components/DeptoForm";
 import EmpleadoForm from "@/components/EmpleadoForm";
 import CargoForm from "@/components/CargoForm";
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface DepartamentoDetails {
   id: string;
@@ -159,6 +160,8 @@ export default function DepartamentoDetailsPage() {
       fetchDepartamento();
     }
   }, [id]);
+
+  const { userRole, hasPermission, hasAnyPermission } = usePermissions();
 
   // Cargar empresas y empleados para el formulario
   useEffect(() => {
@@ -483,10 +486,12 @@ export default function DepartamentoDetailsPage() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={handleEditDepartamento} className="flex items-center space-x-2">
-                <Edit className="h-4 w-4" />
-                <span>Editar</span>
-              </Button>
+              { (hasPermission('canUpdate') || hasPermission('canManageDepartamentos')) && (
+                <Button variant="outline" onClick={handleEditDepartamento} className="flex items-center space-x-2">
+                  <Edit className="h-4 w-4" />
+                  <span>Editar</span>
+                </Button>
+              ) }
 
               <div>
                 <div className="text-sm font-medium text-gray-500">Empresa</div>
@@ -564,21 +569,25 @@ export default function DepartamentoDetailsPage() {
               {getTituloFiltro()} ({getEmpleadosFiltrados().length})
             </div>
             <div className="flex items-center space-x-2">
-              <Link href="/empleados">
-                <Button variant="outline" size="sm" className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
-                  <span>Gestionar Empleados</span>
-                </Button>
-              </Link>
-              <Button 
-                variant="default" 
-                onClick={handleAddEmpleado}
-                size="sm"
-                className="flex items-center space-x-1 bg-black hover:bg-gray-800 text-white"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Agregar Empleado</span>
-              </Button>
+              { (hasPermission('canCreate') || hasPermission('canManageDepartamentos')) && (
+                <>
+                  <Link href="/empleados">
+                    <Button variant="outline" size="sm" className="flex items-center space-x-1">
+                      <Users className="h-4 w-4" />
+                      <span>Gestionar Empleados</span>
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="default" 
+                    onClick={handleAddEmpleado}
+                    size="sm"
+                    className="flex items-center space-x-1 bg-black hover:bg-gray-800 text-white"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Agregar Empleado</span>
+                  </Button>
+                </>
+              ) }
             </div>
           </CardTitle>
         </CardHeader>
@@ -673,10 +682,12 @@ export default function DepartamentoDetailsPage() {
               <Briefcase className="h-5 w-5 mr-2" />
               Cargos ({departamento.departamentoCargos?.length || 0})
             </CardTitle>
-            <Button onClick={handleCreateCargo} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Crear Cargo
-            </Button>
+            { (hasPermission('canCreate') || hasPermission('canManageDepartamentos')) && (
+              <Button onClick={handleCreateCargo} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Crear Cargo
+              </Button>
+            ) }
           </div>
         </CardHeader>
         <CardContent>
@@ -693,22 +704,26 @@ export default function DepartamentoDetailsPage() {
                       </Badge>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditCargo(deptCargo.cargo)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteCargo(deptCargo.cargo.id, deptCargo.cargo.nombre)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {(hasPermission('canUpdate') || hasPermission('canManageDepartamentos')) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditCargo(deptCargo.cargo)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(hasPermission('canDelete') || hasPermission('canManageDepartamentos')) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCargo(deptCargo.cargo.id, deptCargo.cargo.nombre)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {deptCargo.cargo.descripcion && (
