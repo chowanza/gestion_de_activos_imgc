@@ -106,9 +106,10 @@ export async function PUT(request: NextRequest) {
 
     // 2. Leer los datos del FormData
     const formData = await request.formData();
-    const nombre = formData.get('nombre') as string;
-    const marcaId = formData.get('marcaId') as string;
-    const tipo = formData.get('tipo') as string;
+  const nombre = formData.get('nombre') as string;
+  const marcaId = formData.get('marcaId') as string;
+  const tipo = formData.get('tipo') as string;
+  const tipoEquipoIdRaw = formData.get('tipoEquipoId') as string | null;
     const imgFile = formData.get('img') as File;
 
     // Validar que 'nombre' exista
@@ -148,12 +149,33 @@ export async function PUT(request: NextRequest) {
   finalImageUrl = `/api/uploads/modelos/${fileName}`;
     }
 
+    // Resolver tipoEquipoId (opcional) a partir de tipo o id provisto
+    let resolvedTipoEquipoId: string | undefined = undefined;
+    if (tipoEquipoIdRaw && typeof tipoEquipoIdRaw === 'string' && tipoEquipoIdRaw.length > 0) {
+      const exists = await prisma.tipoEquipo.findUnique({ where: { id: tipoEquipoIdRaw } });
+      if (exists) {
+        resolvedTipoEquipoId = tipoEquipoIdRaw;
+      }
+    } else {
+      const categoriaInferida = await inferCategoria(tipo);
+      if (categoriaInferida) {
+        const matching = await prisma.tipoEquipo.findFirst({ where: { nombre: tipo, categoria: categoriaInferida } });
+        if (matching) {
+          resolvedTipoEquipoId = matching.id;
+        }
+      } else {
+        const anyMatch = await prisma.tipoEquipo.findFirst({ where: { nombre: tipo } });
+        if (anyMatch) resolvedTipoEquipoId = anyMatch.id;
+      }
+    }
+
     // 5. Actualizar el modelo en la base de datos
     const updatedModelo = await prisma.modeloEquipo.update({
       where: { id },
       data: {
         nombre,
-        tipo,
+        tipo, // mantener string legacy sincronizado con selección
+        tipoEquipoId: resolvedTipoEquipoId,
         img: finalImageUrl,
       },
     });
@@ -203,6 +225,16 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper local para inferir categoría por nombre de tipo
+async function inferCategoria(nombreTipo: string): Promise<'COMPUTADORA' | 'DISPOSITIVO' | null> {
+  const baseComputadoras = ['Laptop','Desktop','Servidor','Workstation','All-in-One'];
+  const baseDispositivos = ['Impresora','Cámara','Tablet','Smartphone','Monitor','Teclado','Mouse','Router','Switch','Proyector','Escáner','Altavoces','Micrófono','Webcam','DVR'];
+  if (baseComputadoras.some(x => x.toLowerCase() === nombreTipo.toLowerCase())) return 'COMPUTADORA';
+  if (baseDispositivos.some(x => x.toLowerCase() === nombreTipo.toLowerCase())) return 'DISPOSITIVO';
+  const found = await prisma.tipoEquipo.findFirst({ where: { nombre: { equals: nombreTipo } } });
+  return found ? (found.categoria as any) : null;
 }
 
 export async function DELETE(request: NextRequest) {

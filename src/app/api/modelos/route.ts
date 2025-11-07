@@ -12,14 +12,16 @@ export async function POST(request: Request) {
   if (deny) return deny;
     try {
         const formData = await request.formData();
-        const nombre = formData.get('nombre') as string;
-        const tipo = formData.get('tipo') as string;
-        const marcaId = formData.get('marcaId') as string;
+  const nombre = formData.get('nombre') as string;
+  const tipo = formData.get('tipo') as string; // legacy string value (frontend)
+  const marcaId = formData.get('marcaId') as string;
+  // Permitir que el frontend envíe directamente tipoEquipoId (futura adopción); si no viene lo resolvemos por nombre+categoría
+  const tipoEquipoIdRaw = formData.get('tipoEquipoId') as string | null;
         const imgFile = formData.get('img') as File;
 
-        if (!nombre || !tipo || !marcaId) {
-            return NextResponse.json({ message: "Nombre, tipo y marca son requeridos." }, { status: 400 });
-        }
+    if (!nombre || !tipo || !marcaId) {
+      return NextResponse.json({ message: "Nombre, tipo y marca son requeridos." }, { status: 400 });
+    }
 
   let imagePath = null;
         if (imgFile && imgFile.size > 0) {
@@ -41,13 +43,38 @@ export async function POST(request: Request) {
       imagePath = `/api/uploads/modelos/${fileName}`;
         }
 
+    let resolvedTipo = tipo;
+    let resolvedTipoEquipoId: string | undefined = undefined;
+
+    // Intentar resolver tipoEquipoId si no fue provisto: buscamos por categoria inferida
+    // Inferir categoría desde listado base: si coincide con TIPOS_COMPUTADORAS => COMPUTADORA, else DISPOSITIVO
+    const categoriaInferida = await inferCategoria(tipo);
+
+    if (tipoEquipoIdRaw && typeof tipoEquipoIdRaw === 'string' && tipoEquipoIdRaw.length > 0) {
+      // Validar existencia
+      const exists = await prisma.tipoEquipo.findUnique({ where: { id: tipoEquipoIdRaw } });
+      if (exists) {
+        resolvedTipoEquipoId = tipoEquipoIdRaw;
+        resolvedTipo = exists.nombre; // asegurar consistencia
+      }
+    } else if (categoriaInferida) {
+      const matchingTipo = await prisma.tipoEquipo.findFirst({
+        where: { nombre: tipo, categoria: categoriaInferida }
+      });
+      if (matchingTipo) {
+        resolvedTipoEquipoId = matchingTipo.id;
+        resolvedTipo = matchingTipo.nombre; // normalizar mayúsculas/caso
+      }
+    }
+
     const nuevoModelo = await prisma.modeloEquipo.create({
-            data: {
-                nombre,
-                tipo,
-                img: imagePath,
-            },
-        });
+      data: {
+        nombre,
+        tipo: resolvedTipo, // legacy string siempre poblado
+        tipoEquipoId: resolvedTipoEquipoId, // opcional
+        img: imagePath,
+      },
+    });
 
         // Crear la relación marca-modelo
         await prisma.marcaModeloEquipo.create({
@@ -64,9 +91,9 @@ export async function POST(request: Request) {
             await AuditLogger.logCreate(
               'modeloEquipo',
               nuevoModelo.id,
-              `Creó modelo "${nombre}" (tipo: ${tipo}) para marca ${marcaId}`,
+              `Creó modelo "${nombre}" (tipo: ${resolvedTipo}) para marca ${marcaId}`,
               (user as any).id,
-              { nombre, tipo, marcaId, img: imagePath }
+              { nombre, tipo: resolvedTipo, tipoEquipoId: resolvedTipoEquipoId, marcaId, img: imagePath }
             );
           }
         } catch (auditErr) {
@@ -87,13 +114,10 @@ export async function GET(request: Request) {
   const deny = await requirePermission('canView')(request as any);
   if (deny) return deny;
   try {
-  const modelos = await prisma.modeloEquipo.findMany({
+    const modelos = await prisma.modeloEquipo.findMany({
       include: {
-        marcaModelos: {
-          include: {
-            marca: true,
-          },
-        },
+        marcaModelos: { include: { marca: true } },
+        tipoEquipo: true,
       },
     });
 
@@ -118,7 +142,8 @@ export async function GET(request: Request) {
       return {
         id: modelo.id,
         nombre: modelo.nombre,
-        tipo: modelo.tipo,
+        tipo: modelo.tipoEquipo?.nombre || modelo.tipo, // preferir nombre desde relación si existe
+        tipoEquipoId: modelo.tipoEquipoId || null,
         img: normalized,
         marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
       };
@@ -142,4 +167,17 @@ export async function GET(request: Request) {
     console.error(error);
     return NextResponse.json({ message: 'Error al obtener modelos' }, { status: 500 });
   }
+}
+
+// --- Helpers internos ---
+async function inferCategoria(nombreTipo: string): Promise<'COMPUTADORA' | 'DISPOSITIVO' | null> {
+  const baseComputadoras = ['Laptop','Desktop','Servidor','Workstation','All-in-One'];
+  const baseDispositivos = ['Impresora','Cámara','Tablet','Smartphone','Monitor','Teclado','Mouse','Router','Switch','Proyector','Escáner','Altavoces','Micrófono','Webcam','DVR'];
+  if (baseComputadoras.some(x => x.toLowerCase() === nombreTipo.toLowerCase())) return 'COMPUTADORA';
+  if (baseDispositivos.some(x => x.toLowerCase() === nombreTipo.toLowerCase())) return 'DISPOSITIVO';
+  // Intentar buscar en BD si no está en listas base
+  const found = await prisma.tipoEquipo.findFirst({
+    where: { nombre: { equals: nombreTipo } }
+  });
+  return found ? (found.categoria as any) : null;
 }

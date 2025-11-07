@@ -486,7 +486,38 @@ npx tsx scripts/check-modelos.ts
 
 ---
 
-## 📝 Convenciones de Scripts
+## � Scripts de Backfill/Migración de Datos
+
+### `scripts/backfill-modelos-tipoequipo.ts`
+**Propósito**: Asignar `tipoEquipoId` en `ModeloEquipo` basado en el campo legacy `tipo`.
+
+**Funcionalidad**:
+- Detecta si la columna `tipoEquipoId` existe en BD (SQL Server) antes de ejecutar
+- Modo por defecto DRY-RUN (no modifica), muestra qué actualizaría
+- Con `--apply` actualiza cada `ModeloEquipo` cuyo `tipoEquipoId` es NULL
+- Infiera la categoría por listas base (COMPUTADORA/DISPOSITIVO) y busca `TipoEquipo` por (nombre, categoría)
+- No crea ni elimina tipos; para poblar tipos base use `scripts/sync-tipos-equipos.ts`
+
+**Prerequisitos**:
+- Migración aplicada que añade `tipoEquipoId` a `ModeloEquipo` y FK a `TipoEquipo`:
+  - Carpeta: `prisma/migrations/20251107120000_add_tipoequipo_fk_to_modeloequipo`
+  - Aplicar en producción con: `npx prisma migrate deploy`
+
+**Uso**:
+```bash
+# DRY-RUN (recomendado primero)
+npx tsx scripts/backfill-modelos-tipoequipo.ts
+
+# Aplicar cambios
+npx tsx scripts/backfill-modelos-tipoequipo.ts --apply
+```
+
+**Notas**:
+- Si la columna no existe, el script saldrá con un mensaje indicando aplicar migraciones
+- Ejecute previamente `npx tsx scripts/sync-tipos-equipos.ts` para asegurar que los tipos base existen
+
+
+## �📝 Convenciones de Scripts
 
 ### Estructura Estándar
 ```typescript

@@ -80,6 +80,12 @@ export default function CatalogoPage() {
   const router = useRouter();
   const [modelos, setModelos] = useState<ModeloDispositivo[]>([]);
   const [marcas, setMarcas] = useState<any[]>([]);
+  // Tipos dinámicos por categoría
+  const [tiposComputadoras, setTiposComputadoras] = useState<string[]>(TIPOS_COMPUTADORAS);
+  const [tiposDispositivos, setTiposDispositivos] = useState<string[]>(TIPOS_DISPOSITIVOS);
+  // Mapas nombre->id para gestionar altas/bajas
+  const [mapTiposComputadoras, setMapTiposComputadoras] = useState<Record<string, string>>({});
+  const [mapTiposDispositivos, setMapTiposDispositivos] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("");
@@ -93,6 +99,9 @@ export default function CatalogoPage() {
 
   useEffect(() => {
     fetchData();
+    // Cargar tipos dinámicos de ambas categorías al montar
+    fetchTipos('COMPUTADORA');
+    fetchTipos('DISPOSITIVO');
   }, []);
 
   // (Sin carga de tipos desde API; se usan constantes por pestaña)
@@ -122,9 +131,43 @@ export default function CatalogoPage() {
     }
   };
 
+  // Cargar tipos desde API por categoría y actualizar estados y mapas
+  const fetchTipos = async (categoria: 'COMPUTADORA' | 'DISPOSITIVO') => {
+    try {
+      const res = await fetch(`/api/tipos-equipos?categoria=${categoria}`);
+      if (!res.ok) return;
+      const tipos = await res.json() as Array<{ id: string; nombre: string; categoria: string }> | Array<string>;
+      // Endpoint devuelve lista de objetos; pero por compatibilidad aceptamos string[] también
+      let nombres: string[] = [];
+      const map: Record<string, string> = {};
+      if (Array.isArray(tipos) && tipos.length > 0 && typeof (tipos as any)[0] === 'object') {
+        for (const t of tipos as Array<{ id: string; nombre: string; categoria: string }>) {
+          nombres.push(t.nombre);
+          map[t.nombre] = t.id;
+        }
+      } else if (Array.isArray(tipos)) {
+        nombres = (tipos as string[]);
+      }
+      if (categoria === 'COMPUTADORA') {
+        setTiposComputadoras(nombres.length ? nombres : TIPOS_COMPUTADORAS);
+        setMapTiposComputadoras(map);
+      } else {
+        setTiposDispositivos(nombres.length ? nombres : TIPOS_DISPOSITIVOS);
+        setMapTiposDispositivos(map);
+      }
+    } catch (e) {
+      // Si falla, mantener defaults
+      if (categoria === 'COMPUTADORA') {
+        setTiposComputadoras(TIPOS_COMPUTADORAS);
+      } else {
+        setTiposDispositivos(TIPOS_DISPOSITIVOS);
+      }
+    }
+  };
+
   // Obtener tipos según la pestaña activa
   const getCurrentTipos = () => {
-    return activeTab === "computadoras" ? TIPOS_COMPUTADORAS : TIPOS_DISPOSITIVOS;
+    return activeTab === "computadoras" ? tiposComputadoras : tiposDispositivos;
   };
 
   // Obtener modelos filtrados según la pestaña activa
@@ -159,8 +202,61 @@ export default function CatalogoPage() {
     }
   };
 
-  const handleTiposChange = (newTipos: string[]) => {
-    // Refrescar datos para mostrar cambios en cascada
+  const handleTiposChange = async (newTipos: string[]) => {
+    // Gestionar altas/bajas para la categoría actual vía API; renombres los maneja el modal con update-cascada
+    const categoria = activeTab === 'computadoras' ? 'COMPUTADORA' : 'DISPOSITIVO';
+    const prev = categoria === 'COMPUTADORA' ? tiposComputadoras : tiposDispositivos;
+    const map = categoria === 'COMPUTADORA' ? mapTiposComputadoras : mapTiposDispositivos;
+
+    const setTipos = categoria === 'COMPUTADORA' ? setTiposComputadoras : setTiposDispositivos;
+    const setMap = categoria === 'COMPUTADORA' ? setMapTiposComputadoras : setMapTiposDispositivos;
+
+    const toAdd = newTipos.filter(t => !prev.includes(t));
+    const toRemove = prev.filter(t => !newTipos.includes(t));
+
+    // Altas
+    for (const nombre of toAdd) {
+      try {
+        const resp = await fetch('/api/tipos-equipos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, categoria })
+        });
+        if (resp.ok) {
+          const created = await resp.json();
+          map[nombre] = created.id;
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          showToast.error(err.message || `No se pudo crear el tipo "${nombre}"`);
+        }
+      } catch (e) {
+        showToast.error(`Error creando tipo "${nombre}"`);
+      }
+    }
+
+    // Bajas
+    for (const nombre of toRemove) {
+      const id = map[nombre];
+      if (!id) continue; // si no hay id, intentar refrescar luego
+      try {
+        const resp = await fetch(`/api/tipos-equipos/${id}`, { method: 'DELETE' });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          showToast.error(err.message || `No se pudo eliminar el tipo "${nombre}"`);
+        } else {
+          delete map[nombre];
+        }
+      } catch (e) {
+        showToast.error(`Error eliminando tipo "${nombre}"`);
+      }
+    }
+
+    // Refrescar desde backend para quedar consistentes
+    await fetchTipos(categoria);
+    // Sincronizar en UI
+    setTipos(newTipos);
+    setMap({ ...map });
+    // Refrescar datos del catálogo (por si hay cambios que afectan filtros)
     fetchData();
   };
 

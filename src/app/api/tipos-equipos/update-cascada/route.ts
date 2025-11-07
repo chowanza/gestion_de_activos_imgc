@@ -1,98 +1,70 @@
-export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
+import { requireAnyPermission } from '@/lib/role-middleware';
 
+export const dynamic = 'force-dynamic';
+
+// Endpoint único PUT para renombrar tipo (y actualizar modelos) preservando auditoría.
 export async function PUT(request: NextRequest) {
+  const deny = await requireAnyPermission(['canUpdate','canManageComputadores','canManageDispositivos','canManageEmpresas'])(request as any);
+  if (deny) return deny;
   try {
-    const user = await getServerUser(request);
-    const body = await request.json();
-    const { tipoAnterior, tipoNuevo, categoria } = body as { tipoAnterior?: string; tipoNuevo?: string; categoria?: string };
-
+    const { tipoAnterior, tipoNuevo, categoria } = await request.json();
     if (!tipoAnterior || !tipoNuevo) {
-      return NextResponse.json(
-        { message: 'Tipo anterior y tipo nuevo son requeridos' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'tipoAnterior y tipoNuevo son requeridos' }, { status: 400 });
     }
-
     if (tipoAnterior === tipoNuevo) {
-      return NextResponse.json(
-        { message: 'El tipo nuevo debe ser diferente al anterior' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'El tipo nuevo debe ser diferente' }, { status: 400 });
     }
 
-    // Verificar si hay modelos usando el tipo anterior
-    const modelosConTipo = await prisma.modeloEquipo.findMany({
-      where: { tipo: tipoAnterior },
-      include: {
-        marcaModelos: {
-          include: {
-            marca: true
-          }
-        }
-      }
+    // Identificar tipo existente
+    const whereTipo: any = { nombre: tipoAnterior };
+    if (categoria) whereTipo.categoria = categoria;
+    const existing = await prisma.tipoEquipo.findFirst({ where: whereTipo });
+    if (!existing) {
+      return NextResponse.json({ message: 'Tipo anterior no encontrado' }, { status: 404 });
+    }
+
+    // Conflicto
+    const conflict = await prisma.tipoEquipo.findFirst({
+      where: { nombre: tipoNuevo, categoria: existing.categoria, id: { not: existing.id } }
+    });
+    if (conflict) {
+      return NextResponse.json({ message: 'Ya existe otro tipo con ese nombre en la categoría' }, { status: 400 });
+    }
+
+    // Actualizar registro tipo
+    const updatedTipo = await prisma.tipoEquipo.update({
+      where: { id: existing.id },
+      data: { nombre: tipoNuevo }
     });
 
-    if (modelosConTipo.length === 0) {
-      return NextResponse.json(
-        { message: 'No hay modelos usando este tipo' },
-        { status: 404 }
-      );
-    }
-
-    // Actualizar todos los modelos que usan el tipo anterior
+    // Actualizar modelos que usaban el nombre previo
     const updatedModelos = await prisma.modeloEquipo.updateMany({
       where: { tipo: tipoAnterior },
       data: { tipo: tipoNuevo }
     });
 
-    // Registrar actualización en cascada
+    const user = await getServerUser(request);
     if (user) {
       await AuditLogger.logUpdate(
-        'tipo-equipo-cascada',
-        'multiple',
-        `Usuario ${user.username} actualizó el tipo "${tipoAnterior}" a "${tipoNuevo}" en ${updatedModelos.count} modelo(s)`,
-        user.id as string,
-        { 
-          tipoAnterior,
-          tipoNuevo,
-          modelosActualizados: updatedModelos.count,
-          modelos: modelosConTipo.map(m => ({
-            id: m.id,
-            nombre: m.nombre,
-            marca: m.marcaModelos[0]?.marca?.nombre || null
-          }))
-        }
+        'tipoEquipo',
+        updatedTipo.id,
+        `Renombró tipo ${existing.categoria}/${tipoAnterior} → ${updatedTipo.categoria}/${tipoNuevo}`,
+        (user as any).id,
+        { modelosActualizados: updatedModelos.count }
       );
     }
 
-    // Actualizar registro en tabla de tipos si existe
-    try {
-      const cat = (categoria || '').toUpperCase();
-      const where: any = { nombre: tipoAnterior };
-      if (cat === 'COMPUTADORA' || cat === 'DISPOSITIVO') where.categoria = cat;
-      const found = await (prisma as any).tipoEquipo.findFirst({ where });
-      if (found) {
-        await (prisma as any).tipoEquipo.update({ where: { id: found.id }, data: { nombre: tipoNuevo } });
-      }
-    } catch (e) {
-      console.warn('Advertencia: no se pudo actualizar TipoEquipo (continuando):', e);
-    }
-
     return NextResponse.json({
-      message: `Tipo actualizado en ${updatedModelos.count} modelo(s)`,
+      message: 'Tipo actualizado correctamente',
       modelosActualizados: updatedModelos.count,
-      tipoAnterior,
-      tipoNuevo
+      tipo: updatedTipo
     }, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar tipo en cascada:', error);
-    return NextResponse.json(
-      { message: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    console.error('Error al renombrar tipo:', error);
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ model TipoEquipo {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  modelos   ModeloEquipo[]
 
   @@unique([categoria, nombre])
 }
@@ -29,10 +30,15 @@ model ModeloEquipo {
   id                 String                    @id @default(uuid())
   nombre             String
   tipo               String
+  // Normalización opcional: referencia al registro TipoEquipo (mantiene compatibilidad con campo string 'tipo')
+  tipoEquipoId       String?
+  tipoEquipo         TipoEquipo?               @relation(fields: [tipoEquipoId], references: [id])
   img                String?
   computadorModelos  ComputadorModeloEquipo[]
   dispositivoModelos DispositivoModeloEquipo[]
   marcaModelos       MarcaModeloEquipo[]
+
+  @@index([tipoEquipoId])
 }
 
 model Ubicacion {
