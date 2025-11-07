@@ -46,6 +46,7 @@ else {
 if (-not $SkipMigrate) {
   Write-Host '[STEP] Applying pending Prisma migrations (deploy)...'
   npx prisma migrate deploy | Write-Output
+  if ($LASTEXITCODE -ne 0) { throw 'Prisma migrate deploy failed' }
 }
 else {
   Write-Host '[SKIP] prisma migrate deploy skipped by flag.'
@@ -54,6 +55,7 @@ else {
 # 4) Prisma generate
 Write-Host '[STEP] Ensuring Prisma client is generated...'
 npx prisma generate | Write-Output
+if ($LASTEXITCODE -ne 0) { throw 'Prisma generate failed' }
 
 # 5) Sync tipos (idempotent)
 if (-not (Test-Path 'scripts/sync-tipos-equipos.ts')) {
@@ -61,6 +63,7 @@ if (-not (Test-Path 'scripts/sync-tipos-equipos.ts')) {
 }
 Write-Host '[STEP] Syncing base TipoEquipo records...'
 npx tsx scripts/sync-tipos-equipos.ts | Write-Output
+if ($LASTEXITCODE -ne 0) { throw 'Sync tipos script failed' }
 
 # 6) Backfill dry-run then apply
 if (-not (Test-Path 'scripts/backfill-modelos-tipoequipo.ts')) {
@@ -71,13 +74,15 @@ $forceArg = if ($Force) { '--force' } else { '' }
 
 Write-Host '[STEP] Backfill dry-run (preview)...'
 npx tsx scripts/backfill-modelos-tipoequipo.ts $forceArg | Write-Output
+if ($LASTEXITCODE -ne 0) { throw 'Backfill dry-run failed' }
 
 Write-Host '[STEP] Applying backfill (--apply)...'
 npx tsx scripts/backfill-modelos-tipoequipo.ts --apply $forceArg | Write-Output
+if ($LASTEXITCODE -ne 0) { throw 'Backfill apply failed' }
 
 # 7) Remove legacy dynamic route folder if exists
 $legacyRoute = 'src/app/api/tipos-equipos/[tipo]'
-if (Test-Path $legacyRoute) {
+if (Test-Path -LiteralPath $legacyRoute) {
   Write-Host "[CLEANUP] Removing legacy dynamic route folder: $legacyRoute"
   Remove-Item -LiteralPath $legacyRoute -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -98,6 +103,7 @@ else {
 if (-not $NoBuild) {
   Write-Host '[STEP] Running production build...'
   npm run build | Write-Output
+  if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
   Write-Host '[SUCCESS] Build completed successfully.'
 }
 else {

@@ -56,7 +56,7 @@ IF NOT EXIST node_modules (
 REM --------------------------------------------------------------------
 REM 3. Prisma migrate deploy (production-safe) unless skipped
 REM --------------------------------------------------------------------
-IF %DO_MIGRATE%==1 (
+IF "%DO_MIGRATE%"=="1" (
   ECHO [STEP] Applying pending Prisma migrations (deploy)...
   npx prisma migrate deploy || EXIT /B 1
 ) ELSE (
@@ -118,7 +118,7 @@ IF EXIST .next (
 REM --------------------------------------------------------------------
 REM 9. Build (optional)
 REM --------------------------------------------------------------------
-IF %DO_BUILD%==1 (
+IF "%DO_BUILD%"=="1" (
   ECHO [STEP] Running production build...
   npm run build || EXIT /B 1
   ECHO [SUCCESS] Build completed successfully.
