@@ -20,6 +20,7 @@
 import prisma from '../src/lib/prisma';
 
 const APPLY = process.argv.includes('--apply');
+const FORCE = process.argv.includes('--force');
 
 const TIPOS_COMPUTADORAS = ['Laptop','Desktop','Servidor','Workstation','All-in-One'];
 const TIPOS_DISPOSITIVOS = ['Impresora','Cámara','Tablet','Smartphone','Monitor','Teclado','Mouse','Router','Switch','Proyector','Escáner','Altavoces','Micrófono','Webcam','DVR'];
@@ -46,9 +47,28 @@ async function main() {
       return;
     }
 
+    // Precargar todos los tipos en memoria (si existen) para matching case-insensitive
+    const tipos = await prisma.tipoEquipo.findMany().catch(() => [] as any[]);
+    if ((tipos as any[]).length === 0) {
+      console.log('⚠️ No hay registros en TipoEquipo. Ejecute primero: npx tsx scripts/sync-tipos-equipos.ts');
+      if (!FORCE) {
+        console.log('⏭️ Abortado (usa --force para continuar sin Tipos en BD, no recomendado).');
+        return;
+      } else {
+        console.log('⚠️ Continuando por --force (no se asignará ningún tipoEquipoId).');
+      }
+    }
+    const mapComp = new Map<string, string>();
+    const mapDisp = new Map<string, string>();
+    for (const t of tipos as any[]) {
+      const key = String(t.nombre).toLowerCase();
+      if (t.categoria === 'COMPUTADORA') mapComp.set(key, t.id);
+      if (t.categoria === 'DISPOSITIVO') mapDisp.set(key, t.id);
+    }
+
     // Evitar referencias tipadas a columnas no presentes en el cliente generado: obtener todos y filtrar en JS
     const todos = await prisma.modeloEquipo.findMany();
-    const pendientes = todos.filter((m: any) => m.tipoEquipoId == null);
+    const pendientes = todos.filter((m: any) => (m as any).tipoEquipoId == null);
 
     if (pendientes.length === 0) {
       console.log('✅ No hay modelos pendientes (todos ya tienen tipoEquipoId o no existen).');
@@ -62,25 +82,20 @@ async function main() {
 
     for (const modelo of pendientes) {
       const categoria = inferCategoria(modelo.tipo);
-      let encontrado = null;
-      if (categoria) {
-        encontrado = await prisma.tipoEquipo.findFirst({
-          where: { nombre: modelo.tipo, categoria }
-        });
-      } else {
-        // Búsqueda sin categoría (fallback)
-        encontrado = await prisma.tipoEquipo.findFirst({
-          where: { nombre: modelo.tipo }
-        });
-      }
+      const key = String(modelo.tipo).toLowerCase();
+      let tipoId: string | undefined;
+      if (categoria === 'COMPUTADORA') tipoId = mapComp.get(key);
+      else if (categoria === 'DISPOSITIVO') tipoId = mapDisp.get(key);
+      // Fallback: buscar por nombre sin categoría
+      if (!tipoId) tipoId = mapComp.get(key) || mapDisp.get(key);
 
-      if (encontrado) {
+      if (tipoId) {
         asignables.push({
           id: modelo.id,
           nombre: modelo.nombre,
           tipoLegacy: modelo.tipo,
-          tipoEquipoId: encontrado.id,
-          categoria: encontrado.categoria
+          tipoEquipoId: tipoId,
+          categoria: categoria || 'DESCONOCIDA'
         });
       } else {
         sinCoincidencia.push({ id: modelo.id, nombre: modelo.nombre, tipoLegacy: modelo.tipo });
