@@ -9,6 +9,7 @@ import { ArrowLeft, Building2, Users, Laptop, Smartphone, Edit, Trash2, MapPin, 
 import { showToast } from "nextjs-toast-notify";
 import Link from "next/link";
 import { Spinner } from '@/components/ui/spinner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface ModeloDetails {
   id: string;
@@ -80,6 +81,8 @@ export default function ModeloDetailsPage() {
   const [modelo, setModelo] = useState<ModeloDetails | null>(null);
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { hasPermission } = usePermissions();
+  const canDelete = hasPermission('canDelete');
 
   useEffect(() => {
     if (params.id) {
@@ -178,10 +181,12 @@ export default function ModeloDetailsPage() {
             <Edit className="h-4 w-4 mr-2" />
             Editar
           </Button>
-          <Button variant="outline" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar
-          </Button>
+          {canDelete && (
+            <Button variant="outline" size="sm" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
+          )}
         </div>
       </div>
 

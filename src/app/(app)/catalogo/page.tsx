@@ -94,7 +94,7 @@ export default function CatalogoPage() {
   const [showMarcasModal, setShowMarcasModal] = useState(false);
   const [editingModelo, setEditingModelo] = useState<ModeloDispositivo | null>(null);
   const [activeTab, setActiveTab] = useState("computadoras");
-  const { hasAnyPermission } = usePermissions();
+  const { hasAnyPermission, hasPermission } = usePermissions();
   const canManageCatalog = hasAnyPermission(['canCreate','canManageComputadores','canManageDispositivos','canManageEmpresas']);
 
   useEffect(() => {
@@ -444,15 +444,17 @@ export default function CatalogoPage() {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteModelo(modelo.id)}
-                                    className="text-red-600 hover:text-red-700"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  {hasPermission('canDelete') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteModelo(modelo.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </>
                               )}
                             </div>
@@ -576,26 +578,30 @@ export default function CatalogoPage() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingModelo(modelo);
-                                  setShowModeloForm(true);
-                                }}
-                                title="Editar"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteModelo(modelo.id)}
-                                className="text-red-600 hover:text-red-700"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {canManageCatalog && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingModelo(modelo);
+                                    setShowModeloForm(true);
+                                  }}
+                                  title="Editar"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {hasPermission('canDelete') && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteModelo(modelo.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>

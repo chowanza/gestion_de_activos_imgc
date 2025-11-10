@@ -88,8 +88,9 @@ export function EmpresasTable() {
   const router = useRouter();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const { hasAnyPermission } = usePermissions();
+  const { hasAnyPermission, hasPermission } = usePermissions();
   const canManageEmpresas = hasAnyPermission(['canManageEmpresas','canCreate','canUpdate','canDelete']);
+  const canDelete = hasPermission('canDelete');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -232,12 +233,14 @@ export function EmpresasTable() {
                 <DropdownMenuItem onClick={() => handleEditEmpresa(empresa)}>
                   Editar Empresa
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleDeleteEmpresa(empresa)}
-                  className="text-red-600"
-                >
-                  Eliminar Empresa
-                </DropdownMenuItem>
+                {canDelete && (
+                  <DropdownMenuItem
+                    onClick={() => handleDeleteEmpresa(empresa)}
+                    className="text-red-600"
+                  >
+                    Eliminar Empresa
+                  </DropdownMenuItem>
+                )}
               </>
             )}
           </DropdownMenuContent>

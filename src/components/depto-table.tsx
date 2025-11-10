@@ -270,8 +270,9 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
     const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
     const [empleados, setEmpleados] = React.useState<{ id: string; nombre: string; apellido: string; }[]>([]);
     const [isLoading, setLoading] = React.useState(true)
-    const { hasAnyPermission } = usePermissions();
+    const { hasAnyPermission, hasPermission } = usePermissions();
     const canManageDepartamentos = hasAnyPermission(['canManageDepartamentos','canManageEmpresas','canCreate','canUpdate','canDelete']);
+    const canDelete = hasPermission('canDelete');
 
 
 
@@ -354,11 +355,13 @@ export function DepartamentoTable({}: DepartamentoTableProps) {
                                         Editar Departamento
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                            Eliminar Departamento
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
+                                    {canDelete && (
+                                      <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                              Eliminar Departamento
+                                          </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                    )}
                                 </>
                             )}
                         </DropdownMenuContent>

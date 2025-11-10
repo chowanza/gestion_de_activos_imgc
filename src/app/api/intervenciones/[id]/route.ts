@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requireAnyPermission } from '@/lib/role-middleware';
 import { getServerUser } from '@/lib/auth-server';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Require update or manage equipment permissions (aligns with editor capabilities but not viewer)
+  const deny = await requireAnyPermission(['canUpdate','canManageComputadores','canManageDispositivos','canManageAsignaciones'])(request as any);
+  if (deny) return deny;
+
   const user = await getServerUser(request);
   if (!user) {
     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
@@ -81,6 +86,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Require delete AND manage-equipment permissions. Editors (canDelete=false) will be blocked.
+  const deny = await requireAnyPermission(['canDelete','canManageComputadores','canManageDispositivos'])(request as any);
+  if (deny) return deny;
+
   const user = await getServerUser(request);
   if (!user) {
     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });

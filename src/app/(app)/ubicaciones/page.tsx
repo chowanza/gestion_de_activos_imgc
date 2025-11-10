@@ -102,6 +102,7 @@ export default function UbicacionesPage() {
 
   const { hasPermission, hasAnyPermission } = usePermissions();
   const canManage = hasAnyPermission(['canCreate','canManageDepartamentos']);
+  const canDelete = hasPermission('canDelete');
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de que quieres eliminar la ubicación "${nombre}"?`)) {
@@ -349,7 +350,7 @@ export default function UbicacionesPage() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          {canManage && (
+                          {canManage && canDelete && (
                             <DropdownMenuItem 
                               onClick={() => handleDelete(ubicacion.id, ubicacion.nombre)}
                               className="text-red-600"
