@@ -244,15 +244,27 @@ export async function DELETE(request: NextRequest) {
   if (deny) return deny;
 
   try {
-    // Fetch the modelo to get the image URL
+    // Fetch the modelo and related usage to validate and to get the image URL
     const modelo = await prisma.modeloEquipo.findUnique({
-      where: {
-        id: id,
-      },
+      where: { id },
+      include: {
+        marcaModelos: true,
+        computadorModelos: true,
+        dispositivoModelos: true,
+      }
     });
 
     if (!modelo) {
       return NextResponse.json({ message: "Modelo not found" }, { status: 404 });
+    }
+
+    // Safety: block delete if there are associated equipos (defense-in-depth)
+    const totalVinculosEquipos = (modelo.computadorModelos?.length || 0) + (modelo.dispositivoModelos?.length || 0);
+    if (totalVinculosEquipos > 0) {
+      return NextResponse.json(
+        { message: 'No se puede eliminar el modelo porque tiene equipos asociados' },
+        { status: 400 }
+      );
     }
 
     // Delete the image file
@@ -274,11 +286,15 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Delete the modelo from the database
-    await prisma.modeloEquipo.delete({
-      where: {
-        id: id,
-      },
+    // Delete dependent relations first, then the modelo — all in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Relaciones con marcas
+      await tx.marcaModeloEquipo.deleteMany({ where: { modeloEquipoId: id } });
+      // Relaciones con computadores y dispositivos (por si existen registros huérfanos)
+      await tx.computadorModeloEquipo.deleteMany({ where: { modeloEquipoId: id } });
+      await tx.dispositivoModeloEquipo.deleteMany({ where: { modeloEquipoId: id } });
+      // Finalmente, el modelo
+      await tx.modeloEquipo.delete({ where: { id } });
     });
 
     // Auditoría de eliminación
@@ -298,10 +314,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json({ message: "Modelo deleted successfully" });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting modelo:", error);
     return NextResponse.json(
-      { message: "Error deleting modelo" },
+      { message: "Error deleting modelo", details: error?.message || 'unknown' },
       { status: 500 }
     );
   }
