@@ -266,6 +266,9 @@ export default function EquipmentDetails() {
       const [interventionModalOpen, setInterventionModalOpen] = useState(false);
   const isAdmin = useIsAdmin();
   const { userRole, hasPermission } = usePermissions();
+  const canUpdate = hasPermission('canUpdate') || hasPermission('canManageComputadores');
+  const canManageState = canUpdate || hasPermission('canManageAsignaciones') || hasPermission('canAssign');
+  const canDelete = hasPermission('canDelete');
 
       // Hook de TanStack Query para cargar los datos del equipo
       const {
@@ -501,21 +504,27 @@ const departamentoTag = (
                     Registrar Intervención
                   </DropdownMenuItem>
                 ) }
-                {isAdmin && (
+                {(canManageState || canUpdate || canDelete) && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
-                      <Wrench className="h-4 w-4 mr-2" />
-                      Gestionar Estado
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar Equipo
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-gray-200 text-red-400" onClick={handleDelete}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </DropdownMenuItem>
+                    {canManageState && (
+                      <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
+                        <Wrench className="h-4 w-4 mr-2" />
+                        Gestionar Estado
+                      </DropdownMenuItem>
+                    )}
+                    {canUpdate && (
+                      <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar Equipo
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem className="hover:bg-gray-200 text-red-400" onClick={handleDelete}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    )}
                   </>
                 )}
                 <DropdownMenuItem className="hover:bg-gray-200" onClick={handleGenerateQR}>

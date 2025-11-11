@@ -456,6 +456,11 @@ const departamentoTag = (
     }
   };
 
+  // Permisos derivados (alineado con computadores details)
+  const canUpdate = hasPermission('canUpdate') || hasPermission('canManageDispositivos');
+  const canManageState = canUpdate || hasPermission('canManageAsignaciones') || hasPermission('canAssign');
+  const canDelete = hasPermission('canDelete');
+
 
 
   return (
@@ -505,23 +510,31 @@ const departamentoTag = (
                   </DropdownMenuItem>
                 ) }
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
-                  <Wrench className="h-4 w-4 mr-2" />
-                  Gestionar Estado
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar Equipo
-                </DropdownMenuItem>
+                { canManageState && (
+                  <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setStatusModalOpen(true)}>
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Gestionar Estado
+                  </DropdownMenuItem>
+                ) }
+                { canUpdate && (
+                  <DropdownMenuItem className="hover:bg-gray-200" onClick={handleEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar Equipo
+                  </DropdownMenuItem>
+                ) }
                 <DropdownMenuItem className="hover:bg-gray-200" onClick={handleGenerateQR}>
                   <QrCode className="h-4 w-4 mr-2" />
                   Generar QR
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-200" />
-                <DropdownMenuItem className="hover:bg-gray-200 text-red-400" onClick={handleDelete}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
+                { canDelete && (
+                  <>
+                    <DropdownMenuSeparator className="bg-gray-200" />
+                    <DropdownMenuItem className="hover:bg-gray-200 text-red-400" onClick={handleDelete}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </>
+                ) }
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
