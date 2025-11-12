@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import DispositivoForm from "./EquipoForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useRouter } from "next/navigation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import TableRowSkeleton from "@/utils/loading";
@@ -116,7 +116,11 @@ export function DispositivoTable({}: DispositivoTableProps) {
   const [dispositivos, setDispositivos] = React.useState<Dispositivo[]>([]);
   const [modelos, setModelos] = React.useState<{ id: string; nombre: string; tipo: string }[]>([]);
   const [isLoading, setIsLoading] = React.useState(true); 
-  const isAdmin = useIsAdmin();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  const canCreateDispositivo = hasAnyPermission(['canCreate', 'canManageDispositivos']);
+  const canEditDispositivo = hasAnyPermission(['canUpdate', 'canManageDispositivos']);
+  // Eliminar solo para roles con canDelete (Admin). Editor NO elimina.
+  const canDeleteDispositivo = hasPermission('canDelete');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
@@ -458,19 +462,23 @@ const columns: ColumnDef<Dispositivo>[] = [
                     Gestionar Estado
                   </Link>
                 </DropdownMenuItem>
-                { isAdmin && (
+                { canEditDispositivo && (
                   <>
                     <DropdownMenuItem
                       onClick={() => handleOpenEditModal(dispositivo)}
                     >
                       Editar equipo
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        Eliminar equipo
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
+                    {canDeleteDispositivo && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            Eliminar equipo
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                      </>
+                    )}
                   </>
                 )}
               </DropdownMenuContent>
@@ -711,7 +719,7 @@ return (
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-                {isAdmin && (
+                {canCreateDispositivo && (
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                       <PlusIcon className="mr-2 h-4 w-4" />
                       Agregar Dispositivo

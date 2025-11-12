@@ -369,7 +369,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const deny = await requireAnyPermission(['canDelete','canManageDepartamentos','canManageEmpresas'])(request as any);
+    const deny = await requirePermission('canDelete')(request as any);
     if (deny) return deny;
     const user = await getServerUser(request);
 

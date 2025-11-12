@@ -349,8 +349,8 @@ export async function PUT(request: NextRequest) {
 // --- DELETE (Eliminar un equipo por ID) ---
 export async function DELETE(request: NextRequest) {
   await Promise.resolve();
-  // Require permission to manage dispositivos
-  const check = await requirePermission('canManageDispositivos')(request);
+  // Require explicit delete permission (Admin only)
+  const check = await requirePermission('canDelete')(request);
   if (check instanceof NextResponse) return check;
     const id = request.nextUrl.pathname.split('/')[3];
     try {

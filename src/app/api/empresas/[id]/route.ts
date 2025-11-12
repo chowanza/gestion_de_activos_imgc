@@ -293,8 +293,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Require permission to manage empresas
-    const check = await requirePermission('canManageEmpresas')(request);
+    // Require admin delete permission
+    const check = await requirePermission('canDelete')(request);
     if (check instanceof NextResponse) return check;
 
     const { id } = await params;

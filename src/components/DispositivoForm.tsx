@@ -17,6 +17,7 @@ interface Modelo {
     id: string;
     nombre: string;
     tipo: string;
+    categoria?: 'COMPUTADORA' | 'DISPOSITIVO' | null;
 }
 
 interface Ubicacion {
@@ -102,11 +103,9 @@ export default function DispositivoForm({
                 ]);
 
                 if (modelosRes.ok) {
-                    const modelosData = await modelosRes.json();
-                    // Filtrar solo modelos de dispositivos
-                    const modelosDispositivos = modelosData.filter((modelo: Modelo) => 
-                        ['Impresora', 'Cámara', 'Tablet', 'Smartphone', 'Monitor', 'Teclado', 'Mouse', 'Router', 'Switch', 'Proyector', 'Escáner', 'Altavoces', 'Micrófono', 'Webcam'].includes(modelo.tipo)
-                    );
+                    const modelosData: Modelo[] = await modelosRes.json();
+                    // Mostrar todos los modelos de categoría DISPOSITIVO (incluye dinámicos)
+                    const modelosDispositivos = modelosData.filter((m) => m.categoria === 'DISPOSITIVO' || !m.categoria);
                     setModelos(modelosDispositivos);
                 }
 

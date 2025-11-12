@@ -372,8 +372,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Require permission to manage computadores
-    const check = await requirePermission('canManageComputadores')(request);
+    // Require explicit delete permission (Admin only)
+    const check = await requirePermission('canDelete')(request);
     if (check instanceof NextResponse) return check;
 
     const id = request.nextUrl.pathname.split('/')[3];

@@ -20,6 +20,7 @@ interface ModeloParaSelect {
   id: string;
   nombre: string;
   tipo: string;
+  categoria?: 'COMPUTADORA' | 'DISPOSITIVO' | null;
 }
 
 interface OptionType {
@@ -172,28 +173,10 @@ const [formData, setFormData] = useState<DispositivoFormData>({
     }
   };
   
-  // Tipos de dispositivos permitidos
-  const TIPOS_DISPOSITIVOS = [
-    "Impresora",
-    "Cámara",
-    "Tablet",
-    "Smartphone",
-    "Monitor",
-    "Teclado",
-    "Mouse",
-    "Router",
-    "Switch",
-    "Proyector",
-    "Escáner",
-    "Altavoces",
-    "Micrófono",
-    "Webcam"
-  ];
-
-  // Filtrar solo modelos de dispositivos
-  const modelosDispositivos = Array.isArray(modelos) ? modelos.filter(modelo => 
-    TIPOS_DISPOSITIVOS.includes(modelo.tipo)
-  ) : [];
+  // Filtrar solo modelos de la categoría DISPOSITIVO (incluye tipos dinámicos). Si el backend no envía 'categoria', mostramos todos para compatibilidad.
+  const modelosDispositivos = Array.isArray(modelos)
+    ? modelos.filter(modelo => modelo.categoria === 'DISPOSITIVO' || !modelo.categoria)
+    : [];
 
   // Mapea los modelos recibidos para el componente Select
   const modeloOptions = modelosDispositivos.map(modelo => ({ value: modelo.id, label: modelo.nombre }));

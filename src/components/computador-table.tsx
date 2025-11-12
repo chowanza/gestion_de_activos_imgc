@@ -4,7 +4,7 @@ import React from "react";
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { z } from "zod";
 import Link from "next/link";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { usePermissions } from "@/hooks/usePermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import TableRowSkeleton from "@/utils/loading";
 
@@ -99,7 +99,11 @@ export function ComputadorTable({}: ComputadorTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [computadores, setComputadores] = React.useState<Computador[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const isAdmin = useIsAdmin();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  const canCreateComputador = hasAnyPermission(['canCreate', 'canManageComputadores']);
+  const canEditComputador = hasAnyPermission(['canUpdate', 'canManageComputadores']);
+  // Eliminar solo para roles con canDelete (Admin). Editor NO elimina.
+  const canDeleteComputador = hasPermission('canDelete');
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
   const [currentImage, setCurrentImage] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -462,19 +466,23 @@ const columns: ColumnDef<Computador>[] = [
                     Gestionar Estado
                 </Link>
               </DropdownMenuItem>
-              { isAdmin && (
+              { canEditComputador && (
                 <>
                   <DropdownMenuItem asChild>
                     <Link href={`/computadores/${computador.id}/editar`}>
                         Editar equipo
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        Eliminar computador
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
+                  {canDeleteComputador && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            Eliminar computador
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                    </>
+                  )}
                 </>
               )}
               
@@ -637,7 +645,7 @@ return (
               </DropdownMenu>
             </div>
 
-            {isAdmin && (
+            {canCreateComputador && (
             <Button asChild>
               <Link href="/computadores/new">
                 <PlusIcon className="mr-2 h-4 w-4" />

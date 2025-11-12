@@ -85,7 +85,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const deny = await requireAnyPermission(['canDelete','canManageEmpresas'])(request as any);
+  const deny = await requirePermission('canDelete')(request as any);
   if (deny) return deny;
   try {
     const { id } = await params;

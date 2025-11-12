@@ -122,7 +122,7 @@ export async function GET(request: Request) {
     });
 
     // Transformar los datos para que coincidan con la interfaz esperada
-    const modelosTransformados = modelos.map(modelo => {
+    const modelosTransformados = await Promise.all(modelos.map(async (modelo) => {
       // Normalize stored image URLs to use /api/uploads
       const raw = modelo.img || null;
       let normalized: string | null = null;
@@ -139,15 +139,22 @@ export async function GET(request: Request) {
           normalized = raw;
         }
       }
+
+      // Determinar categoría del modelo (preferir relación, sino inferir por nombre de tipo)
+      let categoria: 'COMPUTADORA' | 'DISPOSITIVO' | null = (modelo as any).tipoEquipo?.categoria || null;
+      if (!categoria) {
+        categoria = await inferCategoria(modelo.tipo);
+      }
       return {
         id: modelo.id,
         nombre: modelo.nombre,
         tipo: modelo.tipoEquipo?.nombre || modelo.tipo, // preferir nombre desde relación si existe
         tipoEquipoId: modelo.tipoEquipoId || null,
+        categoria,
         img: normalized,
         marca: modelo.marcaModelos[0]?.marca || { id: '', nombre: 'Sin marca' },
       };
-    });
+    }));
 
     // Registrar auditoría de navegación/lista solo una vez por petición (sin detalles de cada modelo)
     try {

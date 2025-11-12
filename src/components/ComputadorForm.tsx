@@ -17,6 +17,7 @@ interface Modelo {
     id: string;
     nombre: string;
     tipo: string;
+    categoria?: 'COMPUTADORA' | 'DISPOSITIVO' | null;
 }
 
 interface Ubicacion {
@@ -297,18 +298,9 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
         setUploadedImages(prev => prev.filter((_, i) => i !== index));
     };
     
-    // Tipos de computadoras permitidos
-    const TIPOS_COMPUTADORAS = [
-        "Laptop",
-        "Desktop", 
-        "Servidor",
-        "Workstation",
-        "All-in-One"
-    ];
-
-    // Filtrar solo modelos de computadoras
+    // Filtrar solo modelos de la categoría COMPUTADORA (incluye dinámicos). Si no hay categoría, mostrar por compatibilidad.
     const modelosComputadoras = modelos.filter(modelo => 
-        TIPOS_COMPUTADORAS.includes(modelo.tipo)
+        modelo.categoria === 'COMPUTADORA' || !modelo.categoria
     );
 
     // Preparar opciones para react-select

@@ -9,11 +9,14 @@ import { showToast } from "nextjs-toast-notify";
 import { Spinner } from "@/components/ui/spinner"; // Asumiendo que tienes un componente Spinner
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function EditarComputadorPage() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
+    const { hasPermission } = usePermissions();
+    const canDelete = hasPermission('canDelete');
 
     const [initialData, setInitialData] = useState<ComputadorFormData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -104,15 +107,17 @@ export default function EditarComputadorPage() {
                             <CardDescription>Actualice los detalles del computador con serial: {initialData.serial}</CardDescription>
                         </div>
                     </div>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDelete}
-                        className="flex items-center gap-2"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Eliminar
-                    </Button>
+                    {canDelete && (
+                      <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDelete}
+                          className="flex items-center gap-2"
+                      >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                      </Button>
+                    )}
                 </div>
             </CardHeader>
             <CardContent>

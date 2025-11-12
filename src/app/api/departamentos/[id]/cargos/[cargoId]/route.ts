@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerUser } from '@/lib/auth-server';
 import { AuditLogger } from '@/lib/audit-logger';
+import { requirePermission } from '@/lib/role-middleware';
 
 // PUT - Actualizar un cargo específico
 export async function PUT(
@@ -126,6 +127,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; cargoId: string }> }
 ) {
   try {
+    const deny = await requirePermission('canDelete')(request as any);
+    if (deny) return deny;
     const user = await getServerUser(request);
     if (!user) {
       return NextResponse.json(

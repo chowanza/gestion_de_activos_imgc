@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { showToast } from "nextjs-toast-notify";
 import { Spinner } from "@/components/ui/spinner";
 import { Trash2, ArrowLeft } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function EditarDispositivoPage() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
+    const { hasPermission } = usePermissions();
+    const canDelete = hasPermission('canDelete');
 
     const [initialData, setInitialData] = useState<DispositivoFormData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -102,15 +105,17 @@ export default function EditarDispositivoPage() {
                             <CardDescription>Actualice los detalles del dispositivo con serial: {initialData.serial}</CardDescription>
                         </div>
                     </div>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDelete}
-                        className="flex items-center gap-2"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Eliminar
-                    </Button>
+                    {canDelete && (
+                      <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDelete}
+                          className="flex items-center gap-2"
+                      >
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                      </Button>
+                    )}
                 </div>
             </CardHeader>
             <CardContent>
