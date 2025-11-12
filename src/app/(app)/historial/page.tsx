@@ -310,7 +310,8 @@ export default function HistorialPage() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Acción</TableHead>
                     <TableHead>Descripción</TableHead>
-                    <TableHead>Usuario</TableHead>
+                    <TableHead>Nombre Usuario</TableHead>
+                    <TableHead>Tipo Usuario</TableHead>
                     <TableHead>Equipo</TableHead>
                     <TableHead>Empleado</TableHead>
                     <TableHead>Detalles</TableHead>
@@ -340,17 +341,21 @@ export default function HistorialPage() {
                           {log.descripcion}
                         </p>
                       </TableCell>
+                      {/* Nombre Usuario */}
                       <TableCell>
                         {log.usuario ? (
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500" />
-                            <div>
-                              {/* Mostrar el rol como etiqueta principal (admin/editor/viewer) */}
-                              <p className="text-sm font-medium capitalize">{log.usuario.role}</p>
-                              {/* Opcional: dejar el username en pequeño para referencia */}
-                              {/* <p className="text-xs text-gray-500">{log.usuario.username}</p> */}
-                            </div>
+                            <p className="text-sm font-medium">{log.usuario.username || '-'}</p>
                           </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      {/* Tipo Usuario */}
+                      <TableCell>
+                        {log.usuario ? (
+                          <p className="text-sm font-medium capitalize">{log.usuario.role}</p>
                         ) : (
                           <span className="text-gray-400">Sistema</span>
                         )}
