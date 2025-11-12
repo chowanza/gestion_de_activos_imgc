@@ -333,21 +333,25 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        // Registrar en historial de estado del empleado si hubo cambios
+    // Registrar en historial de estado del empleado si hubo cambios
         const camposModificados = [];
         if (nombre && nombre !== empleadoOriginal?.nombre) camposModificados.push('nombre');
         if (apellido && apellido !== empleadoOriginal?.apellido) camposModificados.push('apellido');
         if (email !== undefined && email !== empleadoOriginal?.email) camposModificados.push('email');
         if (telefono !== undefined && telefono !== empleadoOriginal?.telefono) camposModificados.push('teléfono');
         if (direccion !== undefined && direccion !== empleadoOriginal?.direccion) camposModificados.push('dirección');
-        if (fechaNacimiento && fechaNacimiento !== empleadoOriginal?.fechaNacimiento) camposModificados.push('fecha de nacimiento');
-        if (fechaIngreso && fechaIngreso !== empleadoOriginal?.fechaIngreso) camposModificados.push('fecha de ingreso');
+    if (fechaNacimiento && fechaNacimiento !== empleadoOriginal?.fechaNacimiento) camposModificados.push('fecha de nacimiento');
+    // Normalizar comparación de fechas para evitar falsos positivos por formato
+    const norm = (v?: string | null) => (v && v.trim() !== '' ? v : null);
+    if (norm(fechaIngreso) !== norm(empleadoOriginal?.fechaIngreso)) camposModificados.push('fecha de ingreso');
         
-        // Solo registrar cambios en fechaDesincorporacion si realmente se está cambiando el estado del empleado
-        const estabaDesactivado = !!empleadoOriginal?.fechaDesincorporacion;
-        const estaDesactivado = !!fechaDesincorporacion;
+    // Solo registrar cambios en fechaDesincorporacion si realmente se está cambiando el estado del empleado
+    const estabaDesactivado = !!empleadoOriginal?.fechaDesincorporacion;
+    // Tratar "" como null para no registrar cambios cuando el formulario manda campo vacío
+    const fechaDesincSafe = norm(fechaDesincorporacion);
+    const estaDesactivado = !!fechaDesincSafe;
         
-        if (fechaDesincorporacion !== undefined && fechaDesincorporacion !== empleadoOriginal?.fechaDesincorporacion) {
+    if (fechaDesincorporacion !== undefined && fechaDesincSafe !== norm(empleadoOriginal?.fechaDesincorporacion)) {
             if (estabaDesactivado && !estaDesactivado) {
                 camposModificados.push('reactivación del empleado');
             } else if (!estabaDesactivado && estaDesactivado) {

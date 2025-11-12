@@ -14,7 +14,7 @@ export default function NuevoDispositivoPage() {
 
     const handleCreateDispositivo = async (data: DispositivoFormData) => {
         try {
-            const response = await fetch('/api/dispositivo', {
+            const response = await fetch('/api/dispositivos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),

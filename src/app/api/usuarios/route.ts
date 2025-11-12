@@ -278,11 +278,12 @@ export async function POST(request: NextRequest) {
     );
 
     // Registrar en historial de estado del empleado
+    // La fecha debe coincidir con la fecha de ingreso si fue proporcionada
     await prisma.empleadoStatusHistory.create({
       data: {
         empleadoId: newEmpleado.id,
         accion: 'Empleado Creado',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: (newEmpleado as any).fechaIngreso || new Date().toISOString().split('T')[0],
         motivo: `Empleado ${newEmpleado.nombre} ${newEmpleado.apellido} creado en el sistema`
       }
     });

@@ -142,6 +142,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Modelo, Serial y Código IMGC son requeridos' }, { status: 400 });
     }
 
+    // Validaciones de unicidad previas para dar mensajes claros
+    const [existeSerial, existeCodigo] = await Promise.all([
+      prisma.dispositivo.findFirst({ where: { serial } }),
+      prisma.dispositivo.findFirst({ where: { codigoImgc } })
+    ]);
+    const duplicados: string[] = [];
+    if (existeSerial) duplicados.push('serial');
+    if (existeCodigo) duplicados.push('código IMGC');
+    if (duplicados.length > 0) {
+      const detalle = duplicados.join(' y ');
+      return NextResponse.json(
+        { message: `Ya existe un dispositivo con el mismo ${detalle}.` },
+        { status: 409 }
+      );
+    }
+
     // Crear el dispositivo primero
     const nuevoDispositivo = await prisma.dispositivo.create({
       data: {
@@ -201,9 +217,20 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(nuevoDispositivo, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    // Manejo de errores (ej: serial o nsap duplicado - código P2002 de Prisma)
+    // Manejo de errores de unicidad de Prisma
+    if (error?.code === 'P2002') {
+      const target = (error.meta?.target as string[] | string) ?? [];
+      const fields = Array.isArray(target) ? target : [target];
+      if (fields.includes('serial')) {
+        return NextResponse.json({ message: 'Ya existe un dispositivo con ese serial.' }, { status: 409 });
+      }
+      if (fields.includes('codigoImgc')) {
+        return NextResponse.json({ message: 'Ya existe un dispositivo con ese código IMGC.' }, { status: 409 });
+      }
+      return NextResponse.json({ message: 'Registro duplicado: ya existe un dispositivo con valores únicos repetidos.' }, { status: 409 });
+    }
     return NextResponse.json({ message: 'Error al crear el dispositivo' }, { status: 500 });
   }
 }

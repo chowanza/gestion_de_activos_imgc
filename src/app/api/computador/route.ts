@@ -208,6 +208,22 @@ export async function POST(request: Request) {
       processedData.fechaCompra = new Date(computadorData.fechaCompra);
     }
     
+    // Validaciones de unicidad previas para dar mensajes claros
+    const duplicados: string[] = [];
+    const [existeSerial, existeCodigo] = await Promise.all([
+      prisma.computador.findFirst({ where: { serial: processedData.serial } }),
+      prisma.computador.findFirst({ where: { codigoImgc: processedData.codigoImgc } })
+    ]);
+    if (existeSerial) duplicados.push('serial');
+    if (existeCodigo) duplicados.push('código IMGC');
+    if (duplicados.length > 0) {
+      const detalle = duplicados.join(' y ');
+      return NextResponse.json(
+        { message: `Ya existe un computador con el mismo ${detalle}.` },
+        { status: 409 }
+      );
+    }
+
     // Crear el computador primero
     const newEquipo = await prisma.computador.create({
       data: processedData,
@@ -255,8 +271,20 @@ export async function POST(request: Request) {
     }
     
     return NextResponse.json(newEquipo, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error al crear computador:', error);
+    // Mapear violaciones de unicidad de Prisma a mensajes claros
+    if (error?.code === 'P2002') {
+      const target = (error.meta?.target as string[] | string) ?? [];
+      const fields = Array.isArray(target) ? target : [target];
+      if (fields.includes('serial')) {
+        return NextResponse.json({ message: 'Ya existe un computador con ese serial.' }, { status: 409 });
+      }
+      if (fields.includes('codigoImgc')) {
+        return NextResponse.json({ message: 'Ya existe un computador con ese código IMGC.' }, { status: 409 });
+      }
+      return NextResponse.json({ message: 'Registro duplicado: ya existe un computador con valores únicos repetidos.' }, { status: 409 });
+    }
     return NextResponse.json({ message: 'Error al crear equipo' }, { status: 500 });
   }
 }
