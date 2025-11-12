@@ -6,14 +6,19 @@ import EmpleadoForm, { EmpleadoFormData } from "@/components/EmpleadoForm";
 import { useRouter } from "next/navigation";
 import { showToast } from "nextjs-toast-notify";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useSession } from "@/hooks/useSession";
 
 export default function NuevoEmpleadoPage() {
     const router = useRouter();
     const { hasPermission } = usePermissions();
+    const { status } = useSession();
     const canCreate = hasPermission('canCreate') || hasPermission('canManageUsers');
+    
+    // Esperar a que cargue la sesión para evitar falsos negativos (redirect prematuro)
+    if (status === 'loading') return null;
 
     if (!canCreate) {
-        // Bloqueo simple de acceso a creación para roles sin permiso
+        // Bloqueo de acceso a creación para roles sin permiso, sólo después de tener el status listo
         if (typeof window !== 'undefined') router.replace('/empleados');
         return null;
     }
