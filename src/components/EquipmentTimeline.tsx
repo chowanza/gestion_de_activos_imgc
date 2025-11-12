@@ -61,6 +61,8 @@ interface EquipmentTimelineProps {
         nombre: string;
         empresa?: { nombre: string };
       };
+      // Algunas respuestas del API incluyen empresa al nivel del empleado (no anidada en departamento)
+      empresa?: { nombre: string };
     } | null;
     modelo: {
       nombre: string;
@@ -382,7 +384,8 @@ export function EquipmentTimeline({
         badge: 'Asignado',
         details: [
           `Departamento: ${typeof empleado.departamento === 'string' ? empleado.departamento : empleado.departamento?.nombre || 'Sin departamento'}`,
-          `Empresa: ${empleado.departamento?.empresa?.nombre || 'Sin empresa'}`,
+          // Fallback: si el departamento no trae empresa anidada, usamos empleado.empresa
+          `Empresa: ${empleado.departamento?.empresa?.nombre || empleado.empresa?.nombre || 'Sin empresa'}`,
           ubicacion && `Ubicación: ${ubicacion.nombre}`
         ].filter(Boolean)
       };
