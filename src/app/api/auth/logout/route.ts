@@ -32,9 +32,8 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
 
     // 2. Devuelve respuesta con cookie eliminada
     // Prefer redirect to canonical app URL if configured to avoid localhost/IP mismatches
-    // and land on explicit login page instead of root.
     const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
-    const targetUrl = canonicalBase ? new URL('/login', canonicalBase) : new URL('/login', req.url);
+    const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
     const response = redirectToRoot
       ? NextResponse.redirect(targetUrl)
       : NextResponse.json({ message: 'Logout exitoso' }, { status: 200 });
