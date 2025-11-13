@@ -44,7 +44,8 @@ export default async function middleware(req: NextRequest) {
       const canonicalUrl = new URL(canonicalBase);
       const canonicalHost = canonicalUrl.hostname;
       const canonicalPort = canonicalUrl.port || (canonicalUrl.protocol === 'https:' ? '443' : '80');
-      const isAlt = altHosts.includes(currentHost);
+      const isLocal = currentHost === 'localhost' || currentHost === '127.0.0.1';
+      const isAlt = isLocal || altHosts.includes(currentHost);
       if (isAlt && currentHost !== canonicalHost) {
         const redirectUrl = new URL(req.nextUrl);
         redirectUrl.hostname = canonicalHost;

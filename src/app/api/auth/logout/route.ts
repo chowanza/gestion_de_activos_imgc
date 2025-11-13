@@ -31,8 +31,11 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
     }
 
     // 2. Devuelve respuesta JSON con cookie eliminada
+    // Prefer redirect to canonical app URL if configured to avoid localhost/IP mismatches
+    const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
+    const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
     const response = redirectToRoot
-      ? NextResponse.redirect(new URL('/', req.url))
+      ? NextResponse.redirect(targetUrl)
       : NextResponse.json({ message: 'Logout exitoso' }, { status: 200 });
 
     // Determine whether to set the Secure flag for deletion (same logic as login)
@@ -114,7 +117,9 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
   } catch (error) {
     console.error('[LOGOUT_ERROR]', error);
     if (redirectToRoot) {
-      return NextResponse.redirect(new URL('/', req.url));
+      const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
+      const fallbackUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
+      return NextResponse.redirect(fallbackUrl);
     }
     return NextResponse.json({ message: 'Error al cerrar sesión' }, { status: 500 });
   }
