@@ -78,37 +78,35 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
     // may have been set without the Secure flag (reverse proxies can vary)
     response.cookies.set({ ...baseCookieOptions, secure: false });
 
+    // Additionally, attempt to delete potential legacy path-scoped cookies
+    // Some older sessions may have been set with Path=/api or other paths
+    const legacyPaths = ['/', '/api', '/app', '/dashboard'];
+    for (const p of legacyPaths) {
+      try {
+        response.cookies.set({ ...baseCookieOptions, path: p });
+        response.cookies.set({ ...baseCookieOptions, path: p, secure: false });
+      } catch {}
+    }
+
     // If hostname looks like a domain name (not an IP), also send a domain-scoped deletion
     const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':');
     if (!isIp && hostname) {
       console.log('[LOGOUT] hostname for domain cookie:', hostname);
-      // Send a second Set-Cookie with domain explicitly set to cover domain-scoped cookies
-      response.cookies.set({
-        ...baseCookieOptions,
-        domain: hostname,
-      });
-      // And a non-secure variant for domain scope as well
-      response.cookies.set({
-        ...baseCookieOptions,
-        domain: hostname,
-        secure: false,
-      });
-
-      // Additionally, attempt deletion at the parent domain (e.g., imgcve) in case older cookies
-      // were set with a wider scope. This is safe if parent is a suffix of the current hostname.
+      // Send domain-scoped deletions for multiple legacy paths
+      const domainsToClear = [hostname];
+      // Additionally, attempt deletion at the parent domain (e.g., imgcve)
       const firstDot = hostname.indexOf('.');
       if (firstDot > 0) {
         const parentDomain = hostname.slice(firstDot + 1);
-        if (parentDomain) {
-          response.cookies.set({
-            ...baseCookieOptions,
-            domain: parentDomain,
-          });
-          response.cookies.set({
-            ...baseCookieOptions,
-            domain: parentDomain,
-            secure: false,
-          });
+        if (parentDomain) domainsToClear.push(parentDomain);
+      }
+      for (const d of domainsToClear) {
+        // Hostname without leading dot is standard; browsers treat it equivalently
+        for (const p of legacyPaths) {
+          try {
+            response.cookies.set({ ...baseCookieOptions, domain: d, path: p });
+            response.cookies.set({ ...baseCookieOptions, domain: d, path: p, secure: false });
+          } catch {}
         }
       }
     } else {
