@@ -286,20 +286,42 @@ export async function PUT(request: NextRequest) {
     }
 
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
-    const camposAComparar: Array<keyof typeof computadorActual> = [
+    const camposAComparar: Array<keyof typeof computadorActual | 'fechaCompra' | 'monto' | 'macWifi' | 'macEthernet' | 'numeroFactura' | 'proveedor'> = [
       'serial', 'codigoImgc', 'ram', 'almacenamiento', 'procesador', 'estado',
-      'host', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk'
+      'host', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk',
+      // Campos adicionales que no estaban siendo auditados/actualizados
+      'macWifi', 'macEthernet', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'
     ];
 
     // --- PASO 2: COMPARAR VALORES Y PREPARAR HISTORIAL ---
     for (const campo of camposAComparar) {
-      if (body[campo] !== undefined && computadorActual[campo] !== body[campo]) {
-        modificaciones.push({
-          computadorId: id,
-          campo: campo,
-          valorAnterior: String(computadorActual[campo] || "N/A"),
-          valorNuevo: String(body[campo]),
-        });
+      // Solo comparar si el campo está presente en el body (evita marcar no cambios)
+      if ((body as any)[campo] !== undefined) {
+        const valorActual = (computadorActual as any)[campo];
+        const valorNuevo = (body as any)[campo];
+
+        let valorAnteriorStr = String(valorActual ?? 'N/A');
+        let valorNuevoStr = String(valorNuevo ?? 'N/A');
+
+        // Normalizaciones específicas por tipo de dato
+        if (campo === 'fechaCompra') {
+          valorAnteriorStr = valorActual ? new Date(valorActual).toISOString().split('T')[0] : 'N/A';
+          valorNuevoStr = valorNuevo ? new Date(valorNuevo).toISOString().split('T')[0] : 'N/A';
+        }
+        if (campo === 'monto') {
+          // Prisma Decimal puede serializar distinto; comparar como string
+          valorAnteriorStr = valorActual != null ? String(valorActual) : 'N/A';
+          valorNuevoStr = valorNuevo != null && valorNuevo !== '' ? String(valorNuevo) : 'N/A';
+        }
+
+        if (valorAnteriorStr !== valorNuevoStr) {
+          modificaciones.push({
+            computadorId: id,
+            campo: campo as any,
+            valorAnterior: valorAnteriorStr,
+            valorNuevo: valorNuevoStr,
+          });
+        }
       }
     }
 
@@ -344,8 +366,27 @@ export async function PUT(request: NextRequest) {
             procesador: body.procesador,
             officeVersion: body.officeVersion,
             anydesk: body.anydesk,
+            // Campos nuevos de red
+            macWifi: body.macWifi ?? null,
+            macEthernet: body.macEthernet ?? null,
+            // Campos de compra
+            fechaCompra: body.fechaCompra ? new Date(body.fechaCompra) : null,
+            numeroFactura: body.numeroFactura ?? null,
+            proveedor: body.proveedor ?? null,
+            monto: typeof body.monto === 'number' ? body.monto : (body.monto && body.monto !== '' ? parseFloat(body.monto) : null),
         },
       });
+
+      // Actualizar relación de modelo si se provee modeloId
+      if (body.modeloId) {
+        await tx.computadorModeloEquipo.deleteMany({ where: { computadorId: id } });
+        await tx.computadorModeloEquipo.create({
+          data: {
+            computadorId: id,
+            modeloEquipoId: body.modeloId,
+          }
+        });
+      }
 
       return equipoActualizado;
     });
