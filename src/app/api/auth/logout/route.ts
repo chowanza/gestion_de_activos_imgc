@@ -79,6 +79,24 @@ export async function POST(req: NextRequest) {
         domain: hostname,
         secure: false,
       });
+
+      // Additionally, attempt deletion at the parent domain (e.g., imgcve) in case older cookies
+      // were set with a wider scope. This is safe if parent is a suffix of the current hostname.
+      const firstDot = hostname.indexOf('.');
+      if (firstDot > 0) {
+        const parentDomain = hostname.slice(firstDot + 1);
+        if (parentDomain) {
+          response.cookies.set({
+            ...baseCookieOptions,
+            domain: parentDomain,
+          });
+          response.cookies.set({
+            ...baseCookieOptions,
+            domain: parentDomain,
+            secure: false,
+          });
+        }
+      }
     } else {
       console.log('[LOGOUT] skipping domain cookie (hostname is IP or empty):', hostname);
     }
