@@ -34,6 +34,28 @@ const publicPatterns = [
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
+  // Canonical host redirect: ensure single hostname for cookies/sessions
+  try {
+    const hostHeader = req.headers.get('host') || '';
+    const currentHost = hostHeader.split(':')[0];
+    const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || '';
+    const altHosts = (process.env.ALT_HOSTS || '').split(',').map(h => h.trim()).filter(Boolean);
+    if (canonicalBase && currentHost) {
+      const canonicalUrl = new URL(canonicalBase);
+      const canonicalHost = canonicalUrl.hostname;
+      const canonicalPort = canonicalUrl.port || (canonicalUrl.protocol === 'https:' ? '443' : '80');
+      const isAlt = altHosts.includes(currentHost);
+      if (isAlt && currentHost !== canonicalHost) {
+        const redirectUrl = new URL(req.nextUrl);
+        redirectUrl.hostname = canonicalHost;
+        redirectUrl.port = canonicalPort;
+        redirectUrl.protocol = canonicalUrl.protocol;
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
+  } catch (e) {
+    // Non-blocking: if redirect logic fails, continue normal flow
+  }
   const cookie = req.cookies.get('session');
   const session = cookie?.value ? await decrypt(cookie.value) : null;
 

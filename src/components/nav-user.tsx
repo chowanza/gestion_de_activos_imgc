@@ -26,10 +26,11 @@ export function NavUser({ user }: NavUserProps) {
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
-        window.location.href = '/';
+        window.location.replace('/');
       } else {
         console.error('Error en respuesta de logout:', await response.json());
       }
