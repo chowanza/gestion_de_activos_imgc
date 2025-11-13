@@ -53,11 +53,16 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       path: '/',
       maxAge: 0,
+      expires: new Date(0),
       sameSite: 'lax' as const,
       secure: Boolean(setSecure),
     };
 
+    // Delete with computed secure flag (matches how it was likely set)
     response.cookies.set(baseCookieOptions);
+    // Also send a non-secure deletion to cover environments where the cookie
+    // may have been set without the Secure flag (reverse proxies can vary)
+    response.cookies.set({ ...baseCookieOptions, secure: false });
 
     // If hostname looks like a domain name (not an IP), also send a domain-scoped deletion
     const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':');
@@ -67,6 +72,12 @@ export async function POST(req: NextRequest) {
       response.cookies.set({
         ...baseCookieOptions,
         domain: hostname,
+      });
+      // And a non-secure variant for domain scope as well
+      response.cookies.set({
+        ...baseCookieOptions,
+        domain: hostname,
+        secure: false,
       });
     } else {
       console.log('[LOGOUT] skipping domain cookie (hostname is IP or empty):', hostname);
