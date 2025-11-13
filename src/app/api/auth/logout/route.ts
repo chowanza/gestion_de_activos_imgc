@@ -30,10 +30,11 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
       await AuditLogger.logLogout(user.id as string, ipAddress, userAgent);
     }
 
-    // 2. Devuelve respuesta JSON con cookie eliminada
+    // 2. Devuelve respuesta con cookie eliminada
     // Prefer redirect to canonical app URL if configured to avoid localhost/IP mismatches
+    // and land on explicit login page instead of root.
     const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
-    const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
+    const targetUrl = canonicalBase ? new URL('/login', canonicalBase) : new URL('/login', req.url);
     const response = redirectToRoot
       ? NextResponse.redirect(targetUrl)
       : NextResponse.json({ message: 'Logout exitoso' }, { status: 200 });
@@ -72,6 +73,8 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
 
     // Delete with computed secure flag (matches how it was likely set)
     response.cookies.set(baseCookieOptions);
+    // Also use the delete helper (host-only, Path=/) as a defensive measure
+    response.cookies.delete('session');
     // Also send a non-secure deletion to cover environments where the cookie
     // may have been set without the Secure flag (reverse proxies can vary)
     response.cookies.set({ ...baseCookieOptions, secure: false });
