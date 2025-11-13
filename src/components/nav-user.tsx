@@ -22,21 +22,9 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const { state } = useSidebar();
   
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-
-      if (response.ok) {
-        window.location.replace('/');
-      } else {
-        console.error('Error en respuesta de logout:', await response.json());
-      }
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
+  const handleLogout = () => {
+    // Prefer server-side GET that sets cookies and redirects in one step
+    window.location.href = '/api/auth/logout';
   };
 
   return (

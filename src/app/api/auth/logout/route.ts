@@ -5,6 +5,16 @@ import { AuditLogger } from '@/lib/audit-logger';
 import { getServerUser } from '@/lib/auth-server';
 
 export async function POST(req: NextRequest) {
+  // Use same core logic as GET; POST kept for XHR usage
+  return handleLogout(req, /*redirect*/ false);
+}
+
+export async function GET(req: NextRequest) {
+  // Support direct navigation to /api/auth/logout and redirect to '/'
+  return handleLogout(req, /*redirect*/ true);
+}
+
+async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
   try {
     // Obtener información del usuario antes de eliminar la sesión
     const user = await getServerUser(req);
@@ -21,10 +31,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Devuelve respuesta JSON con cookie eliminada
-    const response = NextResponse.json(
-      { message: 'Logout exitoso' },
-      { status: 200 }
-    );
+    const response = redirectToRoot
+      ? NextResponse.redirect(new URL('/', req.url))
+      : NextResponse.json({ message: 'Logout exitoso' }, { status: 200 });
 
     // Determine whether to set the Secure flag for deletion (same logic as login)
     const forwardedProto = req.headers.get('x-forwarded-proto') || req.headers.get('x-forwarded-protocol');
@@ -104,9 +113,9 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error) {
     console.error('[LOGOUT_ERROR]', error);
-    return NextResponse.json(
-      { message: 'Error al cerrar sesión' },
-      { status: 500 }
-    );
+    if (redirectToRoot) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+    return NextResponse.json({ message: 'Error al cerrar sesión' }, { status: 500 });
   }
 }
