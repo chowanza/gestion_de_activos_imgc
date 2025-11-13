@@ -38,6 +38,11 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
       ? NextResponse.redirect(targetUrl)
       : NextResponse.json({ message: 'Logout exitoso' }, { status: 200 });
 
+    // Ask compatible browsers to clear cookies for this origin as a safety net
+    try {
+      response.headers.set('Clear-Site-Data', '"cookies"');
+    } catch {}
+
     // Determine whether to set the Secure flag for deletion (same logic as login)
     const forwardedProto = req.headers.get('x-forwarded-proto') || req.headers.get('x-forwarded-protocol');
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || '';
