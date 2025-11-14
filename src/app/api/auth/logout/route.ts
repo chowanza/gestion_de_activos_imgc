@@ -10,11 +10,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Support direct navigation to /api/auth/logout and redirect to '/'
-  return handleLogout(req, /*redirect*/ true);
+  // GET ahora también puede recibir la URL del cliente para un borrado preciso.
+  const clientUrl = req.nextUrl.searchParams.get('clientUrl') || undefined;
+  return handleLogout(req, /*redirect*/ true, clientUrl);
 }
 
-async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
+async function handleLogout(req: NextRequest, redirectToRoot: boolean, clientUrl?: string) {
   try {
     // Obtener información del usuario antes de eliminar la sesión
     const user = await getServerUser(req);
@@ -58,6 +59,22 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
 
     // Debug logs to help troubleshoot production issues
     console.log('[LOGOUT] x-forwarded-proto=', forwardedProto, 'appUrl=', appUrl, 'cookieForce=', cookieForce, 'setSecure=', setSecure);
+
+    // Determinar el host de la cookie a borrar
+    let targetHost = '';
+    if (clientUrl) {
+      try {
+        targetHost = new URL(clientUrl).hostname;
+        console.log(`[LOGOUT] Using hostname from clientUrl: ${targetHost}`);
+      } catch {
+        // Fallback si la URL del cliente es inválida
+        targetHost = (req.headers.get('host') || '').split(':')[0];
+        console.log(`[LOGOUT] Fallback to request host: ${targetHost}`);
+      }
+    } else {
+      targetHost = (req.headers.get('host') || '').split(':')[0];
+      console.log(`[LOGOUT] Using hostname from request: ${targetHost}`);
+    }
 
     // Determine hostname for optional domain-scoped deletion
     const hostHeader = req.headers.get('host') || '';
@@ -116,6 +133,24 @@ async function handleLogout(req: NextRequest, redirectToRoot: boolean) {
       }
     } else {
       console.log('[LOGOUT] skipping domain cookie (hostname is IP or empty):', hostname);
+    }
+
+    // Borrado de cookies usando el 'targetHost'
+    const domainsToClear = [targetHost];
+    const firstDot = targetHost.indexOf('.');
+    if (firstDot > 0 && !/^\d+\.\d+\.\d+\.\d+$/.test(targetHost)) {
+      const parentDomain = targetHost.slice(firstDot + 1);
+      if (parentDomain) domainsToClear.push(parentDomain);
+    }
+
+    for (const d of domainsToClear) {
+      // Hostname without leading dot is standard; browsers treat it equivalently
+      for (const p of legacyPaths) {
+        try {
+          response.cookies.set({ ...baseCookieOptions, domain: d, path: p });
+          response.cookies.set({ ...baseCookieOptions, domain: d, path: p, secure: false });
+        } catch {}
+      }
     }
 
     return response;

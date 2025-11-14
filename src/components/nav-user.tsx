@@ -22,9 +22,22 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const { state } = useSidebar();
   
-  const handleLogout = () => {
-    // Prefer server-side GET that sets cookies and redirects in one step
-    window.location.href = '/api/auth/logout';
+  const handleLogout = async () => {
+    try {
+      // Enviar la URL actual al backend para que sepa qué cookie de origen borrar.
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ clientUrl: window.location.href }),
+      });
+    } catch (error) {
+      console.error('Logout fetch failed:', error);
+    } finally {
+      // Forzar la recarga en la raíz, el middleware se encargará de redirigir a login.
+      window.location.href = '/';
+    }
   };
 
   return (
