@@ -24,13 +24,12 @@ export function NavUser({ user }: NavUserProps) {
   
   const handleLogout = async () => {
     try {
-      // Enviar la URL actual al backend para que sepa qué cookie de origen borrar.
       await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ clientUrl: window.location.href }),
       });
     } catch (error) {
       console.error('Logout fetch failed:', error);

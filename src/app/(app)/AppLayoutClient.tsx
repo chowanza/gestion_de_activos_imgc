@@ -4,7 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import type { UserJwtPayload } from "@/lib/auth"; // Adjust the import path as needed
 import { useAuditLogger } from "@/hooks/useAuditLogger";
 
@@ -18,6 +18,25 @@ const queryClient = new QueryClient();
 export default function AppLayoutClient({ children, user }: AppLayoutClientProps) {
   // Registrar visitas a rutas automáticamente
   useAuditLogger();
+
+  // Intentar cerrar sesión cuando se cierre la pestaña/ventana
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        if (navigator.sendBeacon) {
+          const blob = new Blob([], { type: 'application/json' });
+          navigator.sendBeacon('/api/auth/logout', blob);
+        }
+      } catch {
+        // Ignorar errores: el cierre de ventana no debe romper nada
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   return (
     <SidebarProvider>
