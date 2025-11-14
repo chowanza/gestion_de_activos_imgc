@@ -267,7 +267,8 @@ export default function EquipmentDetails() {
   const isAdmin = useIsAdmin();
   const { userRole, hasPermission } = usePermissions();
   const canUpdate = hasPermission('canUpdate') || hasPermission('canManageComputadores');
-  const canManageState = canUpdate || hasPermission('canManageAsignaciones') || hasPermission('canAssign');
+  // Solo roles con permisos explícitos de equipos/asignaciones pueden gestionar estado
+  const canManageState = hasPermission('canManageComputadores') || hasPermission('canManageDispositivos') || hasPermission('canManageAsignaciones') || hasPermission('canAssign');
   const canDelete = hasPermission('canDelete');
 
       // Hook de TanStack Query para cargar los datos del equipo
@@ -498,7 +499,7 @@ const departamentoTag = (
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-white border-gray-300" align="end">
-                { userRole !== 'viewer' && (
+                { (userRole === 'admin' || userRole === 'assigner') && (
                   <DropdownMenuItem className="hover:bg-gray-200" onClick={() => setInterventionModalOpen(true)}>
                     <Camera className="h-4 w-4 mr-2" />
                     Registrar Intervención

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 // GET /api/cargos/[id] - Obtener cargo por ID
@@ -36,6 +37,21 @@ export async function GET(
       );
     }
 
+    // Registrar vista de detalle de cargo en auditoría (opcional pero útil)
+    try {
+      const user = await getServerUser(request as any);
+      if (user) {
+        await AuditLogger.logView(
+          'cargo',
+          id,
+          `Vista de detalles del cargo: ${cargo.nombre}`,
+          (user as any).id
+        );
+      }
+    } catch (e) {
+      console.warn('No se pudo registrar auditoría de vista de cargo:', e);
+    }
+
     return NextResponse.json(cargo);
   } catch (error) {
     console.error('Error fetching cargo:', error);
@@ -55,6 +71,7 @@ export async function PUT(
     const { id } = await params;
     const deny = await requireAnyPermission(['canUpdate','canManageDepartamentos'])(request as any);
     if (deny) return deny;
+    const user = await getServerUser(request as any);
     const body = await request.json();
     const { nombre, descripcion } = body;
 
@@ -85,7 +102,7 @@ export async function PUT(
       'cargo',
       id,
       `Cargo "${cargo.nombre}" actualizado`,
-      undefined // TODO: Obtener userId del token/sesión
+      (user as any)?.id || 'system'
     );
 
     return NextResponse.json(cargo);
@@ -141,6 +158,8 @@ export async function DELETE(
       select: { nombre: true }
     });
 
+    const user = await getServerUser(request as any);
+
     await prisma.cargo.delete({
       where: { id }
     });
@@ -150,7 +169,7 @@ export async function DELETE(
       'cargo',
       id,
       `Cargo "${cargo?.nombre}" eliminado`,
-      undefined // TODO: Obtener userId del token/sesión
+      (user as any)?.id || 'system'
     );
 
     return NextResponse.json({ message: 'Cargo eliminado correctamente' });

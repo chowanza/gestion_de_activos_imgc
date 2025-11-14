@@ -36,18 +36,18 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAuditLogs: true,
   },
   editor: {
-    // Mirror server: editor can manage most domain entities but cannot delete, manage users or view audit logs
+    // Mirror server: editor puede gestionar organización/catálogos, pero no equipos/estados/asignaciones
     canView: true,
     canCreate: true,
     canUpdate: true,
     canDelete: false,
-    canAssign: true,
+    canAssign: false,
     canManageUsers: false,
     canManageEmpresas: true,
     canManageDepartamentos: true,
-    canManageComputadores: true,
-    canManageDispositivos: true,
-    canManageAsignaciones: true,
+    canManageComputadores: false,
+    canManageDispositivos: false,
+    canManageAsignaciones: false,
     canViewAuditLogs: false,
   },
   viewer: {

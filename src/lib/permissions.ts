@@ -79,13 +79,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCreate: true,
     canUpdate: true,
     canDelete: false,
-    canAssign: true,
+    // Editor NO debe poder gestionar asignaciones ni estado de equipos
+    canAssign: false,
     canManageUsers: false,
     canManageEmpresas: true,
     canManageDepartamentos: true,
-    canManageComputadores: true,
-    canManageDispositivos: true,
-    canManageAsignaciones: true,
+    canManageComputadores: false,
+    canManageDispositivos: false,
+    canManageAsignaciones: false,
     canViewAuditLogs: false,
   },
 };

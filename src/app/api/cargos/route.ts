@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuditLogger } from '@/lib/audit-logger';
+import { getServerUser } from '@/lib/auth-server';
 import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
 
 // GET /api/cargos - Obtener todos los cargos
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     const deny = await requireAnyPermission(['canCreate','canManageDepartamentos'])(request as any);
     if (deny) return deny;
 
+    const user = await getServerUser(request as any);
     const body = await request.json();
     const { nombre, descripcion, departamentoId } = body;
 
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
       'cargo',
       cargo.id,
       `Cargo "${cargo.nombre}" creado`,
-      undefined // TODO: Obtener userId del token/sesión
+      (user as any)?.id || 'system'
     );
 
     return NextResponse.json(cargo, { status: 201 });
