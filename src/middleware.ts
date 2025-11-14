@@ -37,26 +37,29 @@ export default async function middleware(req: NextRequest) {
   // Canonical host redirect: ensure single hostname for cookies/sessions
   try {
     const hostHeader = req.headers.get('host') || '';
+    console.log(`[MIDDLEWARE] Request Host: ${hostHeader}`); // Log para depuración
     const currentHost = hostHeader.split(':')[0];
     const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || '';
     const altHosts = (process.env.ALT_HOSTS || '').split(',').map(h => h.trim()).filter(Boolean);
+
     if (canonicalBase && currentHost) {
       const canonicalUrl = new URL(canonicalBase);
       const canonicalHost = canonicalUrl.hostname;
-      const canonicalPort = canonicalUrl.port || (canonicalUrl.protocol === 'https:' ? '443' : '80');
-      const isLocal = currentHost === 'localhost' || currentHost === '127.0.0.1';
-      const isAlt = isLocal || altHosts.includes(currentHost);
-      if (isAlt && currentHost !== canonicalHost) {
+
+      // Si el host actual no es el canónico, redirigir.
+      if (currentHost !== canonicalHost) {
+        console.log(`[MIDDLEWARE] Redirecting from ${currentHost} to ${canonicalHost}`); // Log
         const redirectUrl = new URL(req.nextUrl);
-        redirectUrl.hostname = canonicalHost;
-        redirectUrl.port = canonicalPort;
         redirectUrl.protocol = canonicalUrl.protocol;
+        redirectUrl.hostname = canonicalHost;
+        redirectUrl.port = canonicalUrl.port;
         return NextResponse.redirect(redirectUrl);
       }
     }
   } catch (e) {
-    // Non-blocking: if redirect logic fails, continue normal flow
+    console.error('[MIDDLEWARE_REDIRECT_ERROR]', e); // Log de errores
   }
+
   const cookie = req.cookies.get('session');
   const session = cookie?.value ? await decrypt(cookie.value) : null;
 
