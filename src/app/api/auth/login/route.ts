@@ -76,13 +76,13 @@ export async function POST(req: NextRequest) {
 
     console.log('[LOGIN] x-forwarded-proto=', forwardedProto, 'appUrl=', appUrl, 'cookieForce=', cookieForce, 'setSecure=', setSecure);
 
-    // Use NextResponse.cookies.set for correctness across environments
+    // Cookie de sesión del navegador (sin maxAge/expira) para que se borre
+    // automáticamente al cerrar el navegador o la pestaña
     response.cookies.set({
       name: 'session',
       value: session,
       httpOnly: true,
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
       sameSite: 'lax',
       secure: Boolean(setSecure),
     });
