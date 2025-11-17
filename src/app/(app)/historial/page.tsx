@@ -54,6 +54,7 @@ export default function HistorialPage() {
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
     porTipo: {} as Record<string, number>,
@@ -63,7 +64,16 @@ export default function HistorialPage() {
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [currentPage, filterAction, searchTerm, startDate, endDate]);
+  }, [currentPage, filterAction, searchTerm, startDate, endDate, refreshKey]);
+
+  // Auto-refresh every 30s (same pattern as Dashboard)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRefreshKey((prev) => prev + 1);
+      console.log('🔄 Historial auto-refresh triggered');
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchAuditLogs = async () => {
     try {
@@ -87,6 +97,16 @@ export default function HistorialPage() {
       console.error('Error fetching audit logs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Refresh manual como en Dashboard
+  const handleManualRefresh = async () => {
+    try {
+      setLoading(true);
+      await fetchAuditLogs();
+    } finally {
+      // fetchAuditLogs ya hace setLoading(false) en finally
     }
   };
 
@@ -184,6 +204,16 @@ export default function HistorialPage() {
             <p className="text-sm text-gray-600">Registro completo de auditoría - {stats.total} registros</p>
           </div>
         </div>
+        {/* Botón de refresh manual */}
+        <Button
+          onClick={handleManualRefresh}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          <Activity className="h-4 w-4" />
+          Actualizar
+        </Button>
       </div>
 
       {/* Estadísticas */}
