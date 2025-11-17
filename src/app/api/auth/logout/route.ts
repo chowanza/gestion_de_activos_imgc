@@ -40,27 +40,33 @@ export async function POST(req: NextRequest) {
 
     console.log('[LOGOUT] setSecure=', setSecure, 'appUrl=', appUrl);
 
-    // Explicitly set an expired cookie with the same attributes so browsers delete correctly
-    const baseCookieOptions = {
+    // Borrar la cookie "session" usando exactamente los mismos atributos
+    // que se usan en el login (host-only, path=/, sameSite=lax) y
+    // variando solo el flag secure para cubrir ambos escenarios.
+
+    // 1) Host-only, secure igual que en login
+    response.cookies.set({
       name: 'session',
       value: '',
       httpOnly: true,
       path: '/',
       maxAge: 0,
       expires: new Date(0),
-      sameSite: 'lax' as const,
+      sameSite: 'lax',
       secure: Boolean(setSecure),
-    };
+    });
 
-    // Borrar cookie host-only (sin domain explícito) y con domain canónico.
-    // 1) Host-only (por si se creó sin Domain)
-    response.cookies.set(baseCookieOptions);
-    // 2) Con Domain=sga.imgcve (tal como se ve en tu captura)
-    const canonicalDomain = new URL(appUrl || 'http://sga.imgcve').hostname || 'sga.imgcve';
-    response.cookies.set({ ...baseCookieOptions, domain: canonicalDomain });
-    // 3) Variante no-secure por si acaso
-    response.cookies.set({ ...baseCookieOptions, secure: false });
-    response.cookies.set({ ...baseCookieOptions, domain: canonicalDomain, secure: false });
+    // 2) Host-only, secure opuesto (por si en algún entorno se creó distinto)
+    response.cookies.set({
+      name: 'session',
+      value: '',
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      expires: new Date(0),
+      sameSite: 'lax',
+      secure: !Boolean(setSecure),
+    });
 
     return response;
   } catch (error) {
