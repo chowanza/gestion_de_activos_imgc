@@ -23,20 +23,9 @@ export function NavUser({ user }: NavUserProps) {
   const { state } = useSidebar();
   
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch (error) {
-      console.error('Logout fetch failed:', error);
-    } finally {
-      // Forzar la recarga en la raíz, el middleware se encargará de redirigir a login.
-      window.location.href = '/';
-    }
+    // Haz el logout con navegación directa para garantizar que
+    // el Set-Cookie de borrado se procese antes de cargar la home.
+    window.location.href = '/api/auth/logout';
   };
 
   return (

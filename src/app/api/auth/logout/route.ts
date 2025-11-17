@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     // que se usan en el login (host-only, path=/, sameSite=lax) y
     // variando solo el flag secure para cubrir ambos escenarios.
 
-    // 1) Host-only, secure igual que en login
+    // 1) Host-only, usar exactamente el mismo flag secure que en login
     response.cookies.set({
       name: 'session',
       value: '',
@@ -56,18 +56,6 @@ export async function POST(req: NextRequest) {
       secure: Boolean(setSecure),
     });
 
-    // 2) Host-only, secure opuesto (por si en algún entorno se creó distinto)
-    response.cookies.set({
-      name: 'session',
-      value: '',
-      httpOnly: true,
-      path: '/',
-      maxAge: 0,
-      expires: new Date(0),
-      sameSite: 'lax',
-      secure: !Boolean(setSecure),
-    });
-
     return response;
   } catch (error) {
     console.error('[LOGOUT_ERROR]', error);
@@ -77,19 +65,59 @@ export async function POST(req: NextRequest) {
 
 // GET simple: reutiliza la lógica del POST pero devuelve redirect a '/'
 export async function GET(req: NextRequest) {
-  const res = await POST(req);
-  // Si el resultado es JSON 200, redirigimos a la raíz.
-  const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
-  const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
-  const redirect = NextResponse.redirect(targetUrl);
-  // Copiar cabeceras Set-Cookie del POST al redirect para no perder el borrado
-  const setCookieHeaders = (res.headers as any).getSetCookie?.() || res.headers.get('set-cookie');
-  if (setCookieHeaders) {
-    if (Array.isArray(setCookieHeaders)) {
-      for (const c of setCookieHeaders) redirect.headers.append('Set-Cookie', c);
-    } else {
-      redirect.headers.set('Set-Cookie', setCookieHeaders as string);
+  try {
+    // Obtener usuario para auditoría antes de eliminar la cookie
+    const user = await getServerUser(req);
+
+    if (user) {
+      const ipAddress = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown') as string;
+      const userAgent = (req.headers.get('user-agent') || 'unknown') as string;
+      await AuditLogger.logLogout(user.id as string, ipAddress, userAgent);
     }
+
+    // Determinar flags para el borrado (igual que en POST/login)
+    const forwardedProto = req.headers.get('x-forwarded-proto') || req.headers.get('x-forwarded-protocol');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL || '';
+    const isSecureRequest = !!forwardedProto && forwardedProto.toLowerCase().startsWith('https');
+    const appUrlIsHttps = appUrl.toLowerCase().startsWith('https');
+    let setSecure = isSecureRequest || appUrlIsHttps;
+    const cookieForce = process.env.COOKIE_FORCE_SECURE; // 'true' | 'false' | undefined
+    if (cookieForce === 'true' || cookieForce === 'false') {
+      setSecure = cookieForce === 'true';
+    }
+
+    const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
+    const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
+    const redirect = NextResponse.redirect(targetUrl);
+
+    // Establecer directamente el Set-Cookie de borrado en el redirect
+    redirect.cookies.set({
+      name: 'session',
+      value: '',
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      expires: new Date(0),
+      sameSite: 'lax',
+      secure: Boolean(setSecure),
+    });
+
+    return redirect;
+  } catch (error) {
+    console.error('[LOGOUT_GET_ERROR]', error);
+    // Si algo falla, caer al flujo POST y luego redirigir como contingencia
+    const res = await POST(req);
+    const canonicalBase = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_URL;
+    const targetUrl = canonicalBase ? new URL('/', canonicalBase) : new URL('/', req.url);
+    const redirect = NextResponse.redirect(targetUrl);
+    const setCookieHeaders = (res.headers as any).getSetCookie?.() || res.headers.get('set-cookie');
+    if (setCookieHeaders) {
+      if (Array.isArray(setCookieHeaders)) {
+        for (const c of setCookieHeaders) redirect.headers.append('Set-Cookie', c);
+      } else {
+        redirect.headers.set('Set-Cookie', setCookieHeaders as string);
+      }
+    }
+    return redirect;
   }
-  return redirect;
 }
