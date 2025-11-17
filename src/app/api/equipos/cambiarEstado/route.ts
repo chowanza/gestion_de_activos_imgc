@@ -135,7 +135,6 @@ export async function POST(request: NextRequest) {
     let equipoActualizado;
     
     try {
-      const actorId = (user as any)?.id || (user as any)?.sub || null;
       // Usar transacción para asegurar atomicidad
       const result = await prisma.$transaction(async (tx) => {
         // 1. Actualizar el estado del equipo
@@ -246,6 +245,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Sanitize evidenciaFotos before storing
+      const actorId = (user as any)?.id || (user as any)?.sub || null;
       const evidenciaSanitized = sanitizeStringOrNull(evidenciaFotos);
 
       const nuevaAsignacion = await prisma.asignacionesEquipos.create({
