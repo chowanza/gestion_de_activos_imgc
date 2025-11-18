@@ -239,12 +239,12 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const email = row.getValue("email") as string;
       return email ? (
-        <div className="flex items-center max-w-[180px] truncate">
+        <div className="flex items-center text-sm md:text-base">
           <a 
             href={`mailto:${email}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            <span className="truncate inline-block max-w-full align-top">{email}</span>
+            {email}
           </a>
         </div>
       ) : (
@@ -263,12 +263,12 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const telefono = row.getValue("telefono") as string;
       return telefono ? (
-        <div className="flex items-center max-w-[140px] truncate">
+        <div className="flex items-center text-sm md:text-base">
           <a 
             href={`tel:${telefono}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            <span className="truncate inline-block max-w-full align-top">{telefono}</span>
+            {telefono}
           </a>
         </div>
       ) : (
@@ -287,7 +287,7 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const direccion = row.getValue("direccion") as string;
       return direccion ? (
-        <div className="max-w-[220px] truncate break-words" title={direccion}>
+        <div className="max-w-xs truncate text-sm md:text-base" title={direccion}>
           {direccion}
         </div>
       ) : (
