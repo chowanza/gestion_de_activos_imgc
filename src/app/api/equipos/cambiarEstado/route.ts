@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. CRÍTICO: Limpiar asignaciones activas si el nuevo estado lo requiere
-        const estadosNoAsignados = ['EN_RESGUARDO', 'OPERATIVO', 'DE_BAJA'];
+        const estadosNoAsignados = ['EN_RESGUARDO', 'OPERATIVO', 'DE_BAJA', 'EN_MANTENIMIENTO'];
         if (estadosNoAsignados.includes(nuevoEstado)) {
           console.log(`🔄 Limpiando asignaciones activas para estado ${nuevoEstado}`);
           

@@ -336,6 +336,38 @@ npx tsx scripts/verificar-boton-volver-ubicacion.ts
 ✅ URLs de prueba generadas para verificación manual
 ```
 
+### `scripts/verificar-consistencia-asignaciones.ts`
+**Propósito**: Verificar y corregir inconsistencias entre el estado del equipo y las asignaciones activas.
+
+**Funcionalidad**:
+- Detecta equipos en estado `ASIGNADO` sin asignación activa
+- Detecta equipos en estados no-asignados con asignación activa
+- Advierte equipos en `EN_MANTENIMIENTO` sin asignación activa
+- Modo DRY-RUN por defecto; con `--apply` corrige creando/desactivando asignaciones
+- Con `--downgrade` (opcional), cambia a `OPERATIVO` cuando no existe empleado histórico para recuperar
+
+**Uso**:
+```bash
+npx tsx scripts/verificar-consistencia-asignaciones.ts           # DRY-RUN
+npx tsx scripts/verificar-consistencia-asignaciones.ts --apply   # Aplica correcciones
+npx tsx scripts/verificar-consistencia-asignaciones.ts --apply --downgrade
+```
+
+**Output esperado**:
+```
+📊 RESUMEN
+🖥️  Computadores ASIGNADO sin activa: 2
+📱 Dispositivos ASIGNADO sin activa: 1
+🖥️  Computadores NO asignados con activa: 0
+📱 Dispositivos NO asignados con activa: 1
+🛠️  Computadores EN_MANTENIMIENTO sin activa (warning): 0
+🛠️  Dispositivos EN_MANTENIMIENTO sin activa (warning): 0
+
+✅ Computador <id>: creando asignación activa para empleado <empleadoId>
+🔄 Dispositivo <id>: desactivando asignaciones activas en estado NO asignado
+🎉 Correcciones aplicadas
+```
+
 ### `scripts/verificar-navegacion-historial-empleados.ts`
 **Propósito**: Verificar que la navegación rápida funcione correctamente en el historial de asignaciones de empleados.
 
