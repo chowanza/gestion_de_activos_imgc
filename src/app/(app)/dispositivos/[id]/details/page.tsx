@@ -346,7 +346,7 @@ const departamentoTag = (
         );
     }
   
-    const { serial,  estado, mac, ip } = equipo;
+    const { serial,  estado, mac, ip, descripcion } = equipo;
     
     const currentStatus = statusConfig[estado as keyof typeof statusConfig] || statusConfig.Desconocido;
   const specs: Record<string, string> = {
@@ -667,6 +667,16 @@ const departamentoTag = (
                             <Hash className="h-4 w-4 text-gray-600 mr-2" />
                             <p className="text-sm text-gray-800">
                               {equipo.codigoImgc || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Descripción</p>
+                          <div className="flex items-center">
+                            <Tag className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.descripcion || "N/A"}
                             </p>
                           </div>
                         </div>

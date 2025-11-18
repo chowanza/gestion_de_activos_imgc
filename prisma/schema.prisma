@@ -136,6 +136,7 @@ model Dispositivo {
   estado             String                    @default("OPERATIVO")
   mac                String?
   ip                 String?
+  descripcion        String?
   codigoImgc         String
   fechaCompra        DateTime?
   monto              Decimal?

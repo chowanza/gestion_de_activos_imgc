@@ -32,6 +32,7 @@ export const dispositivoSchema = z.object({
   ubicacionId: z.string().nullable(),
   mac: z.string().nullable(),
   ip: z.string().nullable(),
+  descripcion: z.string().nullable(),
   fechaCompra: z.string().nullable(),
   numeroFactura: z.string().nullable(),
   proveedor: z.string().nullable(),
@@ -55,6 +56,7 @@ export interface Dispositivo {
   codigoImgc: string;
   mac?: string;
   ip?: string;
+  descripcion?: string | null;
   fechaCompra?: string;
   numeroFactura?: string;
   proveedor?: string;
@@ -94,6 +96,7 @@ export interface DispositivoFormProps {
     ubicacionId: string | null;
     mac: string | null;
     ip?: string | null;
+    descripcion?: string | null;
     // Nuevos campos de compra
     fechaCompra: string | null;
     numeroFactura: string | null;
@@ -149,6 +152,18 @@ const columns: ColumnDef<Dispositivo>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: "ip",
+    header: "IP",
+    cell: ({ row }) => {
+      const ip = (row.getValue("ip") as string) || "";
+      return (
+        <div className="text-sm text-gray-700 truncate max-w-[160px]" title={ip}>
+          {ip || <span className="text-muted-foreground italic">Sin IP</span>}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "serial",
     header: "Serial",
     cell: ({ row }) => <div>{row.getValue("serial")}</div>,
@@ -161,6 +176,18 @@ const columns: ColumnDef<Dispositivo>[] = [
       return (
         <div className="font-mono text-sm bg-gray-50 text-gray-700 px-2 py-1 rounded">
           {codigo}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "descripcion",
+    header: "Descripción",
+    cell: ({ row }) => {
+      const desc = (row.getValue("descripcion") as string) || "";
+      return (
+        <div className="text-sm text-gray-700 truncate max-w-[240px]" title={desc}>
+          {desc || <span className="text-muted-foreground italic">Sin descripción</span>}
         </div>
       );
     },
@@ -617,6 +644,7 @@ const columns: ColumnDef<Dispositivo>[] = [
       ubicacionId: data.ubicacionId,
       mac: data.mac,
       ip: (data as any).ip ?? null,
+      descripcion: (data as any).descripcion ?? null,
       // Nuevos campos de compra
       fechaCompra: data.fechaCompra,
       numeroFactura: data.numeroFactura,
@@ -713,6 +741,10 @@ return (
                                 ? "Estado"
                                 : column.id === "Modelo"
                                   ? "Modelo"
+                                      : column.id === "ip"
+                                          ? "IP"
+                                      : column.id === "descripcion"
+                                          ? "Descripción"
                                       : column.id === "ubicacion.nombre"
                                           ? "Ubicación"
                                               : column.id}
@@ -822,6 +854,7 @@ return (
           ubicacionId: editingDispositivo.ubicacion?.id ?? null,
           mac: editingDispositivo.mac ?? null,
           ip: editingDispositivo.ip ?? null,
+          descripcion: editingDispositivo.descripcion ?? null,
           // Nuevos campos de compra
           fechaCompra: editingDispositivo.fechaCompra ?? null,
           numeroFactura: editingDispositivo.numeroFactura ?? null,

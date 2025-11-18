@@ -98,6 +98,7 @@ export async function GET(request: Request) {
         codigoImgc: dispositivo.codigoImgc,
         mac: dispositivo.mac,
         ip: dispositivo.ip,
+        descripcion: dispositivo.descripcion,
         fechaCompra: dispositivo.fechaCompra,
         numeroFactura: dispositivo.numeroFactura,
         proveedor: dispositivo.proveedor,
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
     
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
-    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, ip, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
+    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, ip, descripcion, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
 
     // Validación
     if (!modeloId || !serial || !codigoImgc) {
@@ -166,6 +167,7 @@ export async function POST(request: Request) {
         estado: estado || 'OPERATIVO', // Asignar OPERATIVO por defecto si no se proporciona
         mac: mac || null,
         ip: ip || null,
+        descripcion: descripcion || null,
         // Nuevos campos de compra
         fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
         numeroFactura: numeroFactura || null,
