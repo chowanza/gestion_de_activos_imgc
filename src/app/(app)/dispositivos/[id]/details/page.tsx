@@ -583,9 +583,15 @@ const departamentoTag = (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Fecha</span>
                       <span className="text-sm text-gray-800">
-                        {equipo.historial && equipo.historial.length > 0 
-                          ? formatDate(equipo.historial[0].fecha) 
-                          : "—"}
+                        {
+                          (() => {
+                            const ultimaAsig = (equipo.historial || [])
+                              .filter((e: any) => e.tipo === 'asignacion' && (e.detalle?.actionType === 'ASIGNACION' || e.detalle?.actionType === 'Assignment'))
+                              .sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                              [0];
+                            return ultimaAsig ? formatDate(ultimaAsig.fecha) : '—';
+                          })()
+                        }
                       </span>
                     </div>
   

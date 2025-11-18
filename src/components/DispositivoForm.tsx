@@ -42,6 +42,7 @@ export interface DispositivoFormData {
     ubicacionId?: string;
     mac?: string;
     ip?: string;
+    descripcion?: string;
     // Información de compra
     fechaCompra?: string;
     numeroFactura?: string;
@@ -76,6 +77,7 @@ export default function DispositivoForm({
         ubicacionId: initialData?.ubicacionId || '',
         mac: initialData?.mac || '',
         ip: initialData?.ip || '',
+        descripcion: initialData?.descripcion || '',
         fechaCompra: initialData?.fechaCompra || '',
         numeroFactura: initialData?.numeroFactura || '',
         proveedor: initialData?.proveedor || '',
@@ -258,6 +260,18 @@ export default function DispositivoForm({
                             required
                         />
                     </div>
+                </div>
+
+                {/* Descripción */}
+                <div className="space-y-2">
+                    <Label htmlFor="descripcion">Descripción</Label>
+                    <textarea
+                        id="descripcion"
+                        value={formData.descripcion || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                        placeholder="Descripción del dispositivo, notas generales, etc."
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
                 </div>
 
                 {/* Estado del Dispositivo */}

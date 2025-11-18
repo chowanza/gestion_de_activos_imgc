@@ -156,12 +156,23 @@ export async function GET(request: NextRequest) {
         
         // Mapear empleado de la asignación activa
         const asignacionActiva = dispositivo.asignaciones.find(a => a.activo);
-        const empleadoMapeado = asignacionActiva?.targetEmpleado ? {
-          ...asignacionActiva.targetEmpleado,
-          cargo: asignacionActiva.targetEmpleado.organizaciones[0]?.cargo || null,
-          departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento || null,
-          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos?.[0]?.empresa || null
-        } : null;
+        let empleadoMapeado: any = null;
+        if (asignacionActiva?.targetEmpleado) {
+          const empleado = asignacionActiva.targetEmpleado as any;
+          const orgActiva = empleado.organizaciones?.[0] || null;
+          const depto = orgActiva?.departamento || null;
+          const empresaRel = depto?.empresaDepartamentos?.[0]?.empresa || null;
+          const cargo = orgActiva?.cargo || null;
+          empleadoMapeado = {
+            id: empleado.id,
+            nombre: empleado.nombre,
+            apellido: empleado.apellido,
+            fotoPerfil: empleado.fotoPerfil ?? null,
+            cargo: cargo ? { id: cargo.id, nombre: cargo.nombre } : null,
+            departamento: depto ? { id: depto.id, nombre: depto.nombre } : null,
+            empresa: empresaRel ? { id: empresaRel.id, nombre: empresaRel.nombre } : null,
+          };
+        }
 
         // Mapear asignaciones
         const asignacionesMapeadas = dispositivo.asignaciones.map(a => ({

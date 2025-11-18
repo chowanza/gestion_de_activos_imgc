@@ -239,12 +239,12 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const email = row.getValue("email") as string;
       return email ? (
-        <div className="flex items-center">
+        <div className="flex items-center max-w-[180px] truncate">
           <a 
             href={`mailto:${email}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            {email}
+            <span className="truncate inline-block max-w-full align-top">{email}</span>
           </a>
         </div>
       ) : (
@@ -263,12 +263,12 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const telefono = row.getValue("telefono") as string;
       return telefono ? (
-        <div className="flex items-center">
+        <div className="flex items-center max-w-[140px] truncate">
           <a 
             href={`tel:${telefono}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            {telefono}
+            <span className="truncate inline-block max-w-full align-top">{telefono}</span>
           </a>
         </div>
       ) : (
@@ -287,7 +287,7 @@ const columns: ColumnDef<Empleado>[] = [
     cell: ({ row }) => {
       const direccion = row.getValue("direccion") as string;
       return direccion ? (
-        <div className="max-w-xs truncate" title={direccion}>
+        <div className="max-w-[220px] truncate break-words" title={direccion}>
           {direccion}
         </div>
       ) : (
@@ -885,13 +885,20 @@ return (
       </CardHeader>
       <CardContent className="p-0">
         <div className="rounded-md border overflow-x-auto">
-          <Table className="min-w-full">
+          {/* Responsive adjustments: hide secondary columns on small screens */}
+          <Table className="min-w-full table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
+                    const smHiddenCols = new Set([
+                      'email','telefono','direccion','fechaNacimiento','edad','fechaIngreso','fechaDesincorporacion','empresaNombre','departamentoNombre','cargo'
+                    ]);
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead
+                        key={header.id}
+                        className={smHiddenCols.has(header.column.id as string) ? 'hidden md:table-cell' : ''}
+                      >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     )
@@ -910,11 +917,17 @@ return (
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const smHiddenCols = new Set([
+                        'email','telefono','direccion','fechaNacimiento','edad','fechaIngreso','fechaDesincorporacion','empresaNombre','departamentoNombre','cargo'
+                      ]);
+                      const cellClass = smHiddenCols.has(cell.column.id as string) ? 'hidden md:table-cell' : '';
+                      return (
+                        <TableCell key={cell.id} className={`${cellClass} align-top`}> 
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               ) : (
