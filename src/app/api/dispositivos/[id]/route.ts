@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
           const empleado = asignacionActiva.targetEmpleado as any;
           const orgActiva = empleado.organizaciones?.[0] || null;
           const depto = orgActiva?.departamento || null;
-          const empresaRel = depto?.empresaDepartamentos?.[0]?.empresa || null;
+          const empresaRel = orgActiva?.empresa || null;
           const cargo = orgActiva?.cargo || null;
           empleadoMapeado = {
             id: empleado.id,
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
             ...a.targetEmpleado,
             cargo: a.targetEmpleado.organizaciones[0]?.cargo || null,
             departamento: a.targetEmpleado.organizaciones[0]?.departamento || null,
-            empresa: a.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos?.[0]?.empresa || null
+            empresa: a.targetEmpleado.organizaciones[0]?.empresa || null
           } : null
         }));
 
