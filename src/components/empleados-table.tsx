@@ -792,15 +792,15 @@ return (
     <div className="w-full max-w-full overflow-hidden">
       <Card className="border-none shadow-md">
         <CardHeader className="bg-primary/5 rounded-t-lg">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-4">
             <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Input
                 placeholder="Buscar por nombre, apellido, cédula, teléfono o dirección..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:max-w-sm border-primary/20"
+                className="w-full max-w-sm border-primary/20"
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -836,7 +836,7 @@ return (
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="ml-auto">
                     <ColumnsIcon className="h-4 w-4 mr-2" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Columnas</span>
+                    <span className="whitespace-nowrap">Columnas</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -885,24 +885,15 @@ return (
       </CardHeader>
       <CardContent className="p-0">
         <div className="rounded-md border overflow-x-auto">
-          {/* Responsive adjustments: hide secondary columns on small screens */}
-          <Table className="min-w-full table-fixed">
+          <Table className="min-w-full">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const smHiddenCols = new Set([
-                      'email','telefono','direccion','fechaNacimiento','edad','fechaIngreso','fechaDesincorporacion','empresaNombre','departamentoNombre','cargo'
-                    ]);
-                    return (
-                      <TableHead
-                        key={header.id}
-                        className={smHiddenCols.has(header.column.id as string) ? 'hidden md:table-cell' : ''}
-                      >
+                  {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
-                    )
-                  })}
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
@@ -917,17 +908,11 @@ return (
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => {
-                      const smHiddenCols = new Set([
-                        'email','telefono','direccion','fechaNacimiento','edad','fechaIngreso','fechaDesincorporacion','empresaNombre','departamentoNombre','cargo'
-                      ]);
-                      const cellClass = smHiddenCols.has(cell.column.id as string) ? 'hidden md:table-cell' : '';
-                      return (
-                        <TableCell key={cell.id} className={`${cellClass} align-top`}> 
+                    {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="align-top"> 
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
-                      );
-                    })}
+                    ))}
                   </TableRow>
                 ))
               ) : (
