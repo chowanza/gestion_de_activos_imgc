@@ -86,24 +86,15 @@ export async function GET(request: NextRequest) {
                           where: { activo: true },
                           include: {
                             cargo: true,
-                            departamento: {
-                              include: {
-                                empresaDepartamentos: {
-                                  include: {
-                                    empresa: true
-                                  }
-                                }
-                              }
-                            }
+                            departamento: true,
+                            empresa: true
                           }
                         }
                       }
                     },
                     ubicacion: true
                   },
-                  orderBy: {
-                    date: 'desc'
-                  }
+                  orderBy: { date: 'desc' }
                 },
                 intervenciones: {
                   include: {
@@ -154,8 +145,14 @@ export async function GET(request: NextRequest) {
           return raw;
         };
         
-        // Mapear empleado de la asignación activa
-        const asignacionActiva = dispositivo.asignaciones.find(a => a.activo);
+        // Mapear empleado de la asignación activa (con fallback por compatibilidad)
+        let asignacionActiva = dispositivo.asignaciones.find(a => a.activo) || null;
+        if (!asignacionActiva && dispositivo.estado === 'ASIGNADO') {
+          asignacionActiva = dispositivo.asignaciones.find(a => {
+            const t = (a.actionType || '').toUpperCase();
+            return t === 'ASIGNACION' || t === 'ASSIGNMENT';
+          }) || null;
+        }
         let empleadoMapeado: any = null;
         if (asignacionActiva?.targetEmpleado) {
           const empleado = asignacionActiva.targetEmpleado as any;
@@ -170,7 +167,7 @@ export async function GET(request: NextRequest) {
             fotoPerfil: empleado.fotoPerfil ?? null,
             cargo: cargo ? { id: cargo.id, nombre: cargo.nombre } : null,
             departamento: depto ? { id: depto.id, nombre: depto.nombre } : null,
-            empresa: empresaRel ? { id: empresaRel.id, nombre: empresaRel.nombre } : null,
+            empresa: orgActiva?.empresa ? { id: orgActiva.empresa.id, nombre: orgActiva.empresa.nombre } : null,
           };
         }
 

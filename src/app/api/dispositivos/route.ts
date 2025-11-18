@@ -52,26 +52,22 @@ export async function GET(request: Request) {
           include: {
             ubicacion: true,
             targetEmpleado: {
-              include: {
+              select: {
+                id: true,
+                nombre: true,
+                apellido: true,
                 organizaciones: {
+                  where: { activo: true },
                   include: {
-                    departamento: {
-                      include: {
-                        empresaDepartamentos: {
-                          include: {
-                            empresa: true
-                          }
-                        }
-                      }
-                    }
+                    cargo: true,
+                    departamento: true,
+                    empresa: true
                   }
                 }
               }
             }
           },
-          orderBy: {
-            date: 'desc'
-          }
+          orderBy: { date: 'desc' }
         }
       },
       orderBy: {
@@ -85,7 +81,14 @@ export async function GET(request: Request) {
       const marca = modeloEquipo?.marcaModelos[0]?.marca;
       
       // Obtener asignación activa (la más reciente que esté activa)
-      const asignacionActiva = dispositivo.asignaciones.find(a => a.activo) || null;
+      let asignacionActiva = dispositivo.asignaciones.find(a => a.activo) || null;
+      // Fallback: si el estado es ASIGNADO pero no hay activa, tomar la última ASIGNACION registrada
+      if (!asignacionActiva && dispositivo.estado === 'ASIGNADO') {
+        asignacionActiva = dispositivo.asignaciones.find(a => {
+          const t = (a.actionType || '').toUpperCase();
+          return t === 'ASIGNACION' || t === 'ASSIGNMENT';
+        }) || null;
+      }
       
       // Obtener ubicación de la asignación activa o de la más reciente que tenga ubicación
       const ubicacion = asignacionActiva?.ubicacion || 
@@ -116,7 +119,7 @@ export async function GET(request: Request) {
           nombre: asignacionActiva.targetEmpleado.nombre,
           apellido: asignacionActiva.targetEmpleado.apellido,
           departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.nombre || 'Sin departamento',
-          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos?.[0]?.empresa?.nombre || 'Sin empresa'
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.empresa?.nombre || 'Sin empresa'
         } : null
       };
     });
