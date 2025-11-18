@@ -19,24 +19,8 @@ export default function AppLayoutClient({ children, user }: AppLayoutClientProps
   // Registrar visitas a rutas automáticamente
   useAuditLogger();
 
-  // Intentar cerrar sesión cuando se cierre la pestaña/ventana
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        if (navigator.sendBeacon) {
-          const blob = new Blob([], { type: 'application/json' });
-          navigator.sendBeacon('/api/auth/logout', blob);
-        }
-      } catch {
-        // Ignorar errores: el cierre de ventana no debe romper nada
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+  // Removido: logout en beforeunload. La cookie de sesión ya es de sesión del navegador.
+  // Evitamos limpiar sesión en navegaciones internas o recargas.
 
   return (
     <SidebarProvider>

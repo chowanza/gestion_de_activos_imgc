@@ -242,11 +242,11 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json();
           
-        const { serial, codigoImgc, estado, ubicacionId, mac, modeloId, fechaCompra, numeroFactura, proveedor, monto } = body;
+        const { serial, codigoImgc, estado, ubicacionId, mac, ip, modeloId, fechaCompra, numeroFactura, proveedor, monto } = body;
 
         // Detectar cambios comparando con el estado actual
         const modificaciones: Array<{campo: string, valorAnterior: string, valorNuevo: string}> = [];
-        const camposAComparar = ['serial', 'codigoImgc', 'estado', 'mac', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'];
+        const camposAComparar = ['serial', 'codigoImgc', 'estado', 'mac', 'ip', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'];
         
         for (const campo of camposAComparar) {
             const valorActual = (equipoExistente as any)[campo];
@@ -309,6 +309,7 @@ export async function PUT(request: NextRequest) {
                     codigoImgc,  // Campo obligatorio
                     estado,
                     mac,
+                    ip,
                     // Nuevos campos de compra
                     fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
                     numeroFactura: numeroFactura || null,

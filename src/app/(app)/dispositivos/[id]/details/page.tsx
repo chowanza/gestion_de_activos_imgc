@@ -346,12 +346,13 @@ const departamentoTag = (
         );
     }
   
-    const { serial,  estado, mac } = equipo;
+    const { serial,  estado, mac, ip } = equipo;
     
     const currentStatus = statusConfig[estado as keyof typeof statusConfig] || statusConfig.Desconocido;
   const specs: Record<string, string> = {
     Serial:       serial ?? "—",
     MAC: mac ?? "—",
+    IP: ip ?? "—",
     Modelo: equipo.modelo?.nombre ?? "—",
     Marca: equipo.modelo?.marca?.nombre ?? "—",
     Tipo: equipo.modelo?.tipo ?? "—",

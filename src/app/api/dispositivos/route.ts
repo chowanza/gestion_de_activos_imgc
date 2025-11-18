@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
-    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
+    const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, ip, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
 
     // Validación
     if (!modeloId || !serial || !codigoImgc) {
@@ -165,6 +165,7 @@ export async function POST(request: Request) {
         codigoImgc,  // Campo obligatorio
         estado: estado || 'OPERATIVO', // Asignar OPERATIVO por defecto si no se proporciona
         mac: mac || null,
+        ip: ip || null,
         // Nuevos campos de compra
         fechaCompra: fechaCompra ? new Date(fechaCompra) : null,
         numeroFactura: numeroFactura || null,

@@ -174,6 +174,19 @@ export async function POST(request: NextRequest) {
           console.log(`✅ ${asignacionesDesactivadas.count} asignaciones desactivadas`);
         }
 
+        // 3. Si vamos a crear una nueva asignación (ASIGNADO con targetEmpleadoId), desactivar cualquier asignación activa previa
+        if (nuevoEstado === 'ASIGNADO' && targetEmpleadoId) {
+          console.log('🔄 Preparando nueva asignación: desactivando asignaciones activas previas');
+          const desactivadas = await tx.asignacionesEquipos.updateMany({
+            where: {
+              [tipoEquipo === 'computador' ? 'computadorId' : 'dispositivoId']: equipoId,
+              activo: true
+            },
+            data: { activo: false }
+          });
+          console.log(`✅ ${desactivadas.count} asignaciones previas desactivadas para nueva asignación`);
+        }
+
         return equipoActualizado;
       });
 

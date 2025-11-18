@@ -31,6 +31,7 @@ export const dispositivoSchema = z.object({
   codigoImgc: z.string().min(1, "El Código IMGC es requerido"),
   ubicacionId: z.string().nullable(),
   mac: z.string().nullable(),
+  ip: z.string().nullable(),
   fechaCompra: z.string().nullable(),
   numeroFactura: z.string().nullable(),
   proveedor: z.string().nullable(),
@@ -92,6 +93,7 @@ export interface DispositivoFormProps {
     codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
     ubicacionId: string | null;
     mac: string | null;
+    ip?: string | null;
     // Nuevos campos de compra
     fechaCompra: string | null;
     numeroFactura: string | null;
@@ -614,6 +616,7 @@ const columns: ColumnDef<Dispositivo>[] = [
       codigoImgc: data.codigoImgc,  // Cambio de nsap a codigoImgc
       ubicacionId: data.ubicacionId,
       mac: data.mac,
+      ip: (data as any).ip ?? null,
       // Nuevos campos de compra
       fechaCompra: data.fechaCompra,
       numeroFactura: data.numeroFactura,
@@ -653,8 +656,8 @@ const columns: ColumnDef<Dispositivo>[] = [
         setIsCreateModalOpen(false);
         // Para creación, obtenemos el dispositivo creado y redirigimos a sus detalles
         const newDispositivo = await response.json();
-        // Redirigir a la página de detalles del dispositivo recién creado
-        window.location.href = `/dispositivos/${newDispositivo.id}/details`;
+        // Redirigir a la página de detalles del dispositivo recién creado sin recargar la página
+        router.push(`/dispositivos/${newDispositivo.id}/details`);
       }
 
     } catch (error: any) {
@@ -818,6 +821,7 @@ return (
           codigoImgc: editingDispositivo.codigoImgc,
           ubicacionId: editingDispositivo.ubicacion?.id ?? null,
           mac: editingDispositivo.mac ?? null,
+          ip: editingDispositivo.ip ?? null,
           // Nuevos campos de compra
           fechaCompra: editingDispositivo.fechaCompra ?? null,
           numeroFactura: editingDispositivo.numeroFactura ?? null,

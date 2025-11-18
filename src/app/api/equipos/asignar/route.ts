@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
         date: new Date(),
         motivo: motivo,
         ubicacionId: ubicacionFinalId,
+        gerenteId: (user as any)?.id || (user as any)?.sub || null,
         activo: true
       }
     });

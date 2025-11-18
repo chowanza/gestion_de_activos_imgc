@@ -77,6 +77,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
   estado: 'OPERATIVO', // Estado por defecto
   codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
   mac: null,
+  ip: null,
   ubicacionId: null,
   // Nuevos campos de compra
   fechaCompra: null,
@@ -119,6 +120,7 @@ const [formData, setFormData] = useState<DispositivoFormData>({
           estado: 'OPERATIVO', // Estado por defecto
           codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
           mac: null,
+          ip: null,
           ubicacionId: null,
           // Nuevos campos de compra
           fechaCompra: null,
@@ -252,6 +254,10 @@ const [formData, setFormData] = useState<DispositivoFormData>({
           <div className="grid gap-2">
             <Label htmlFor="mac">Dirección MAC</Label>
             <Input id="mac" value={formData.mac || ''} onChange={handleInputChange} placeholder="Ej: a1:b2:c3:d4:f4:g5" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ip">Dirección IP</Label>
+            <Input id="ip" value={(formData as any).ip || ''} onChange={handleInputChange} placeholder="Ej: 192.168.1.10" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="codigoImgc">Código IMGC <span className="text-destructive">*</span></Label>
