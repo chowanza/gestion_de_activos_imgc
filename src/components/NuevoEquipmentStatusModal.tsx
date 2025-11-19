@@ -237,12 +237,12 @@ export default function NuevoEquipmentStatusModal({
 
   const getActionType = (status: string) => {
     switch (status) {
-      case ESTADOS_EQUIPO.ASIGNADO: return 'Asignación';
-      case ESTADOS_EQUIPO.EN_MANTENIMIENTO: return 'Mantenimiento';
-      case ESTADOS_EQUIPO.EN_RESGUARDO: return 'Resguardo';
-      case ESTADOS_EQUIPO.DE_BAJA: return 'Baja';
-      case ESTADOS_EQUIPO.OPERATIVO: return 'Operativo';
-      default: return 'Modificación';
+      case ESTADOS_EQUIPO.ASIGNADO: return 'ASIGNACION';
+      case ESTADOS_EQUIPO.EN_MANTENIMIENTO: return 'MANTENIMIENTO';
+      case ESTADOS_EQUIPO.EN_RESGUARDO: return 'RESGUARDO';
+      case ESTADOS_EQUIPO.DE_BAJA: return 'BAJA';
+      case ESTADOS_EQUIPO.OPERATIVO: return 'OPERATIVO';
+      default: return 'MODIFICACION';
     }
   };
 

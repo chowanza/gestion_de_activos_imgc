@@ -368,6 +368,42 @@ npx tsx scripts/verificar-consistencia-asignaciones.ts --apply --downgrade
 🎉 Correcciones aplicadas
 ```
 
+### `scripts/detect-orphan-asignados.ts`
+**Propósito**: Detectar equipos (computadores y dispositivos) con estado `ASIGNADO` pero sin asignación activa válida, y corregirlos opcionalmente.
+
+**Funcionalidad**:
+- Reporta "huérfanos": estado `ASIGNADO` sin fila activa (`activo=true`, `actionType=ASIGNACION|ASSIGNMENT`, `targetEmpleadoId` no nulo)
+- Reporta inconsistencias inversas: estado NO ASIGNADO con asignación activa válida
+- Recupera empleado histórico (última asignación con empleado) y crea nueva asignación activa
+- Flags de corrección: `--apply`, `--downgrade`, `--assign <empleadoId>`, `--limit <n>`, `--json`
+  - `--assign <id>`: reasigna huérfanos sin histórico al empleado indicado
+  - `--downgrade`: cambia estado a `OPERATIVO` si no hay histórico y no se dio `--assign`
+  - Sin `--apply`: modo DRY-RUN (solo muestra reporte)
+
+**Uso**:
+```bash
+# DRY-RUN
+npx tsx scripts/detect-orphan-asignados.ts
+
+# Aplicar (downgrade donde no hay histórico)
+npx tsx scripts/detect-orphan-asignados.ts --apply --downgrade
+
+# Aplicar asignando todos los huérfanos sin histórico a un empleado específico
+npx tsx scripts/detect-orphan-asignados.ts --apply --assign 3ce9ce06-ece6-4846-b234-d63a78918a9c
+```
+
+**Output esperado (ejemplo)**:
+```
+📊 RESUMEN
+   Huérfanos encontrados: 3
+   Inconsistencias inversas: 1
+🔧 Aplicando correcciones...
+✅ COMPUTADOR <idA>: asignación creada (empleado <empleadoId>)
+✅ DISPOSITIVO <idB>: downgraded a OPERATIVO (sin histórico)
+✅ DISPOSITIVO <idC>: asignación creada (empleado <empleadoId>)
+✅ COMPUTADOR <idD>: asignación activa <asigId> desactivada (inversa)
+```
+
 ### `scripts/verificar-navegacion-historial-empleados.ts`
 **Propósito**: Verificar que la navegación rápida funcione correctamente en el historial de asignaciones de empleados.
 
