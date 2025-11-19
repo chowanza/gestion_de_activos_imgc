@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
           };
         }
 
-        // Mapear asignaciones
+        // Mapear asignaciones incluyendo organización activa
         const asignacionesMapeadas = dispositivo.asignaciones.map(a => ({
           ...a,
           targetEmpleado: a.targetEmpleado ? {

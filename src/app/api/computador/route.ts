@@ -45,7 +45,9 @@ export async function GET(request: Request) {
             targetEmpleado: {
               include: {
                 organizaciones: {
+                  where: { activo: true },
                   include: {
+                    cargo: true,
                     departamento: true,
                     empresa: true
                   }
@@ -68,8 +70,19 @@ export async function GET(request: Request) {
       const modeloEquipo = computador.computadorModelos[0]?.modeloEquipo;
       const marca = modeloEquipo?.marcaModelos[0]?.marca;
       
-      // Obtener asignación activa (la más reciente que esté activa)
-      const asignacionActiva = computador.asignaciones.find(a => a.activo) || null;
+      // Obtener asignación activa con fallback robusto
+      let asignacionActiva = computador.asignaciones.find(a => a.activo) || null;
+      // Fallback 1: si el estado es ASIGNADO pero no hay activa, tomar la última ASIGNACION registrada
+      if (!asignacionActiva && computador.estado === 'ASIGNADO') {
+        asignacionActiva = computador.asignaciones.find(a => {
+          const t = (a.actionType || '').toUpperCase();
+          return t === 'ASIGNACION' || t === 'ASSIGNMENT';
+        }) || null;
+      }
+      // Fallback 2: si aún no hay y existe alguna con targetEmpleadoId, tomar la última
+      if (!asignacionActiva) {
+        asignacionActiva = computador.asignaciones.find(a => a.targetEmpleadoId) || null;
+      }
       
       // Obtener ubicación de la asignación activa o de la más reciente que tenga ubicación
       const ubicacion = asignacionActiva?.ubicacion || 

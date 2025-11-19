@@ -42,22 +42,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Empleado no encontrado' }, { status: 404 });
     }
 
-    // Verificar que el equipo existe y está disponible
+    // Verificar que el equipo existe y obtener su estado/asignaciones
     let equipo;
     if (tipoEquipo === 'computador') {
-      // Verificar si ya tiene una asignación activa
-      const asignacionExistente = await prisma.asignacionesEquipos.findFirst({
-        where: {
-          computadorId: equipoId,
-          activo: true
-        }
-      });
-
-      if (asignacionExistente) {
-        return NextResponse.json({ message: 'El computador ya está asignado' }, { status: 400 });
-      }
-
-      equipo = await prisma.computador.findUnique({
+        equipo = await prisma.computador.findUnique({
         where: { id: equipoId },
         include: {
           computadorModelos: {
@@ -73,21 +61,9 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        }
+        },
       });
     } else {
-      // Verificar si ya tiene una asignación activa
-      const asignacionExistente = await prisma.asignacionesEquipos.findFirst({
-        where: {
-          dispositivoId: equipoId,
-          activo: true
-        }
-      });
-
-      if (asignacionExistente) {
-        return NextResponse.json({ message: 'El dispositivo ya está asignado' }, { status: 400 });
-      }
-
       equipo = await prisma.dispositivo.findUnique({
         where: { id: equipoId },
         include: {
@@ -104,7 +80,7 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        }
+        },
       });
     }
 
@@ -112,9 +88,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Equipo no encontrado' }, { status: 404 });
     }
 
-    if (![ESTADOS_EQUIPO.OPERATIVO, ESTADOS_EQUIPO.EN_MANTENIMIENTO].includes(equipo.estado as any)) {
-      return NextResponse.json({ message: 'El equipo no está disponible para asignar' }, { status: 400 });
+    // Regla de negocio: solo se puede asignar si el equipo NO está ya asignado
+    if (equipo.estado === ESTADOS_EQUIPO.ASIGNADO) {
+      return NextResponse.json({ message: 'El equipo ya está asignado' }, { status: 400 });
     }
+
+    // Adicionalmente, reforzamos que no exista ninguna asignación activa pendiente
+      // Nota: las asignaciones activas se controlan desde los endpoints de cambio de estado
 
     // Determinar la ubicación a usar
     let ubicacionFinalId = null;

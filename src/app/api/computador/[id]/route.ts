@@ -153,8 +153,20 @@ export async function GET(request: NextRequest) {
           return raw;
         };
         
-        // Mapear empleado de la asignación activa
-        const asignacionActiva = computador.asignaciones.find(a => a.activo);
+        // Mapear empleado de la asignación activa con fallback robusto
+        let asignacionActiva = computador.asignaciones.find(a => a.activo) || null;
+        // Fallback 1: si el estado es ASIGNADO pero no hay activa, tomar la última ASIGNACION registrada
+        if (!asignacionActiva && computador.estado === 'ASIGNADO') {
+          asignacionActiva = computador.asignaciones.find(a => {
+            const t = (a.actionType || '').toUpperCase();
+            return t === 'ASIGNACION' || t === 'ASSIGNMENT';
+          }) || null;
+        }
+        // Fallback 2: si aún no hay y existe alguna con targetEmpleadoId, tomar la última
+        if (!asignacionActiva) {
+          asignacionActiva = computador.asignaciones.find(a => a.targetEmpleadoId) || null;
+        }
+
         const empleadoMapeado = asignacionActiva?.targetEmpleado ? {
           ...asignacionActiva.targetEmpleado,
           cargo: asignacionActiva.targetEmpleado.organizaciones[0]?.cargo || null,

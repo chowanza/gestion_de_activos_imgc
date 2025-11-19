@@ -145,6 +145,9 @@ export function EquipmentTimeline({
         const targetName = asig.targetEmpleado
           ? `${asig.targetEmpleado.nombre} ${asig.targetEmpleado.apellido}`
           : asig.targetDepartamento?.nombre || 'N/A';
+        const orgLine = asig.targetEmpleado?.departamento?.nombre && asig.targetEmpleado?.empresa?.nombre
+          ? `Org: ${asig.targetEmpleado.departamento.nombre} - ${asig.targetEmpleado.empresa.nombre}`
+          : null;
         
         const isAssignment = asig.actionType === 'Assignment' || asig.actionType === 'ASIGNACION';
         const isStatusChange = asig.actionType === 'CAMBIO_ESTADO';
@@ -161,6 +164,7 @@ export function EquipmentTimeline({
             badge: 'Creado',
             details: [
               asig.ubicacion?.nombre && `Ubicación inicial: ${asig.ubicacion.nombre}`,
+              orgLine,
               asig.motivo && `Motivo: ${asig.motivo}`,
               asig.notes && `Notas: ${asig.notes}`,
               asig.evidenciaFotos && 'Evidencia fotográfica disponible'
@@ -179,6 +183,7 @@ export function EquipmentTimeline({
             details: [
               asig.notes && `Detalles: ${asig.notes}`,
               asig.motivo && `Motivo: ${asig.motivo}`,
+              orgLine,
               asig.evidenciaFotos && 'Evidencia fotográfica disponible'
             ].filter(Boolean),
             evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
@@ -195,6 +200,7 @@ export function EquipmentTimeline({
             details: [
               asig.notes && `Detalles: ${asig.notes}`,
               asig.motivo && `Motivo: ${asig.motivo}`,
+              orgLine,
               asig.evidenciaFotos && 'Evidencia fotográfica disponible'
             ].filter(Boolean),
             evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
@@ -213,6 +219,7 @@ export function EquipmentTimeline({
             asig.motivo && `Motivo: ${asig.motivo}`,
             asig.notes && `Notas: ${asig.notes}`,
             asig.ubicacion?.nombre && `Ubicación: ${asig.ubicacion.nombre}`,
+            orgLine,
             asig.evidenciaFotos && 'Evidencia fotográfica disponible'
           ].filter(Boolean),
           evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
