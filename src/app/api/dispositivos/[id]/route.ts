@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const asignado = searchParams.get('asignado');
+  const debug = searchParams.get('debug');
 
   // --- PASO 1: DEPURACIÓN ---
-  console.log(`[API/COMPUTADOR] Parámetro 'asignado' recibido: ${asignado}`);
+  console.log(`[API/DISPOSITIVO] Parámetro 'asignado' recibido: ${asignado}`);
 
   let where: Prisma.ComputadorWhereInput = {};
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     };
   }
   
-  console.log(`[API/COMPUTADOR] Cláusula 'where' de Prisma construida:`, JSON.stringify(where, null, 2));
+  console.log(`[API/DISPOSITIVO] Cláusula 'where' de Prisma construida:`, JSON.stringify(where, null, 2));
   try {
         await Promise.resolve();
         const id = request.nextUrl.pathname.split('/')[3];
@@ -118,6 +119,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'dispositivo no encontrado' }, { status: 404 });
         }
 
+        if (debug === 'true') {
+          console.log('[API/DISPOSITIVO] DEBUG dispositivo bruto:', JSON.stringify(dispositivo, null, 2));
+        }
+
         // Auditoría: vista de detalle de dispositivo
         try {
           const user = await getServerUser(request as any);
@@ -153,6 +158,13 @@ export async function GET(request: NextRequest) {
             return t === 'ASIGNACION' || t === 'ASSIGNMENT';
           }) || null;
         }
+        if (!asignacionActiva) {
+          asignacionActiva = dispositivo.asignaciones.find(a => a.targetEmpleadoId) || null;
+        }
+
+        if (debug === 'true') {
+          console.log('[API/DISPOSITIVO] DEBUG asignacionActiva:', JSON.stringify(asignacionActiva, null, 2));
+        }
         let empleadoMapeado: any = null;
         if (asignacionActiva?.targetEmpleado) {
           const empleado = asignacionActiva.targetEmpleado as any;
@@ -169,6 +181,10 @@ export async function GET(request: NextRequest) {
             departamento: depto ? { id: depto.id, nombre: depto.nombre } : null,
             empresa: orgActiva?.empresa ? { id: orgActiva.empresa.id, nombre: orgActiva.empresa.nombre } : null,
           };
+        }
+
+        if (debug === 'true') {
+          console.log('[API/DISPOSITIVO] DEBUG empleadoMapeado:', JSON.stringify(empleadoMapeado, null, 2));
         }
 
         // Mapear asignaciones incluyendo organización activa
@@ -226,6 +242,10 @@ export async function GET(request: NextRequest) {
             asignaciones: asignacionesMapeadas,
             historial: historialCombinado,          // El array de historial combinado
         };
+
+        if (debug === 'true') {
+          console.log('[API/DISPOSITIVO] DEBUG responseData:', JSON.stringify(responseData, null, 2));
+        }
 
         return NextResponse.json(responseData, { status: 200 });
 
