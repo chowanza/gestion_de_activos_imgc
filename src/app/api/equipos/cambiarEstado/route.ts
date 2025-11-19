@@ -38,6 +38,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Estado inválido' }, { status: 400 });
     }
 
+    // Validación crítica: Si el estado es ASIGNADO, se requiere targetEmpleadoId
+    if (nuevoEstado === 'ASIGNADO' && !targetEmpleadoId) {
+      console.log('❌ Intento de asignar sin empleado ID');
+      return NextResponse.json({ message: 'Para asignar un equipo debe seleccionar un empleado' }, { status: 400 });
+    }
+
     // Verificar que el equipo existe
     console.log(`Buscando ${tipoEquipo} con ID: ${equipoId}`);
     let equipo;
