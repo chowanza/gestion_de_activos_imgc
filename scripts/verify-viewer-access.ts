@@ -16,7 +16,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const USERNAME = process.env.VIEWER_USERNAME || process.env.ADMIN_USERNAME || 'viewer';
 const PASSWORD = process.env.VIEWER_PASSWORD || process.env.ADMIN_PASSWORD || 'viewer123';
 
-async function run() {
+async function main() {
   console.log('Verify viewer access script');
   console.log('Target:', BASE_URL);
 
@@ -101,4 +101,4 @@ async function run() {
   }
 }
 
-run();
+main();

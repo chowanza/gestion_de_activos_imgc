@@ -46,15 +46,8 @@ export async function GET(request: Request) {
               include: {
                 organizaciones: {
                   include: {
-                    departamento: {
-                      include: {
-                        empresaDepartamentos: {
-                          include: {
-                            empresa: true
-                          }
-                        }
-                      }
-                    }
+                    departamento: true,
+                    empresa: true
                   }
                 }
               }
@@ -114,7 +107,7 @@ export async function GET(request: Request) {
           nombre: asignacionActiva.targetEmpleado.nombre,
           apellido: asignacionActiva.targetEmpleado.apellido,
           departamento: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.nombre || 'Sin departamento',
-          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.departamento?.empresaDepartamentos[0]?.empresa?.nombre || 'Sin empresa'
+          empresa: asignacionActiva.targetEmpleado.organizaciones[0]?.empresa?.nombre || 'Sin empresa'
         } : null
       };
     });
