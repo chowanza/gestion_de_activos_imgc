@@ -3,6 +3,7 @@ import  prisma  from '@/lib/prisma';
 import { sanitizeStringOrNull } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
+import { getServerUser } from '@/lib/auth-server';
 
 export async function GET(request: Request) {
   // Viewing computadores requires canView
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
     const deny = await requireAnyPermission(['canCreate','canManageComputadores'])(request as any);
     if (deny) return deny;
 
+    const user = await getServerUser(request as any);
     const body = await request.json();
     const { modeloId, motivoCreacion, notasCreacion, ...computadorData } = body;
     
@@ -261,6 +263,7 @@ export async function POST(request: Request) {
           notes: notasCreacion || 'Ubicación asignada durante la creación del computador',
           motivo: motivoCreacion || 'Creación de computador',
           evidenciaFotos: sanitizeStringOrNull(computadorData.evidenciaFotos),
+          usuarioId: (user as any)?.id || null,
         },
       });
     } else if (computadorData.evidenciaFotos && computadorData.evidenciaFotos.length > 0) {
@@ -275,7 +278,8 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Evidencia fotográfica de la creación del computador',
           motivo: motivoCreacion || 'Creación de computador',
-          evidenciaFotos: sanitizeStringOrNull(computadorData.evidenciaFotos)
+          evidenciaFotos: sanitizeStringOrNull(computadorData.evidenciaFotos),
+          usuarioId: (user as any)?.id || null,
         },
       });
     }

@@ -4,6 +4,7 @@ import path from 'path';
 import { stat, mkdir, writeFile } from 'fs/promises';
 import { Prisma } from '@prisma/client';
 import { requirePermission, requireAnyPermission } from '@/lib/role-middleware';
+import { getServerUser } from '@/lib/auth-server';
 
 
 export async function GET(request: Request) {
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
     const deny = await requireAnyPermission(['canCreate','canManageDispositivos'])(request as any);
     if (deny) return deny;
     
+    const user = await getServerUser(request as any);
     // Ya no es FormData, ahora es JSON simple
     const body = await request.json();
     const { modeloId, serial, codigoImgc, estado, ubicacionId, mac, ip, descripcion, fechaCompra, numeroFactura, proveedor, monto, evidenciaFotos, motivoCreacion, notasCreacion } = body;
@@ -200,9 +202,8 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Ubicación asignada durante la creación del dispositivo',
           motivo: motivoCreacion || 'Creación de dispositivo',
-            evidenciaFotos: evidenciaFotos && evidenciaFotos.length > 0 
-              ? (await import('@/lib/sanitize')).sanitizeStringOrNull(evidenciaFotos) 
-              : null
+          evidenciaFotos: evidenciaFotos || null,
+          usuarioId: (user as any)?.id || null,
         },
       });
     } else if (evidenciaFotos && evidenciaFotos.length > 0) {
@@ -217,11 +218,12 @@ export async function POST(request: Request) {
           activo: false, // Las asignaciones de creación no deben estar activas
           notes: notasCreacion || 'Evidencia fotográfica de la creación del dispositivo',
           motivo: motivoCreacion || 'Creación de dispositivo',
-            evidenciaFotos: (await import('@/lib/sanitize')).sanitizeStringOrNull(evidenciaFotos)
+          evidenciaFotos: evidenciaFotos,
+          usuarioId: (user as any)?.id || null,
         },
       });
     }
-
+    
     return NextResponse.json(nuevoDispositivo, { status: 201 });
   } catch (error: any) {
     console.error(error);

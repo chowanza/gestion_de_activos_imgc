@@ -539,7 +539,8 @@ export async function DELETE(request: NextRequest) {
               motivo: 'Desincorporación del empleado',
               notes: 'Devolución automática por desincorporación del empleado',
               activo: true,
-              date: new Date()
+              date: new Date(),
+              usuarioId: (user as any)?.id || null,
             }
           });
         }

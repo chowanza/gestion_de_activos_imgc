@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { requireAnyPermission, requirePermission } from '@/lib/role-middleware';
 import { z } from 'zod';
 import { getGerente } from '@/utils/getGerente';
+import { getServerUser } from '@/lib/auth-server';
 
 const asignacionSchema = z.object({
   action: z.enum(['asignar', 'desvincular']),
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
     const check = await requireAnyPermission(['canAssign', 'canManageAsignaciones'])(request);
     if (check instanceof NextResponse) return check;
 
+    const user = await getServerUser(request);
     const body = await request.json();
     console.log('[API/ASIGNACIONES] Body recibido:', body);
 
@@ -268,6 +270,7 @@ export async function POST(request: NextRequest) {
             motivo: motivo || null,
             ubicacionId: ubicacionId || null,
             activo: true,
+            usuarioId: (user as any)?.id || null,
           },
         });
 
@@ -313,6 +316,7 @@ export async function POST(request: NextRequest) {
             targetEmpleadoId: ultimaAsignacion.targetEmpleadoId,
             notes: notas || `Devolución de ${ultimaAsignacion.targetType}`,
             activo: true,
+            usuarioId: (user as any)?.id || null,
           },
         });
 

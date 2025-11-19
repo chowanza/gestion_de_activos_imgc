@@ -696,6 +696,16 @@ const departamentoTag = (
                           </div>
                         </div>
 
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-600 uppercase tracking-wider">Descripción</p>
+                          <div className="flex items-center">
+                            <Tag className="h-4 w-4 text-gray-600 mr-2" />
+                            <p className="text-sm text-gray-800">
+                              {equipo.descripcion || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
                         {/* Mostrar departamento y empresa si está asignado o en mantenimiento con empleado */}
                         {(equipo.estado === 'ASIGNADO' || (equipo.estado === 'EN_MANTENIMIENTO' && equipo.empleado)) && (
                           <>

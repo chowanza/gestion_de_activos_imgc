@@ -34,8 +34,14 @@ export function useTimelineFilters({ itemId, itemType, onDataChange, initialHist
       return creacionEntry ? [creacionEntry] : [];
     }
 
-    // Combinar historial con entrada de creación si existe
-    let filteredData = creacionEntry 
+    // Verificar si ya existe un evento de creación real en el historial
+    const hasRealCreation = historialData.some(item => 
+      item.tipo === 'asignacion' && 
+      (item.detalle?.actionType === 'CREACION' || item.detalle?.actionType === 'Creation')
+    );
+
+    // Combinar historial con entrada de creación si existe y no hay una real
+    let filteredData = (creacionEntry && !hasRealCreation)
       ? [creacionEntry, ...historialData]
       : [...historialData];
     

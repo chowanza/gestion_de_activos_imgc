@@ -260,6 +260,8 @@ export async function PUT(request: NextRequest) {
     // Require permission to manage dispositivos
     const check = await requirePermission('canManageDispositivos')(request);
     if (check instanceof NextResponse) return check;
+    
+    const user = await getServerUser(request);
     const id = request.nextUrl.pathname.split('/')[3];
     try {
         const equipoExistente = await prisma.dispositivo.findUnique({ where: { id } });
@@ -325,6 +327,7 @@ export async function PUT(request: NextRequest) {
                         notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
                         gerenteId: null,
                         activo: false, // IMPORTANTE: No debe interferir con asignaciones activas
+                        usuarioId: (user as any)?.id || null,
                     },
                 });
             }
@@ -366,6 +369,18 @@ export async function PUT(request: NextRequest) {
             return equipoActualizado;
         });
 
+        // Registrar en auditoría
+        await AuditLogger.logUpdate(
+            'dispositivo',
+            id,
+            `Dispositivo ${equipoExistente.serial} actualizado`,
+            (user as any)?.id,
+            {
+                modificaciones: modificaciones.length,
+                camposModificados: modificaciones.map(m => m.campo)
+            }
+        );
+
         return NextResponse.json(updatedEquipo, { status: 200 });
 
     } catch (error) {
@@ -382,6 +397,8 @@ export async function DELETE(request: NextRequest) {
   // Require explicit delete permission (Admin only)
   const check = await requirePermission('canDelete')(request);
   if (check instanceof NextResponse) return check;
+    
+    const user = await getServerUser(request);
     const id = request.nextUrl.pathname.split('/')[3];
     try {
         // 1. Obtener el equipo para saber la ruta de su imagen (si tiene)
@@ -412,6 +429,14 @@ export async function DELETE(request: NextRequest) {
         const deletedEquipo = await prisma.dispositivo.delete({
             where: { id },
         });
+
+        // Registrar en auditoría
+        await AuditLogger.logDelete(
+            'dispositivo',
+            id,
+            `Dispositivo ${equipoExistente.serial} eliminado`,
+            (user as any)?.id
+        );
 
         return NextResponse.json(deletedEquipo, { status: 200 }); // O un mensaje de éxito
 

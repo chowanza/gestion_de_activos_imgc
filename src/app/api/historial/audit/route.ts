@@ -248,7 +248,7 @@ export async function GET(request: NextRequest) {
       auditLogs.push({
         id: `asig-${asig.id}`,
         fecha: asig.date,
-        tipo: 'Sistema',
+        tipo: 'Asignación',
         accion: asig.actionType,
         entidad: 'sistema',
         entidadId: equipo?.id || null,
@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
       auditLogs.push({
         id: `mod-${mod.id}`,
         fecha: mod.fecha,
-        tipo: 'Sistema',
+        tipo: 'Modificación',
         accion: `Modificación - ${mod.campo}`,
         entidad: 'sistema',
         entidadId: computador?.id || null,

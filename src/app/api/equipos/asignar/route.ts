@@ -132,7 +132,8 @@ export async function POST(request: NextRequest) {
         date: new Date(),
         motivo: motivo,
         ubicacionId: ubicacionFinalId,
-        gerenteId: (user as any)?.id || (user as any)?.sub || null,
+        gerenteId: null, // gerenteId es para el empleado gerente, no el usuario del sistema
+        usuarioId: (user as any)?.id || null,
         activo: true
       }
     });

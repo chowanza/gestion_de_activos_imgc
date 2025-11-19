@@ -285,6 +285,7 @@ export async function PUT(request: NextRequest) {
     const check = await requirePermission('canManageComputadores')(request);
     if (check instanceof NextResponse) return check;
 
+    const user = await getServerUser(request);
     const id = request.nextUrl.pathname.split('/')[3];
     const body = await request.json();
 
@@ -332,6 +333,7 @@ export async function PUT(request: NextRequest) {
             campo: campo as any,
             valorAnterior: valorAnteriorStr,
             valorNuevo: valorNuevoStr,
+            usuarioId: (user as any)?.id || null,
           });
         }
       }
@@ -358,7 +360,8 @@ export async function PUT(request: NextRequest) {
             motivo: `Edición de computador ${computadorActual.serial}`,
             notes: `Se modificaron ${modificaciones.length} campo(s): ${modificaciones.map(m => m.campo).join(', ')}`,
             gerenteId: null,
-            activo: false, // IMPORTANTE: No debe interferir con asignaciones activas
+            activo: false,
+            usuarioId: (user as any)?.id || null,
           },
         });
       }
@@ -409,7 +412,7 @@ export async function PUT(request: NextRequest) {
       'computador',
       id,
       `Computador ${computadorActual.serial} actualizado`,
-      undefined, // TODO: Obtener userId del token/sesión
+      (user as any)?.id,
       {
         modificaciones: modificaciones.length,
         camposModificados: modificaciones.map(m => m.campo)
@@ -430,6 +433,7 @@ export async function DELETE(request: NextRequest) {
     const check = await requirePermission('canDelete')(request);
     if (check instanceof NextResponse) return check;
 
+    const user = await getServerUser(request);
     const id = request.nextUrl.pathname.split('/')[3];
     
     // Obtener datos del computador antes de eliminarlo para auditoría
@@ -466,7 +470,7 @@ export async function DELETE(request: NextRequest) {
       'computador',
       id,
       `Computador ${computador.serial} eliminado`,
-      undefined // TODO: Obtener userId del token/sesión
+      (user as any)?.id
     );
 
     return NextResponse.json({ message: 'Equipo eliminado' }, { status: 200 });
