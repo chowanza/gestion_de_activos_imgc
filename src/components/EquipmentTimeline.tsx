@@ -235,7 +235,7 @@ export function EquipmentTimeline({
           badge: 'Intervención',
             details: [
               intervention.notas && `Observaciones: ${intervention.notas}`,
-              intervention.empleado && `Realizada por: ${intervention.empleado.nombre} ${intervention.empleado.apellido}`,
+              `Realizada por: Telemática`,
               intervention.evidenciaFotos && 'Evidencia fotográfica disponible'
             ].filter(Boolean),
           evidenciaFotos: intervention.evidenciaFotos ? intervention.evidenciaFotos.split(',') : [],
