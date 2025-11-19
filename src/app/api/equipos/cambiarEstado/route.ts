@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
             campo: 'estado',
             valorAnterior: estadoActual,
             valorNuevo: nuevoEstado,
-            usuarioId: user?.id || null,
+            usuarioId: (user as any)?.id || null,
           },
         });
         console.log('Historial de computador registrado exitosamente');
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
           gerenteId: null,
           ubicacionId: ubicacionId || null, // Agregar ubicación
           activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
-          usuarioId: user?.id || null,
+          usuarioId: (user as any)?.id || null,
         },
       });
       console.log('Registro de asignación creado exitosamente');
