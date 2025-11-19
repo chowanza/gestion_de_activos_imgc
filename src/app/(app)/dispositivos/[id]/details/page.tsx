@@ -387,7 +387,7 @@ const departamentoTag = (
         evidenciaFotos: assignmentData.evidenciaFotos || null
       };
       
-      console.log('Enviando datos al API:', requestData);
+      console.log('🔍 [Page] Enviando requestData a API:', requestData);
       
       const response = await fetch('/api/equipos/cambiarEstado', {
         method: 'POST',

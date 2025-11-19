@@ -225,6 +225,9 @@ export default function NuevoEquipmentStatusModal({
         modeloC: `${equipment.modelo.marca.nombre} ${equipment.modelo.nombre}`
       };
 
+      console.log('🔍 [Modal] assignmentData generado:', assignmentData);
+      console.log('🔍 [Modal] selectedTarget:', selectedTarget);
+
       await onStatusChange(nuevoEstado, assignmentData);
       onClose();
     } catch (error) {
