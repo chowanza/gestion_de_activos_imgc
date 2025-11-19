@@ -264,9 +264,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Sanitize evidenciaFotos before storing
-      const actorId = (user as any)?.id || (user as any)?.sub || null;
       const evidenciaSanitized = sanitizeStringOrNull(evidenciaFotos);
 
+      // NOTA: gerenteId se deja en null explícitamente.
+      // UserID es del sistema y no corresponde a EmpleadoID.
+      
       const nuevaAsignacion = await prisma.asignacionesEquipos.create({
         data: {
           date: new Date(),
@@ -279,7 +281,7 @@ export async function POST(request: NextRequest) {
           motivo: motivo,
           notes: notes,
           evidenciaFotos: evidenciaSanitized,
-          gerenteId: actorId,
+          gerenteId: null,
           ubicacionId: ubicacionId || null, // Agregar ubicación
           activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
         },
