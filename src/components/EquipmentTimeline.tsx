@@ -446,18 +446,10 @@ export function EquipmentTimeline({
 
   const currentStatus = generateCurrentStatusMessage();
 
-  // Crear entrada de creación del equipo (elemento fijo)
-  const creacionEntry = {
-    id: 'creacion',
-    tipo: 'creacion' as const,
-    fecha: equipo.fechaCompra || new Date().toISOString(),
-    detalle: {}
-  };
-
   // Usar historial externo si está disponible y no está vacío, sino usar el historial del equipo
   const historialCompleto = (externalHistorial !== undefined && externalHistorial.length > 0)
     ? externalHistorial 
-    : [creacionEntry, ...(equipo.historial || [])]
+    : [...(equipo.historial || [])]
         .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   return (
