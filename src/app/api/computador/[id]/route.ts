@@ -299,7 +299,7 @@ export async function PUT(request: NextRequest) {
 
     const modificaciones: Prisma.HistorialModificacionesCreateManyInput[] = [];
     const camposAComparar: Array<keyof typeof computadorActual | 'fechaCompra' | 'monto' | 'macWifi' | 'macEthernet' | 'numeroFactura' | 'proveedor'> = [
-      'serial', 'codigoImgc', 'ram', 'almacenamiento', 'procesador', 'estado',
+      'serial', 'codigoImgc', 'descripcion', 'ram', 'almacenamiento', 'procesador', 'estado',
       'host', 'sisOperativo', 'arquitectura', 'officeVersion', 'anydesk',
       // Campos adicionales que no estaban siendo auditados/actualizados
       'macWifi', 'macEthernet', 'fechaCompra', 'numeroFactura', 'proveedor', 'monto'
@@ -369,6 +369,7 @@ export async function PUT(request: NextRequest) {
         data: {
             serial: body.serial,
             codigoImgc: body.codigoImgc,
+            descripcion: body.descripcion,
             estado: body.estado,
             host: body.host,
             sisOperativo: body.sisOperativo,

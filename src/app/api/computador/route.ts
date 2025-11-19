@@ -93,6 +93,7 @@ export async function GET(request: Request) {
         serial: computador.serial,
         estado: computador.estado,
         codigoImgc: computador.codigoImgc,
+        descripcion: computador.descripcion,
         host: computador.host,
         fechaCompra: computador.fechaCompra,
         numeroFactura: computador.numeroFactura,
@@ -171,6 +172,9 @@ export async function POST(request: Request) {
     };
 
     // Agregar campos opcionales solo si tienen valores
+    if (computadorData.descripcion && computadorData.descripcion.trim() !== '') {
+      processedData.descripcion = computadorData.descripcion;
+    }
     if (computadorData.host && computadorData.host.trim() !== '') {
       processedData.host = computadorData.host;
     }

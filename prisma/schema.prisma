@@ -119,6 +119,7 @@ model Computador {
   procesador              String?
   officeVersion           String?
   codigoImgc              String
+  descripcion             String?
   fechaCompra             DateTime?
   monto                   Decimal?
   numeroFactura           String?
@@ -155,6 +156,8 @@ model User {
   role                 String                 @default("No-Admin")
   movimientos          HistorialMovimientos[]
   passwordResetTokens  PasswordResetToken[]
+  asignacionesCreadas  AsignacionesEquipos[]  @relation("AsignacionUsuario")
+  modificaciones       HistorialModificaciones[] @relation("ModificacionUsuario")
 }
 
 model PasswordResetToken {
@@ -252,11 +255,13 @@ model AsignacionesEquipos {
   gerenteId        String?
   ubicacionId      String?
   evidenciaFotos   String?
+  usuarioId        String?
   computador       Computador?  @relation(fields: [computadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dispositivo      Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   gerenteEmpleado  Empleado?    @relation("GerenteEmpleado", fields: [gerenteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   targetEmpleado   Empleado?    @relation("TargetEmpleado", fields: [targetEmpleadoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ubicacion        Ubicacion?   @relation(fields: [ubicacionId], references: [id], onUpdate: NoAction)
+  usuario          User?        @relation("AsignacionUsuario", fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model DepartamentoGerente {
@@ -278,7 +283,9 @@ model HistorialModificaciones {
   valorAnterior String?
   valorNuevo    String?
   computadorId  String
+  usuarioId     String?
   computador    Computador @relation(fields: [computadorId], references: [id], onUpdate: NoAction)
+  usuario       User?      @relation("ModificacionUsuario", fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([computadorId])
 }

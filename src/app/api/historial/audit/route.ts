@@ -79,7 +79,11 @@ export async function GET(request: NextRequest) {
               { itemType: { contains: search } }
             ]
           }),
-          ...(filterAction !== 'all' && { actionType: filterAction }),
+          ...(filterAction !== 'all' && (
+            filterAction === 'ACTUALIZACION' 
+              ? {} // Incluir todas las asignaciones si se filtra por ACTUALIZACION
+              : { actionType: filterAction }
+          )),
           ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
         },
         include: {
@@ -89,6 +93,13 @@ export async function GET(request: NextRequest) {
               nombre: true,
               apellido: true,
               ced: true
+            }
+          },
+          usuario: {
+            select: {
+              id: true,
+              username: true,
+              role: true
             }
           },
           computador: {
@@ -141,10 +152,21 @@ export async function GET(request: NextRequest) {
               { valorNuevo: { contains: search } }
             ]
           }),
-          ...(filterAction !== 'all' && { campo: filterAction }),
+          ...(filterAction !== 'all' && (
+            filterAction === 'ACTUALIZACION'
+              ? {} // Incluir todas las modificaciones si se filtra por ACTUALIZACION
+              : { campo: filterAction }
+          )),
           ...(Object.keys(dateFilter).length > 0 && { fecha: dateFilter })
         },
         include: {
+          usuario: {
+            select: {
+              id: true,
+              username: true,
+              role: true
+            }
+          },
           computador: {
             include: {
               computadorModelos: {
@@ -203,7 +225,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Procesar Asignaciones
-    asignaciones.forEach(asig => {
+    asignaciones.forEach((asig: any) => {
       const equipo = asig.computador || asig.dispositivo;
       let modeloInfo = 'Sin modelo';
       
@@ -232,8 +254,12 @@ export async function GET(request: NextRequest) {
         entidadId: equipo?.id || null,
         descripcion: `${asig.actionType} de ${asig.itemType}${asig.motivo ? ` - ${asig.motivo}` : ''}`,
         detalles: asig.notes,
-        // No hay actor explícito en esta tabla, evitar atribuir al usuario visualizador
-        usuario: null,
+        // Usar el usuario registrado en la asignación si existe
+        usuario: asig.usuario ? {
+          id: asig.usuario.id,
+          username: asig.usuario.username,
+          role: asig.usuario.role
+        } : null,
         ipAddress: null,
         userAgent: null,
         equipo: equipo ? {
@@ -253,7 +279,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Procesar Historial de Modificaciones
-    historialModificaciones.forEach(mod => {
+    historialModificaciones.forEach((mod: any) => {
       const computador = mod.computador;
       let modeloInfo = 'Sin modelo';
       
@@ -274,8 +300,12 @@ export async function GET(request: NextRequest) {
         entidadId: computador?.id || null,
         descripcion: `Campo '${mod.campo}' modificado`,
         detalles: `${mod.valorAnterior || 'N/A'} → ${mod.valorNuevo || 'N/A'}`,
-        // No hay actor explícito aquí; no atribuir al usuario actual
-        usuario: null,
+        // Usar el usuario registrado en la modificación si existe
+        usuario: mod.usuario ? {
+          id: mod.usuario.id,
+          username: mod.usuario.username,
+          role: mod.usuario.role
+        } : null,
         ipAddress: null,
         userAgent: null,
         equipo: computador ? {

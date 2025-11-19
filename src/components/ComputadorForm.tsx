@@ -45,6 +45,7 @@ export interface ComputadorFormData {
     serial: string;
     estado: string;
     codigoImgc: string;  // Cambio de nsap a codigoImgc - OBLIGATORIO
+    descripcion?: string; // Nuevo campo
     ubicacionId?: string;
     host?: string;
     sisOperativo?: string;
@@ -93,6 +94,7 @@ const initialState: ComputadorFormData = {
     serial: '',
     estado: 'OPERATIVO',  // Valor por defecto válido
     codigoImgc: '',  // Cambio de nsap a codigoImgc - OBLIGATORIO
+    descripcion: '',
     host: '',
     sisOperativo: '',
     arquitectura: '',
@@ -356,6 +358,10 @@ const ComputadorForm: React.FC<ComputadorFormProps> = ({
                                 <div className="grid gap-2">
                                     <Label htmlFor="codigoImgc">Código IMGC <span className="text-destructive">*</span></Label>
                                     <Input id="codigoImgc" value={formData.codigoImgc || ''} onChange={handleInputChange} placeholder="Código IMGC" required={!isEditing}/>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="descripcion">Descripción</Label>
+                                    <Input id="descripcion" value={formData.descripcion || ''} onChange={handleInputChange} placeholder="Descripción del equipo"/>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="host">Host (Opcional)</Label>

@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
             campo: 'estado',
             valorAnterior: estadoActual,
             valorNuevo: nuevoEstado,
+            usuarioId: user?.id || null,
           },
         });
         console.log('Historial de computador registrado exitosamente');
@@ -284,6 +285,7 @@ export async function POST(request: NextRequest) {
           gerenteId: null,
           ubicacionId: ubicacionId || null, // Agregar ubicación
           activo: actionType === 'ASIGNACION' ? true : false, // Solo las asignaciones están activas
+          usuarioId: user?.id || null,
         },
       });
       console.log('Registro de asignación creado exitosamente');
@@ -302,11 +304,13 @@ export async function POST(request: NextRequest) {
 
     // Log de auditoría
     try {
-      await AuditLogger.logUpdate(
+      await AuditLogger.logStateChange(
         tipoEquipo,
         equipoId,
-        `Estado cambiado de ${estadoActual} a ${nuevoEstado}. Motivo: ${motivo}`,
-        user?.id as string
+        estadoActual,
+        nuevoEstado,
+        user?.id as string,
+        { motivo }
       );
       console.log('Log de auditoría registrado exitosamente');
     } catch (auditError) {
