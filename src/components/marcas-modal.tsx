@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "nextjs-toast-notify";
 import { X, Plus, Trash2, AlertTriangle, Edit } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Marca {
   id: string;
@@ -32,6 +33,8 @@ interface MarcasModalProps {
 }
 
 export function MarcasModal({ marcas, modelos, onClose, onMarcasChange }: MarcasModalProps) {
+  const { hasPermission } = usePermissions();
+  const userCanDelete = hasPermission('canDelete');
   const [nuevaMarca, setNuevaMarca] = useState("");
   const [localMarcas, setLocalMarcas] = useState<Marca[]>(marcas);
   const [editingMarca, setEditingMarca] = useState<string | null>(null);
@@ -253,19 +256,21 @@ export function MarcasModal({ marcas, modelos, onClose, onMarcasChange }: Marcas
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveMarca(marca.id)}
-                          disabled={!canDelete}
-                          className={`h-8 w-8 p-0 ${
-                            canDelete 
-                              ? 'text-red-600 hover:text-red-700' 
-                              : 'text-gray-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {userCanDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveMarca(marca.id)}
+                            disabled={!canDelete}
+                            className={`h-8 w-8 p-0 ${
+                              canDelete 
+                                ? 'text-red-600 hover:text-red-700' 
+                                : 'text-gray-400 cursor-not-allowed'
+                            }`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
