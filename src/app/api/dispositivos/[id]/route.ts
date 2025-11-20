@@ -366,6 +366,55 @@ export async function PUT(request: NextRequest) {
                 });
             }
 
+            // Actualizar ubicación si se proporciona
+            if (ubicacionId !== undefined) {
+                const newUbicacionId = ubicacionId === "" ? null : ubicacionId;
+                
+                // Buscar asignación activa
+                const asignacionActiva = await tx.asignacionesEquipos.findFirst({
+                    where: {
+                        dispositivoId: id,
+                        activo: true
+                    }
+                });
+
+                if (asignacionActiva) {
+                    // Si hay asignación activa, actualizamos su ubicación
+                    if (asignacionActiva.ubicacionId !== newUbicacionId) {
+                        await tx.asignacionesEquipos.update({
+                            where: { id: asignacionActiva.id },
+                            data: { ubicacionId: newUbicacionId }
+                        });
+                    }
+                } else {
+                    // Si no hay asignación activa, verificamos si necesitamos crear un registro histórico
+                    const ultimaAsignacionConUbicacion = await tx.asignacionesEquipos.findFirst({
+                        where: {
+                            dispositivoId: id,
+                            ubicacionId: { not: null }
+                        },
+                        orderBy: { date: 'desc' }
+                    });
+
+                    if (newUbicacionId && ultimaAsignacionConUbicacion?.ubicacionId !== newUbicacionId) {
+                        await tx.asignacionesEquipos.create({
+                            data: {
+                                dispositivoId: id,
+                                ubicacionId: newUbicacionId,
+                                date: new Date(),
+                                actionType: 'ACTUALIZACION_UBICACION',
+                                targetType: 'UBICACION',
+                                itemType: 'Dispositivo',
+                                activo: false,
+                                motivo: 'Actualización de ubicación desde edición',
+                                notes: 'Ubicación actualizada manualmente',
+                                usuarioId: (user as any)?.id || null,
+                            }
+                        });
+                    }
+                }
+            }
+
             return equipoActualizado;
         });
 
