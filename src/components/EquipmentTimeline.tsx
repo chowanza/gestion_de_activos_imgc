@@ -154,6 +154,7 @@ export function EquipmentTimeline({
         const isReturn = asig.actionType === 'Return' || asig.actionType === 'DEVOLUCION';
         const isEdit = asig.actionType === 'Edit';
         const isCreation = asig.actionType === 'CREACION';
+        const isLocationUpdate = asig.actionType === 'ACTUALIZACION_UBICACION';
         
         if (isCreation) {
           return {
@@ -167,6 +168,24 @@ export function EquipmentTimeline({
               orgLine,
               asig.motivo && `Motivo: ${asig.motivo}`,
               asig.notes && `Notas: ${asig.notes}`,
+              asig.evidenciaFotos && 'Evidencia fotográfica disponible'
+            ].filter(Boolean),
+            evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
+          };
+        }
+
+        if (isLocationUpdate) {
+          return {
+            icon: <MapPin className="h-4 w-4 text-indigo-500" />,
+            title: 'Actualización de Ubicación',
+            message: `Ubicación actualizada el ${fechaFormateada}`,
+            color: 'indigo',
+            badge: 'Ubicación',
+            details: [
+              asig.ubicacion?.nombre && `Nueva ubicación: ${asig.ubicacion.nombre}`,
+              asig.motivo && `Motivo: ${asig.motivo}`,
+              asig.notes && `Notas: ${asig.notes}`,
+              orgLine,
               asig.evidenciaFotos && 'Evidencia fotográfica disponible'
             ].filter(Boolean),
             evidenciaFotos: asig.evidenciaFotos ? asig.evidenciaFotos.split(',') : []
