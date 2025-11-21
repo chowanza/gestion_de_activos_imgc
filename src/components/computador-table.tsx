@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { showToast } from "nextjs-toast-notify";
-import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, CheckCircle2Icon, Trash2, Shield, FilterIcon } from "lucide-react";
+import { ArchiveRestore, ChevronLeftIcon, ChevronRightIcon, ColumnsIcon, ImageIcon, MoreHorizontalIcon, PlusIcon, User2Icon, WrenchIcon, XCircleIcon, EyeIcon, CheckCircle2Icon, Trash2, Shield, FilterIcon, ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
@@ -135,7 +135,17 @@ const columns: ColumnDef<Computador>[] = [
   },
   {
     accessorKey: "codigoImgc",
-    header: "Código IMGC",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Código IMGC
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const codigo = row.getValue("codigoImgc") as string;
       return (
@@ -144,6 +154,17 @@ const columns: ColumnDef<Computador>[] = [
         </div>
       );
     },
+    sortingFn: (rowA, rowB, columnId) => {
+      const valA = rowA.getValue(columnId) as string;
+      const valB = rowB.getValue(columnId) as string;
+      
+      // Extraer números (asumiendo formato como "IMGC-123")
+      // Buscamos la última secuencia de dígitos
+      const numA = parseInt(valA.match(/\d+$/)?.[0] || "0", 10);
+      const numB = parseInt(valB.match(/\d+$/)?.[0] || "0", 10);
+      
+      return numA - numB;
+    }
   },  
 {
   accessorFn: (row) => row.modelo?.marca?.nombre ?? "Sin marca",
