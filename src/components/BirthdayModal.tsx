@@ -56,6 +56,10 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
 
         if (isNaN(birthDate.getTime())) return null;
 
+        // FIX: Add 1 day to the date because the database/frontend mismatch
+        // causes dates to appear one day behind.
+        birthDate.setDate(birthDate.getDate() + 1);
+
         // Adjust for timezone if necessary, but usually birthdates are just dates.
         // We'll treat them as local dates at 00:00:00
         const birthMonth = birthDate.getMonth();
@@ -151,7 +155,7 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 gap-0 bg-white/95 backdrop-blur-xl">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 bg-white/95 backdrop-blur-xl">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <PartyPopper className="h-6 w-6 text-pink-500" />
@@ -267,7 +271,8 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
                                 <AvatarFallback className="text-xs">{b.empleado.nombre[0]}{b.empleado.apellido[0]}</AvatarFallback>
                               </Avatar>
                               <div className="flex-1 truncate text-sm">
-                                <span className="font-medium">{b.empleado.nombre} {b.empleado.apellido}</span>
+                                <span className="font-medium block">{b.empleado.nombre} {b.empleado.apellido}</span>
+                                <span className="text-xs text-gray-500">{b.date.getDate()} de {monthNames[b.date.getMonth()]}</span>
                               </div>
                               {b.isToday && <Badge className="bg-pink-500 text-[10px] h-5">Hoy</Badge>}
                             </div>
