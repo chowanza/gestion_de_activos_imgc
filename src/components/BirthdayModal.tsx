@@ -163,16 +163,16 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden p-6 pt-2">
+        <div className="flex-1 overflow-hidden p-6 pt-2 flex flex-col">
           <Tabs defaultValue="upcoming" className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4 shrink-0">
               <TabsTrigger value="upcoming">Próximos</TabsTrigger>
               <TabsTrigger value="month">Por Mes</TabsTrigger>
               <TabsTrigger value="past">Pasados</TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 pr-4 -mr-4">
-              <TabsContent value="upcoming" className="mt-0 space-y-6">
+            <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+              <TabsContent value="upcoming" className="mt-0 space-y-6 pb-6">
                 {todaysBirthdays.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="font-semibold text-pink-600 flex items-center gap-2">
@@ -244,7 +244,7 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="month" className="mt-0">
+              <TabsContent value="month" className="mt-0 pb-6">
                 <div className="space-y-6">
                   {monthNames.map((monthName, index) => {
                     const birthdaysInMonth = byMonth[index] || [];
@@ -284,7 +284,7 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="past" className="mt-0">
+              <TabsContent value="past" className="mt-0 pb-6">
                 <div className="space-y-3">
                     <h3 className="font-semibold text-gray-600">Ya celebraron este año</h3>
                     <div className="grid gap-2">
@@ -309,7 +309,7 @@ export function BirthdayModal({ empleados }: BirthdayModalProps) {
                     </div>
                 </div>
               </TabsContent>
-            </ScrollArea>
+            </div>
           </Tabs>
         </div>
       </DialogContent>
