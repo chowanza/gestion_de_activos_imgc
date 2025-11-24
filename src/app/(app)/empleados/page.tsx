@@ -8,7 +8,6 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Loading } from "@/utils/loading";
-import { BirthdayModal } from "@/components/BirthdayModal";
 
 async function fetchData() {
   try {
@@ -81,7 +80,6 @@ export default function empleadosPage() {
             <h1 className="text-2xl font-semibold text-gray-900">Gestión de Empleados</h1>
             <p className="text-sm text-gray-600 mt-1">Administra la información de los empleados de la empresa</p>
           </div>
-          <BirthdayModal empleados={data} />
         </div>
       </div>
       <EmpleadoTable data={data.length > 0 ? data : []} />

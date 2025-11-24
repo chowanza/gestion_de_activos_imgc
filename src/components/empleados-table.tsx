@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TableRowSkeleton, { LoadingSpinner } from "@/utils/loading";
 import { usePermissions } from "@/hooks/usePermissions";
+import { BirthdayModal } from "@/components/BirthdayModal";
 
 export const empleadoSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
@@ -796,6 +797,7 @@ return (
             <CardTitle className="text-2xl font-bold">Empleados</CardTitle>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
+              <BirthdayModal empleados={data} />
               <Input
                 placeholder="Buscar por nombre, apellido, cédula, teléfono o dirección..."
                 value={searchQuery}
