@@ -28,7 +28,12 @@ export async function decrypt(session: string): Promise<UserJwtPayload | null> {
       algorithms: ['HS256'],
     });
     return payload;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'ERR_JWT_EXPIRED') {
+      // Session expired, this is expected behavior after 7 days
+      // console.log('Session expired');
+      return null;
+    }
     console.error('Failed to verify session:', error);
     return null;
   }

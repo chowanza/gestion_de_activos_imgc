@@ -318,6 +318,7 @@ El sistema implementa un control de acceso basado en roles (RBAC) definido en `s
 
 | Módulo | Permisos CRUD | Funcionalidades Específicas |
 | :--- | :--- | :--- |
+| **Acceso al Sistema** | ✅ Login | Acceso completo mediante credenciales. |
 | **Usuarios** | ✅ C ✅ R ✅ U ✅ D | Crear cuentas, resetear contraseñas, eliminar usuarios. |
 | **Inventario** | ✅ C ✅ R ✅ U ✅ D | Registrar equipos, editar especificaciones, dar de baja. |
 | **Asignaciones** | ✅ C ✅ R ✅ U ✅ D | Asignar equipos, cambiar estados, editar historial. |
@@ -334,6 +335,7 @@ El sistema implementa un control de acceso basado en roles (RBAC) definido en `s
 
 | Módulo | Permisos CRUD | Funcionalidades Específicas |
 | :--- | :--- | :--- |
+| **Acceso al Sistema** | ✅ Login | Acceso limitado a gestión de inventario. |
 | **Usuarios** | ❌ Acceso Denegado | No puede ver ni gestionar usuarios. |
 | **Inventario** | ✅ C ✅ R ✅ U ❌ D | **Puede Registrar y Editar** equipos. **No puede Eliminar** existentes. |
 | **Asignaciones** | 👁️ R (Solo Lectura) | Puede ver quién tiene qué, pero **no puede asignar/cambiar estados**. |
@@ -352,6 +354,7 @@ El sistema implementa un control de acceso basado en roles (RBAC) definido en `s
 
 | Módulo | Permisos CRUD | Funcionalidades Específicas |
 | :--- | :--- | :--- |
+| **Acceso al Sistema** | ✅ Login | Acceso de solo lectura. |
 | **Usuarios** | ❌ Acceso Denegado | No puede ver ni gestionar usuarios. |
 | **Inventario** | 👁️ R (Solo Lectura) | Búsqueda y visualización de fichas técnicas. |
 | **Asignaciones** | 👁️ R (Solo Lectura) | Visualización de historial de asignaciones. |
